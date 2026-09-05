@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test"
+import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from "bun:test"
 
 let mockBunSpawnSyncCalls: Array<{ cmd: string[] }> = []
 let mockBunSpawnSyncResults: Array<{ exitCode: number; stdout: string; stderr: string }> = []
@@ -6,6 +6,8 @@ let mockFiles: Set<string>
 let mockFileContents: Map<string, string>
 
 const origSpawnSync = Bun.spawnSync
+let savedEnv: Record<string, string | undefined> = {}
+const ENV_PROVIDER_PATTERN = /^[A-Z0-9_]+_(API_KEY|TOKEN)$/
 
 function resetMocks(): void {
   mockBunSpawnSyncCalls = []
@@ -16,6 +18,13 @@ function resetMocks(): void {
 
 beforeEach(() => {
   resetMocks()
+  savedEnv = {}
+  for (const key of Object.keys(process.env)) {
+    if (ENV_PROVIDER_PATTERN.test(key)) {
+      savedEnv[key] = process.env[key]
+      delete process.env[key]
+    }
+  }
   Bun.spawnSync = mock((cmd: string[], _opts?: unknown) => {
     mockBunSpawnSyncCalls.push({ cmd })
     const result = mockBunSpawnSyncResults.shift() ?? { exitCode: 1, stdout: "", stderr: "" }
@@ -38,11 +47,28 @@ beforeEach(() => {
   }))
 })
 
+afterEach(() => {
+  for (const key of Object.keys(process.env)) {
+    if (ENV_PROVIDER_PATTERN.test(key)) delete process.env[key]
+  }
+  for (const [key, value] of Object.entries(savedEnv)) {
+    if (value === undefined) delete process.env[key]
+    else process.env[key] = value
+  }
+  savedEnv = {}
+})
+
 afterAll(() => {
   Bun.spawnSync = origSpawnSync
   mock.restore()
+  for (const key of Object.keys(process.env)) {
+    if (ENV_PROVIDER_PATTERN.test(key)) delete process.env[key]
+  }
+  for (const [key, value] of Object.entries(savedEnv)) {
+    if (value === undefined) delete process.env[key]
+    else process.env[key] = value
+  }
 })
-
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { pluginInstallationCheck } from "../../../src/cli/doctor/checks/plugin"
