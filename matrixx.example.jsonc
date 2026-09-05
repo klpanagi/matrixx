@@ -246,24 +246,33 @@
 
   // ─────────────────────────────────────────────────────────────────────────
   // context-mode — tool output sandboxing (L2) — FTS5 sandbox, ctx_* tools
-  // IMPORTANT: context-mode has NO key in matrixx.jsonc. It is an EXTERNAL
-  // OpenCode plugin, not a Matrixx setting. Configure it in opencode.jsonc:
+  // External plugin: add "context-mode" to opencode.jsonc `plugin` array + this gate.
+  // Matrixx auto-detects ctx_* tools and injects discipline (MUST use ctx_*).
   //
-  // ENABLING:
-  //   1. In `~/.config/opencode/opencode.jsonc` (or project `.opencode/opencode.jsonc`):
-  //      { "plugin": ["context-mode", "opencode-matrixx"] }
-  //   2. Restart OpenCode. Verify via `ctx stats` — ctx_* tools should be listed.
+  // ENABLING (default — discipline + FTS5):
+  //   1. opencode.jsonc: { "plugin": ["context-mode", "opencode-matrixx"] }
+  //   2. matrixx.jsonc: { "context_mode": { "enabled": true } }  ← default true, omit to keep enabled
+  //   3. Restart OpenCode. Verify via `ctx stats` or `bunx opencode-matrixx doctor`
   //
   // DISABLING:
-  //   Remove "context-mode" from the `plugin` array in opencode.jsonc and restart.
+  //   - Soft (keep plugin, hide discipline): { "context_mode": { "enabled": false } }
+  //   - Hard (remove plugin): remove "context-mode" from opencode.jsonc `plugin` array
+  //   - Per-hook: { "disabled_hooks": ["context-mode-enforcer"] }  ← disables enforcer only
   //
-  // Legacy trap: if you have BOTH `mcp.context-mode` and `plugin: ["context-mode"]`,
-  // OpenCode may expose zero ctx_* tools. Remove the old `mcp` entry.
+  // ENFORCEMENT (hard block vs soft warn):
+  //   { "context_mode": { "enabled": true, "enforce": true, "blocked_tools": ["grep","glob"] } }
+  //   - enforce:false (default) → grep/glob/read warn via hook message (prompt says MUST)
+  //   - enforce:true  → grep/glob throw/block, read/bash warn (edit chain exempt)
+  //   - blocked_tools: tools to gate (default ["grep","glob"]; add "read","bash" to also cover those)
   //
   // Docs: https://github.com/mksglu/context-mode
-  // Full 5-layer guide: docs/context-management.md#22-context-mode
+  // Guide: docs/context-management.md#22-context-mode
   // ─────────────────────────────────────────────────────────────────────────
-  // (no matrixx.jsonc key — see above)
+  // "context_mode": {
+  //   "enabled": true,                     // enable discipline + enforcer (default: true)
+  //   "enforce": false,                    // false=warn, true=block grep/glob (default: false)
+  //   "blocked_tools": ["grep", "glob"]   // tools to gate (default: ["grep","glob"])
+  // },
 
   // ─────────────────────────────────────────────────────────────────────────
   // RTK — bash command rewriter (L1) — token compression for bash outputs

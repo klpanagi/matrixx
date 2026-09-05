@@ -9,6 +9,7 @@ export { createCategorySkillReminderHook } from "./category-skill-reminder";
 export { createCommentCheckerHooks } from "./comment-checker";
 export { createCompactionContextInjector } from "./compaction-context-injector";
 export { createCompactionTodoPreserverHook } from "./compaction-todo-preserver";
+export { createContextModeEnforcerHook } from "./context-mode-enforcer";
 export { createContextWindowMonitorHook } from "./context-window-monitor";
 export { createDelegateTaskRetryHook } from "./delegate-task-retry";
 export { createDesignIntentPreserverHook } from "./design-intent-preserver"

@@ -10,6 +10,7 @@ import { BrowserAutomationConfigSchema } from "./browser-automation"
 import { CategoriesConfigSchema } from "./categories"
 import { BuiltinCommandNameSchema } from "./commands"
 import { CommentCheckerConfigSchema } from "./comment-checker"
+import { ContextModeConfigSchema } from "./context-mode"
 import { DcpConfigSchema } from "./dcp"
 import { EvolutionConfigSchema } from "./evolution"
 import { ExperimentalConfigSchema } from "./experimental"
@@ -76,9 +77,11 @@ export const MatrixxConfigSchema = z.object({
   matrixx_self_config: MatrixxSelfConfigSkillConfigSchema.optional(),
   /** Headroom network-proxy compression configuration (default: disabled) */
   headroom: HeadroomConfigSchema.optional(),
-  /** RTK bash command rewriter configuration (default: disabled) */
+  /** context-mode tool sandbox discipline (L2) — FTS5 ctx_* gating */
+  context_mode: ContextModeConfigSchema.optional(),
   /** RTK bash command rewriter configuration (default: disabled) */
   rtk: RtkConfigSchema.optional(),
+  /** Self-evolution loop configuration (default: disabled) */
   /** Self-evolution loop configuration (default: disabled) */
   evolution: EvolutionConfigSchema.optional(),
   /** Migration history to prevent re-applying migrations (e.g., model version upgrades) */

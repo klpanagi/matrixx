@@ -424,14 +424,14 @@ export function buildCompactContextDisciplineSection(hasContextMode = false): st
 | Docs / Web | ctx_fetch_and_index -> ctx_search |
 | Compression | compress when ctx_stats > 40% or 10+ tool calls |
 
-Edits need prior read for LINE#ID — read→edit chain exempt. When in doubt, use ctx_*.`;
+Edits need prior read for LINE#ID — read→edit chain exempt. MUST use ctx_* when available — raw grep/read is forbidden for analysis.`;
 }
 
 export function buildExploreDisciplineSection(hasContextMode = false, hasHeadroom = false): string {
   if (!hasContextMode && !hasHeadroom) return "";
   const parts: string[] = [];
   if (hasContextMode) {
-    parts.push("Prefer ctx_search for indexed hits → grep/glob fallback for raw FS; use ctx_batch_execute / ctx_execute for multi-file analysis; use ctx_fetch_and_index for docs/web → ctx_search.");
+    parts.push("MUST use ctx_search for indexed hits → grep/glob fallback ONLY when ctx_* unavailable; use ctx_batch_execute / ctx_execute for multi-file analysis; use ctx_fetch_and_index for docs/web → ctx_search. Raw grep/read/glob for analysis is forbidden when ctx_* is available.");
   }
   if (hasHeadroom) {
     parts.push("Use headroom_retrieve / headroom_search for compressed history — NEVER re-read full history.");

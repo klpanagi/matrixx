@@ -2,6 +2,7 @@ import type { HookName, MatrixxConfig } from "../../config"
 import {
   createBashFileReadGuardHook,
   createCommentCheckerHooks,
+  createContextModeEnforcerHook,
   createDirectoryAgentsInjectorHook,
   createDirectoryReadmeInjectorHook,
   createEmptyTaskResponseDetectorHook,
@@ -44,6 +45,7 @@ export type ToolGuardHooks = {
   envFileWriteGuard: ReturnType<typeof createEnvFileWriteGuardHook> | null
   jsonErrorRecovery: ReturnType<typeof createJsonErrorRecoveryHook> | null
   bashFileReadGuard: ReturnType<typeof createBashFileReadGuardHook> | null
+  contextModeEnforcer: ReturnType<typeof createContextModeEnforcerHook> | null
   readImageResizer: ReturnType<typeof createReadImageResizerHook> | null
   webfetchRedirectGuard: ReturnType<typeof createWebFetchRedirectGuardHook> | null
   hashlineEditDiffEnhancer: ReturnType<typeof createHashlineEditDiffEnhancerHook> | null
@@ -128,6 +130,10 @@ export function createToolGuardHooks(args: {
     ? safeHook("bash-file-read-guard", () => createBashFileReadGuardHook())
     : null
 
+  const contextModeEnforcer = isHookEnabled("context-mode-enforcer")
+    ? safeHook("context-mode-enforcer", () => createContextModeEnforcerHook(pluginConfig))
+    : null
+
   const readImageResizer = isHookEnabled("read-image-resizer")
     ? safeHook("read-image-resizer", () => createReadImageResizerHook(ctx))
     : null
@@ -171,6 +177,7 @@ export function createToolGuardHooks(args: {
     envFileWriteGuard,
     jsonErrorRecovery,
     bashFileReadGuard,
+    contextModeEnforcer,
     readImageResizer,
     webfetchRedirectGuard,
     hashlineEditDiffEnhancer,

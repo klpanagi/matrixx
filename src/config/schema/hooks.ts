@@ -65,6 +65,8 @@ export const HookNameSchema = z.enum([
   "evolution-compressor",
   "evolution-quality-gate",
   "evolution-hitl",
+  "context-mode-enforcer",
+  "task-edit-guard",
   "task-edit-guard",
 ])
 

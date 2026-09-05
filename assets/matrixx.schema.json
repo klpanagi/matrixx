@@ -168,6 +168,7 @@
           "evolution-compressor",
           "evolution-quality-gate",
           "evolution-hitl",
+          "context-mode-enforcer",
           "task-edit-guard"
         ]
       }
@@ -5154,6 +5155,36 @@
       },
       "required": [
         "enabled"
+      ],
+      "additionalProperties": false
+    },
+    "context_mode": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "type": "boolean"
+        },
+        "enforce": {
+          "default": false,
+          "type": "boolean"
+        },
+        "blocked_tools": {
+          "default": [
+            "read",
+            "grep",
+            "glob"
+          ],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "enabled",
+        "enforce",
+        "blocked_tools"
       ],
       "additionalProperties": false
     },
