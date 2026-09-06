@@ -1,6 +1,6 @@
 # Command Reference
 
-Matrixx provides 15 built-in slash commands covering orchestration, research, refactoring, handoffs, and tool toggles.
+Matrixx provides 24 built-in slash commands covering orchestration, research, refactoring, handoffs, task management, BDD, and tool toggles.
 
 ---
 
@@ -18,10 +18,20 @@ Matrixx provides 15 built-in slash commands covering orchestration, research, re
 | `/handoff` | Create session handoff | — | — |
 | `/pickup` | Resume from handoff | — | — |
 | `/remove-deadcode` | Delete unused code (LSP-verified) | — | — |
+| `/profile` | Show tier/profile configuration | — | — |
 | `/end-ultrawork` | Deactivate ultrawork mode | ✅ | — |
 | `/research` | Saturation research (multi-round) | — | — |
 | `/assembly` | Toggle assembly tool at runtime | ✅ | — |
 | `/ultrawork` | Toggle ultrawork mode at runtime | ✅ | — |
+| `/task-list` | List active tasks (`task_list`) | — | — |
+| `/cleanup-tasks` | Clean completed tasks (`task_cleanup`) | — | — |
+| `/dcp-profile` | Switch DCP pruning tier | ✅ | — |
+| `/evolution` | Self-evolution proposals (approve/reject/list) | — | — |
+| `/bdd-contract` | BDD contract from Gherkin | — | bdd-contract |
+| `/bdd-frontend` | BDD React components | — | — |
+| `/bdd-backend` | BDD typed API service | — | — |
+| `/bdd-pipeline` | Full BDD pipeline (contract→tests→frontend→backend) | — | — |
+| `/bdd-tests` | BDD Cucumber steps + page objects | — | — |
 
 ### Legend
 
@@ -332,7 +342,7 @@ This command has an **imperative intercept** — it calls `ultraworkState.enable
 
 ---
 
-## Custom Commands
+In addition to the 24 built-in commands above, Matrixx loads custom commands from these locations (in priority order):
 
 In addition to the 15 built-in commands above, Matrixx loads custom commands from these locations (in priority order):
 

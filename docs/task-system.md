@@ -1,52 +1,99 @@
-# Task System
+# Task System — Engineering Specification
 
-Matrixx's Task system provides structured, persistent task management with dependency tracking, parallel execution optimization, and automatic synchronization with the OpenCode Todo API. It is an **opt-in** replacement for the legacy `TodoWrite`/`TodoRead` mechanism.
-
----
-
-## Overview
-
-The Task System replaces OpenCode's ephemeral session-memory todos with file-backed tasks that survive session restarts, support dependencies (`blockedBy`/`blocks`), and enable automatic parallel execution optimization.
-
-### Key Capabilities
-
-- **Persistence**: Tasks stored as JSON files in `~/.config/opencode/tasks/{listId}/` — survive session restarts
-- **Dependencies**: Full `blockedBy`/`blocks` support for task ordering
-- **Parallel execution**: Tasks with empty `blockedBy` automatically runnable in parallel
-- **Todo sync**: Bidirectional sync between tasks and the OpenCode Todo API
-- **Atomic writes**: Temp-file + rename pattern with file-based locking (30s stale threshold)
-- **Agent awareness**: All agents (Morpheus, Keymaker, Mouse variants) have dual-mode prompts that adapt when the task system is enabled
-- **Graceful degradation**: Falls back to `TodoWrite`/`TodoRead` when disabled — no code changes needed
+> **Scope:** Persistent, file-backed task management for Matrixx agent orchestration.
+> **Audience:** Engineers evolving the task system — storage, tools, hooks, scheduling, and agent integration.
+> **Version:** 2026-09 (branch `dev` @ `bb3bd59`) — post `d8ca206` decouple, `4e694d0` project-scoped storage, `d16dc27` edit guard, `82f9f38` global-scope fixes.
 
 ---
 
-## Configuration
+## 1. Purpose & Design Principles
 
-### Enabling the Task System
+The Task System replaces OpenCode's ephemeral session-memory todos with **file-backed tasks** that survive restarts, support explicit dependencies, and drive automatic parallelization.
 
-The task system is gated behind the `experimental.task_system` flag. Add this to your `matrixx.jsonc`:
+### Design Principles
+
+| Principle | Implication |
+|-----------|-------------|
+| **File is the source of truth** | No in-memory registry, no DB. One `T-{uuid}.json` per task in `getTaskDir()`. Stateless CRUD = easy reasoning, easy recovery. |
+| **Atomicity over speed** | Every write is `write tmp + renameSync`. Lock file with `wx` + stale eviction. Correctness under concurrent agents is non-negotiable. |
+| **Additive dependencies** | `addBlocks`/`addBlockedBy` append via `Set` — never replace. Prevents race when two agents update deps concurrently. |
+| **One task, one owner, one transition** | `TaskUpdate(in_progress)` immediately before work, `completed` immediately after. No batch completions. Enforced by prompt + continuation hook. |
+| **Blocked = schedulable** | `task_list` filters `blockedBy` to unresolved only. Scheduler can skip blocked tasks without extra query. |
+| **Graceful degradation** | `experimental.task_system=false` restores `TodoWrite`/`TodoRead` everywhere — tool registry, hooks, prompts all dual-mode via `isTaskSystemEnabled()`. |
+| **Drop-in upgrade** | Enabling flips tool registry + hooks + agent prompts + storage without touching agent business logic. |
+
+---
+
+## 2. System Overview
+
+```
+matrixx.jsonc
+  experimental.task_system (default true ── isTaskSystemEnabled)
+  morpheus.tasks { storage_path?, task_list_id?, scope?, claude_code_compat? }
+            │
+            ├─── Tool Registry (src/plugin/tool-registry.ts)
+            │     if enabled → register 5 tools:
+            │       task_create · task_get · task_list · task_update · task_cleanup
+            │
+            ├─── Hook Wiring
+            │     ├─ createContinuationHooks  → taskContinuationEnforcer (event:idle, 2s countdown)
+            │     ├─ createToolGuardHooks     → tasksTodowriteDisabler (tool.execute.before, BLOCKING)
+            │     │                           → taskEditGuard (tool.execute.before, bash edit guard)
+            │     └─ createSessionHooks       → taskResumeInfo (tool.execute.after, resume hint)
+            │                                 → delegateTaskRetry, taskNotepad, emptyTaskResponseDetector
+            │
+            ├─── Agent Prompts (dynamic-agent-prompt-builder, morpheus/keymaker/mouse factories)
+            │     useTaskSystem=true → task discipline; false → todo discipline
+            │
+            └─── Runtime
+                  task_create  → lock → T-{uuid}.json (pending) → unlock
+                  task_update  → lock → merge fields → validate → atomic write → unlock
+                  task_list    → readdir → validate → filter active → resolve blockedBy
+                  task_get     → readFile → validate
+                  task_cleanup → readdir → filter completed + olderThan → unlink
+```
+
+### Component Map
+
+| Component | Disabled (`task_system=false`) | Enabled (`task_system=true`) |
+|-----------|-------------------------------|------------------------------|
+| Tool registry | 0 task tools (todos only) | 5 task tools registered |
+| `tasks-todowrite-disabler` | no-op | `tool.execute.before` throws on `TodoWrite`/`TodoRead` |
+| `task-edit-guard` | always active (own patterns) | same — blocks `sed`/`echo`/`cat`/`mv` on `.matrixx/tasks` & `.matrixx/plans` |
+| Tool config (`tool-config-handler`) | default | `todowrite:false`, `todoread:false` global + per-agent `deny` |
+| Agent prompts | todo discipline | task discipline (`task_create`/`task_update` workflow) |
+| Storage | session memory (OpenCode Todo API) | file system (`.matrixx/tasks/` or global) |
+| Continuation | `todo-continuation-enforcer` only | `task-continuation-enforcer` + `todo-continuation-enforcer` independently |
+| Persistence | lost on restart | survives restart, migratable |
+
+---
+
+## 3. Configuration
+
+### 3.1 Master Gate — `experimental.task_system`
 
 ```jsonc
+// matrixx.jsonc
 {
   "experimental": {
-    "task_system": true
+    "task_system": true  // default true since v2.5.x; set false to restore TodoWrite
   }
 }
 ```
 
-Since v2.5.x, `task_system` defaults to `true` if omitted; fresh clones work with `matrixx.jsonc` without manual edit. To disable, set `false` explicitly. The first load auto-migrates missing field via `_migrations` marker `task_system_default_true`.
-> **Note**: There is also a root-level `new_task_system_enabled` field in the config schema. This field is **not consumed** by any runtime code, it is a planned field that was never wired up. OUT of scope for this migration, field remains unused. Use `experimental.task_system` instead.
+- **Canonical predicate:** `isTaskSystemEnabled(config)` in `src/shared/task-system-gating.ts` — single source of truth. Returns `config?.experimental?.task_system ?? true`.
+- **First-load migration:** missing field auto-set via `_migrations` marker `task_system_default_true` (no user action).
+- **Wiring:** `createContinuationHooks` and `createToolGuardHooks` gate `task-continuation-enforcer` and `tasks-todowrite-disabler` on this predicate. `task-edit-guard` and `task-resume-info` are unconditional (own patterns).
 
-### Task Storage Options
-
-Under `morpheus.tasks`, you can configure storage behavior:
+### 3.2 Storage Options — `morpheus.tasks`
 
 ```jsonc
 {
   "morpheus": {
     "tasks": {
-      "storage_path": "/custom/path",
-      "task_list_id": "my-project",
+      "storage_path": "/custom/path",   // absolute or relative override
+      "task_list_id": "my-project",     // override env/default
+      "scope": "project",               // "project" | "global"
       "claude_code_compat": false
     }
   }
@@ -55,315 +102,114 @@ Under `morpheus.tasks`, you can configure storage behavior:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `storage_path` | `string` | `~/.config/opencode/tasks/{listId}/` | Absolute or relative path override for task storage |
-| `task_list_id` | `string` | `basename(process.cwd())` | Force a task list ID (alternative to env var) |
-| `claude_code_compat` | `boolean` | `false` | Enable Claude Code path compatibility mode |
+| `storage_path` | `string` | — | Absolute path used verbatim; relative path `join(cwd, storage_path)`. When set, bypasses `scope`/`listId` resolution. |
+| `task_list_id` | `string` | — | Explicit list ID. Alternative to `ULTRAWORK_TASK_LIST_ID` env. Sanitized to `[a-zA-Z0-9_-]`. |
+| `scope` | `"project" \| "global"` | `"project"` | `project` → `.matrixx/tasks` in the project root. `global` → `~/.config/opencode/tasks/{listId}` via `getOpenCodeConfigDir()`. |
+| `claude_code_compat` | `boolean` | `false` | Claude Code path compatibility flag (reserved). |
 
-### Task List ID Resolution
+**Schema:** `MorpheusTasksConfigSchema` in `src/config/schema/morpheus.ts` (`storage_path?: string`, `task_list_id?: string`, `scope?: enum`, `claude_code_compat?: boolean`).
 
-The task list ID (used as the storage subdirectory name) resolves with this priority:
+### 3.3 Directory Resolution
 
-1. `ULTRAWORK_TASK_LIST_ID` environment variable
-2. `CLAUDE_CODE_TASK_LIST_ID` environment variable
-3. `config.morpheus.tasks.task_list_id` configuration option
-4. `basename(process.cwd())` — the current working directory name
+Implemented in `src/features/task-storage/storage.ts: getTaskDir()` + `resolveTaskListId()`.
 
-All IDs are sanitized to `[a-zA-Z0-9_-]` characters only.
+**Priority for `listId`:**
 
-Verification: `tail -n 100 /tmp/matrixx.log | grep -E "opencode-todo-writer|todo-sync|task-todo-mirror"` should show `writeTodosViaApi ok` with count and no `Cannot find module`; live check `await ctx.client.session.todo({path:{id: mainSessionID}})` returns pending tasks immediately.
+1. `ULTRAWORK_TASK_LIST_ID` env
+2. `CLAUDE_CODE_TASK_LIST_ID` env
+3. `config.morpheus.tasks.task_list_id`
+4. `basename(process.cwd())` sanitized
+
+Sanitization: `sanitizePathSegment()` — `[^a-zA-Z0-9_-]` replaced with `-`.
+
+**Priority for directory:**
+
+```
+if storage_path is absolute → storage_path
+else if storage_path is relative → join(cwd, storage_path)
+else if scope === "global" OR !directory → join(getOpenCodeConfigDir(), "tasks", sanitizedListId)
+else → join(directory, ".matrixx", "tasks")   // default: project-scoped
+```
+
+`ensureDir()` (`mkdirSync -p`) is called before every read/write. `getProjectTaskDir(directory)` is the shorthand for the default branch.
+
+### 3.4 Task List ID Verification
+
+```bash
+# Env override check
+ULTRAWORK_TASK_LIST_ID=my-list opencode  # → ~/.config/opencode/tasks/my-list  (if scope=global)
+                                          # or .matrixx/tasks            (if scope=project, env ignored for path but used for migration)
+
+# Log grep (after enabling task_system)
+tail -n 100 /tmp/matrixx.log | grep -E "task.*dir|getTaskDir|migrateLegacy"
+```
 
 ---
 
-## Architecture
+## 4. Data Model
 
-The task system integrates into Matrixx at multiple layers:
+### 4.1 Two-Layer Type System
 
-```
-matrixx.jsonc
-  experimental.task_system: true
-            |
-            v
-  Tool Registry (tool-registry.ts)
-  ---------------------------------
-  Conditionally registers 4 task tools:
-  task_create, task_get, task_list, task_update
-            |
-            +---> TodoWrite Disabler Hook (tasks-todowrite-disabler/)
-            |     tool.execute.before -- BLOCKS TodoWrite/TodoRead
-            |     Forces agents to use TaskCreate/TaskUpdate instead
-            |
-            +---> Tool Config (tool-config-handler.ts)
-            |     Global: todowrite: false, todoread: false
-            |     Per-agent (morpheus, keymaker, architect, oracle, mouse):
-            |       todowrite: "deny", todoread: "deny"
-            |
-            +---> Agent Config (agent-config-handler.ts)
-            |     useTaskSystem=true -> flows to all agent factories
-            |     Agent prompts rewrite: todos -> tasks
-            |
-            +---> Runtime Execution
-                  Agent calls task_create -> writes JSON file + lock + sync to Todo API
-                  Agent calls task_update -> updates JSON + merge deps + sync
-                  Agent calls task_list -> reads directory, filters active, resolves blockers
-                  Agent calls task_get -> reads single JSON file
-```
+| Layer | File | Type | Fields | Notes |
+|-------|------|------|--------|-------|
+| **Storage** | `src/features/task-storage/types.ts` | `Task` (`TaskSchema`) | `id, subject, description, status, activeForm?, blocks, blockedBy, owner?, metadata?, projectRoot?` | Slim storage model. `strict()` — unknown keys rejected. |
+| **API** | `src/tools/task/types.ts` | `TaskObject` (`TaskObjectSchema`) | same + `repoURL?, parentID?, threadID` | Superset for tool I/O. Alias `TaskSchema = TaskObjectSchema` for Claude compat. `strict()` likewise. |
 
-### Dual-Mode Design
+**Mapping:** `TaskObject` is `Task` + `threadID` (auto `sessionID`), `repoURL`, `parentID`. When evolving, keep both in sync — add field to `TaskSchema` first, then extend `TaskObjectSchema`.
 
-Every component that touches task tracking has a **dual-mode** design. A single `useTaskSystem` boolean (propagated from the config) switches between task-based and legacy todo-based behavior. This makes the task system a "drop-in upgrade" — enabling it transforms the entire agent experience without any code changes to individual agent prompts.
-
-### Component Map
-
-| Component | Task System Disabled | Task System Enabled |
-|-----------|---------------------|---------------------|
-| Tool registry | Todos only | 4 task tools registered |
-| TodoWrite hook | No-op | BLOCKING (throws error) |
-| Tool config | Default | todowrite/todoread denied |
-| Agent prompts | Todo instructions | Task instructions |
-| Storage | Session memory | File system |
-| Persistence | Lost on close | Survives restart |
-
----
-
-## Tools Reference
-
-### task_create
-
-Create a new task with an auto-generated `T-{uuid}` ID. Records the session ID as `threadID` and sets status to `"pending"`. Writes the task JSON file atomically and syncs to the OpenCode Todo API.
-
-**Args:**
-
-| Arg | Type | Required | Description |
-|-----|------|----------|-------------|
-| `subject` | `string` | Yes | Task subject/title (imperative form) |
-| `description` | `string` | No | Task description |
-| `activeForm` | `string` | No | Present continuous form ("Running tests") |
-| `blockedBy` | `string[]` | No | Task IDs that must complete before this task |
-| `blocks` | `string[]` | No | Task IDs this task blocks |
-| `metadata` | `Record<string, unknown>` | No | Arbitrary task metadata |
-| `repoURL` | `string` | No | Repository URL |
-| `parentID` | `string` | No | Parent task ID (for sub-tasks) |
-
-**Returns:** `{ task: { id: string, subject: string } }`
-
-**Example:**
+### 4.2 Schema Detail (`TaskObjectSchema`)
 
 ```typescript
-// Create a task with a dependency
-task_create({
-  subject: "Implement user authentication",
-  description: "Add JWT-based auth to API endpoints",
-  blockedBy: ["T-abc123"]  // Wait for database migration
-})
-// -> { task: { id: "T-2a200c59-1a36-4dad-a9c3-3064d180f694", subject: "Implement user authentication" } }
+TaskObjectSchema = z.object({
+  id:          z.string().regex(/^T-[A-Za-z0-9-]+$/),   // T-{uuid}
+  subject:     z.string(),                                // imperative: "Implement auth"
+  description: z.string(),                                // default ""
+  status:      z.enum(["pending","in_progress","completed","deleted"]),
+  activeForm:  z.string().optional(),                     // "Implementing auth"
+  blocks:      z.array(z.string()),                       // IDs this task blocks
+  blockedBy:   z.array(z.string()),                       // IDs that block this task
+  owner:       z.string().optional(),                     // agent name
+  metadata:    z.record(z.string(), z.unknown()).optional(),
+  repoURL:     z.string().optional(),
+  parentID:    z.string().optional(),                     // parent task for sub-tasks
+  threadID:    z.string().optional(),                     // auto-set to ctx.sessionID
+  projectRoot: z.string().optional(),                     // auto-set to ctx.directory
+}).strict()
 ```
 
-**Internal operations:**
+**ID pattern:** `TASK_ID_PATTERN = /^T-[A-Za-z0-9-]+$/` (`src/tools/task/constants.ts`). `task_create` generates `T-{uuid}` via `crypto.randomUUID()` (`generateTaskId()`); `task_get`/`task_update` validate and return `{ error: "invalid_task_id" }` on mismatch.
 
-1. Validates input against `TaskCreateInputSchema` (Zod)
-2. Acquires a file-based lock on the task directory (30s stale threshold)
-3. Generates a `T-{uuid}` ID via `crypto.randomUUID()`
-4. Constructs a `TaskObject` with default `blocks: []`, `blockedBy: []`, `status: "pending"`
-5. Validates the full task object against `TaskObjectSchema`
-6. Writes the JSON file atomically (temp + rename)
-7. Releases the lock
-8. Syncs to the OpenCode Todo API via `syncTaskTodoUpdate()`
-
----
-
-### task_get
-
-Retrieve a full task object by ID.
-
-**Args:**
-
-| Arg | Type | Required | Description |
-|-----|------|----------|-------------|
-| `id` | `string` | Yes | Task ID (format: `T-{uuid}`) |
-
-**Returns:** `{ task: TaskObject | null }`
-
-**Example:**
-
-```typescript
-task_get({ id: "T-2a200c59-1a36-4dad-a9c3-3064d180f694" })
-// -> {
-//   task: {
-//     id: "T-2a200c59-1a36-4dad-a9c3-3064d180f694",
-//     subject: "Implement user authentication",
-//     description: "Add JWT-based auth to API endpoints",
-//     status: "in_progress",
-//     blocks: [],
-//     blockedBy: ["T-abc123"],
-//     owner: "morpheus",
-//     threadID: "ses_xxxx"
-//   }
-// }
-```
-
-**ID Validation:** IDs must match the pattern `/^T-[A-Za-z0-9-]+$/`. Returns `{ error: "invalid_task_id" }` on mismatch. Returns `{ task: null }` if the file does not exist or is malformed.
-
----
-
-### task_list
-
-List all active tasks with summary information. Excludes completed and deleted tasks by default. Resolves `blockedBy` to only include unresolved (non-completed) blockers.
-
-**Args:** None
-
-**Returns:** `{ tasks: TaskSummary[], reminder: string }`
-
-Each `TaskSummary`:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `string` | Task ID |
-| `subject` | `string` | Task subject |
-| `status` | `string` | Current status (excluding completed/deleted) |
-| `owner` | `string` | Optional task owner |
-| `blockedBy` | `string[]` | Unresolved blocker IDs only |
-
-**Example:**
-
-```typescript
-task_list()
-// -> {
-//   tasks: [
-//     { id: "T-001", subject: "Build frontend", status: "pending", blockedBy: [] },
-//     { id: "T-002", subject: "Build backend", status: "in_progress", owner: "keymaker", blockedBy: [] },
-//     { id: "T-003", subject: "Integration tests", status: "pending", blockedBy: ["T-001", "T-002"] }
-//   ],
-//   reminder: "1 task = 1 task. Maximize parallel execution by running independent tasks (tasks with empty blockedBy) concurrently."
-// }
-```
-
-**Internal operations:**
-
-1. Reads all `T-*.json` files from the task directory
-2. Parses and validates each file against `TaskObjectSchema` (silently skips invalid files)
-3. Filters out tasks with `status === "completed"` or `status === "deleted"`
-4. For each active task, filters `blockedBy` to only include blockers whose status is NOT `"completed"`
-5. Returns summaries with a parallel-execution reminder
-
----
-
-### task_update
-
-Update an existing task with new values. Supports additive dependency management via `addBlocks`/`addBlockedBy`. Merges metadata (set a key to `null` to delete it). Writes atomically and syncs.
-
-**Args:**
-
-| Arg | Type | Required | Description |
-|-----|------|----------|-------------|
-| `id` | `string` | Yes | Task ID to update |
-| `subject` | `string` | No | New subject |
-| `description` | `string` | No | New description |
-| `status` | `"pending" \| "in_progress" \| "completed" \| "deleted"` | No | New task status |
-| `activeForm` | `string` | No | Present continuous form |
-| `owner` | `string` | No | Task owner (agent name) |
-| `addBlocks` | `string[]` | No | Task IDs to **add** to blocks (additive, not replacement) |
-| `addBlockedBy` | `string[]` | No | Task IDs to **add** to blockedBy (additive, not replacement) |
-| `metadata` | `Record<string, unknown>` | No | Metadata to merge (set key to `null` to delete) |
-
-**Returns:** `{ task: TaskObject }`
-
-**Examples:**
-
-```typescript
-// Complete a task
-task_update({
-  id: "T-2a200c59-1a36-4dad-a9c3-3064d180f694",
-  status: "completed",
-  owner: "morpheus"
-})
-
-// Add a dependency
-task_update({
-  id: "T-003",
-  addBlockedBy: ["T-001"]
-})
-
-// Merge metadata (delete a key)
-task_update({
-  id: "T-001",
-  metadata: { priority: null }  // removes priority from metadata
-})
-```
-
-**Internal operations:**
-
-1. Validates input against `TaskUpdateInputSchema` (Zod)
-2. Validates task ID format against `/^T-[A-Za-z0-9-]+$/`
-3. Acquires a file-based lock
-4. Reads the existing task JSON file and validates it
-5. Applies field updates:
-   - Scalar fields (`subject`, `description`, `status`, `activeForm`, `owner`): direct replacement when provided
-   - `addBlocks`/`addBlockedBy`: merged with existing arrays via `new Set([...existing, ...new])` — additive only
-   - `metadata`: shallow merge with existing; `null` values delete the key
-6. Re-validates the updated object against `TaskObjectSchema`
-7. Writes atomically
-8. Releases the lock
-9. Syncs to the OpenCode Todo API
-
----
-
-## Task Schema
-
-```typescript
-interface Task {
-  id: string                    // T-{uuid}
-  subject: string               // Imperative: "Run tests"
-  description: string
-  status: "pending" | "in_progress" | "completed" | "deleted"
-  activeForm?: string           // Present continuous: "Running tests"
-  blocks: string[]              // Task IDs this task blocks
-  blockedBy: string[]           // Task IDs blocking this task
-  owner?: string                // Agent name
-  metadata?: Record<string, unknown>
-  repoURL?: string
-  parentID?: string             // Parent task for sub-tasks
-  threadID: string              // Auto-set to session ID
-}
-```
-
-Claude Code compatibility alias: `Task = TaskObject`. All field names follow Claude Code's convention (`subject`, `blockedBy`, `blocks`).
-
-### Status Lifecycle
+### 4.3 Status Lifecycle
 
 ```
-   +---------+
-   | pending |
-   +----+----+
-        | task_update({ status: "in_progress" })
-        v
-   +--------------+
-   | in_progress  |
-   +------+-------+
-          | task_update({ status: "completed" })
-          v
-   +-----------+
-   | completed |
-   +-----------+
-          |
-          | (or task_update({ status: "deleted" }))
-          v
-   +---------+
-   | deleted |
-   +---------+
+           task_create
+               │
+               ▼
+          ┌─────────┐
+          │ pending │◄──────────────────────────┐
+          └────┬────┘                           │
+               │ task_update({status:"in_progress"}) │
+               ▼                                │
+        ┌──────────────┐                        │
+        │ in_progress  │──task_update({status:"pending"})──┘ (re-queue)
+        └──────┬───────┘
+               │ task_update({status:"completed"})
+               ▼
+         ┌───────────┐
+         │ completed │ ── task_cleanup({olderThan}) ──► unlinked
+         └───────────┘
+               │ task_update({status:"deleted"})
+               ▼
+         ┌─────────┐
+         │ deleted │ ── task_cleanup ──► unlinked
+         └─────────┘
 ```
 
-### Storage Format
+- **Active** = `pending` or `in_progress`. Returned by `task_list` (others filtered).
+- **Terminal** = `completed` or `deleted`. Only `task_cleanup` physically removes `completed` (respects `olderThan`); `deleted` is treated identically in filters but not yet auto-purged — use `task_cleanup` or manual `deleted` + cleanup.
+- **Discipline:** `in_progress` means exactly one task at a time per agent (Morpheus prompt invariant). Mark `in_progress` before work, `completed` immediately after — no batching.
 
-Tasks are stored as individual JSON files on disk:
-
-```
-~/.config/opencode/tasks/{listId}/
-+-- T-2a200c59-1a36-4dad-a9c3-3064d180f694.json
-+-- T-abc12345-1a36-4dad-a9c3-3064d180f694.json
-+-- .lock                # Temporary lock file (auto-cleaned after 30s stale)
-```
-
-Each file is a single JSON object conforming to `TaskObjectSchema`:
+### 4.4 Example JSON (`T-*.json`)
 
 ```json
 {
@@ -371,289 +217,514 @@ Each file is a single JSON object conforming to `TaskObjectSchema`:
   "subject": "Implement user authentication",
   "description": "Add JWT-based auth to API endpoints",
   "status": "pending",
+  "activeForm": "Implementing user authentication",
   "blocks": [],
   "blockedBy": ["T-abc12345-1a36-4dad-a9c3-3064d180f694"],
-  "threadID": "ses_abc123"
+  "owner": "morpheus",
+  "threadID": "ses_abc123",
+  "projectRoot": "/home/user/project",
+  "metadata": { "priority": "high" }
 }
 ```
 
-### Atomic Write Protocol
+---
 
-All file writes use a temp-then-rename pattern to prevent partial writes:
+## 5. Storage & Persistence
 
-1. Write content to `{path}.tmp.{timestamp}`
-2. `renameSync(tempPath, finalPath)` — atomic on most filesystems
-3. If write fails, the `.tmp` file is cleaned up
+### 5.1 Layout
 
-### File Locking
+```
+# scope=project (default)
+.matrixx/tasks/
+  T-2a200c59-....json
+  T-abc12345-....json
+  .lock                         # ephemeral {id, timestamp}
 
-Concurrent write safety is provided by a file-based `.lock` mechanism:
+# scope=global
+~/.config/opencode/tasks/{sanitizedListId}/
+  T-*.json
+  .lock
+```
 
-- Lock is a JSON file `{ id: UUID, timestamp: number }` created with the `wx` flag (exclusive create)
-- **30 second stale threshold**: If a lock is older than 30 seconds, it is considered abandoned and auto-released
-- Lock ID is verified on release to prevent cross-process cleanup
-- If the lock cannot be acquired and is not stale, the tool returns `{ error: "task_lock_unavailable" }`
+No index file. Directory listing is the index. `T-*.json` glob is the query.
+
+### 5.2 Atomic Write Protocol
+
+`writeJsonAtomic(path, data)` in `storage.ts`:
+
+1. Serialize `JSON.stringify(data, null, 2)`.
+2. `writeFileSync(tmpPath, content)` where `tmpPath = path + ".tmp." + Date.now()`.
+3. `renameSync(tmpPath, path)` — atomic on POSIX.
+4. On failure, `unlinkSync(tmpPath)` best-effort cleanup. Caller surfaces `internal_error`.
+
+Guarantee: readers never see a half-written file.
+
+### 5.3 File Locking
+
+`acquireLock(dir)` / `acquireLockWithRetry(dir)` in `storage.ts`:
+
+- **Create:** `writeFileSync(.lock, JSON.stringify({id: uuid, timestamp: Date.now()}), {flag:"wx"})` — fails with `EEXIST` if another writer holds the lock.
+- **Stale eviction:** `STALE_LOCK_THRESHOLD_MS = 30_000`. On `EEXIST`, read `.lock`; if `Date.now() - timestamp > 30s`, `unlinkSync(.lock)` and retry once. Prevents deadlock on crashed agents.
+- **Release:** `release()` verifies `id` matches before `unlinkSync(.lock)` — avoids deleting a successor's lock.
+- **Retry:** `acquireLockWithRetry` (`task_create` path) loops with short sleep until acquired or timeout. `task_update` uses single-attempt `acquireLock` and returns `{ error: "task_lock_unavailable" }` if contended — caller should retry.
+
+### 5.4 Legacy Migration
+
+`migrateLegacyTasksIfNeeded(config, directory)`:
+
+- Triggers on `task_create` / `task_list` when `getTaskDir()` is empty/non-existent and `~/.config/opencode/tasks/{listId}` contains `T-*.json`.
+- Copies each `T-*.json` not already present (no overwrite). Logs `migrated N tasks`.
+- One-way: global → project. No reverse. Idempotent.
+
+### 5.5 Session-Scoped Operations
+
+`src/features/task-storage/session-storage.ts` — helpers for session-scoped reads (used by continuation enforcer). Not a separate store; thin wrapper over `storage.ts` + `TaskObjectSchema` validation.
 
 ---
 
-## Todo Sync
+## 6. Tool API — Five Tools
 
-The task system provides **bidirectional synchronization** between file-backed tasks and the OpenCode Todo API. This ensures tasks are visible in the OpenCode UI while maintaining persistent disk storage.
+All tools are `ToolDefinition` factories `createTask*Tool(config, ctx)` registered conditionally in `src/plugin/tool-registry.ts` when `isTaskSystemEnabled(config)`. Tool contexts receive `ctx.directory` (project root) and `context.sessionID` (for `threadID`).
 
-### Status Mapping
+### 6.1 `task_create`
 
-| Task Status | Todo Status | Behavior |
-|-------------|-------------|----------|
-| `pending` | `pending` | Visible in todo list |
-| `in_progress` | `in_progress` | Visible in todo list |
-| `completed` | `completed` | Visible in todo list |
-| `deleted` | `null` | Removed from todo list |
+**Input:** `TaskCreateInputSchema` — `subject: string` (required), `description?: string`, `activeForm?: string`, `blockedBy?: string[]`, `blocks?: string[]`, `metadata?: record`, `repoURL?: string`, `parentID?: string`.
 
-### Sync Triggers
+**Output:** `{ task: { id: string, subject: string } }` or `{ error: "task_lock_unavailable" | "validation_error" | "internal_error" }`.
 
-- `task_create`: Syncs the new task as a pending todo
-- `task_update`: Syncs the updated status/fields to the corresponding todo
-- `syncAllTasksToTodos()`: Bulk sync for full state reconciliation (used during session recovery)
+**Behavior:**
 
-### Sync Mechanism
+1. Validate input (`TaskCreateInputSchema`).
+2. `migrateLegacyTasksIfNeeded()` if project dir empty.
+3. `acquireLockWithRetry(dir)`.
+4. `id = T-{randomUUID()}`; construct `TaskObject` with `status:"pending"`, `blocks:[]`, `blockedBy:[]` defaults, `threadID=context.sessionID`, `projectRoot=ctx.directory`.
+5. Validate full object (`TaskObjectSchema`).
+6. `writeJsonAtomic(join(dir, id+".json"), task)`.
+7. `release()`.
 
-The sync function `syncTaskTodoUpdate()` operates as follows:
+**Invariants:** `id` unique; `status` always `pending` on create; `blockedBy`/`blocks` default `[]`; file appears atomically.
 
-1. Fetches current todos via `ctx.client.session.todo()`
-2. Converts the task to a `TodoInfo` object via `syncTaskToTodo()`:
-   - Maps status using `mapTaskStatusToTodoStatus()`
-   - Extracts priority from `metadata.priority` (values: `"low"`, `"medium"`, `"high"`)
-3. Filters current todos to remove the matching entry (matched by `id` first, then by `content`)
-4. Pushes the updated todo (unless the task was deleted)
-5. Writes the complete todo list back via a resolved `TodoWriter`
+```typescript
+task_create({ subject: "Build frontend" })                              // → { task: { id:"T-001", subject:"Build frontend" } }
+task_create({ subject: "Integration tests", blockedBy:["T-001","T-002"] })
+```
 
-### Bulk Sync
+### 6.2 `task_get`
 
-`syncAllTasksToTodos()` handles full state reconciliation:
+**Input:** `TaskGetInputSchema` — `id: string` (required, `TASK_ID_PATTERN`).
 
-1. Fetches all current todos
-2. Maps all tasks to todos (or `null` for deleted tasks)
-3. Preserves existing non-task todos that haven't changed
-4. Removes todos whose tasks were deleted
-5. Writes the complete merged list back
+**Output:** `{ task: TaskObject | null }` or `{ error: "invalid_task_id" }`.
+
+**Behavior:** Validate `id` → `readJsonSafe(join(dir, id+".json"))` → validate against `TaskObjectSchema` → return `null` if missing/malformed (not an error — caller handles `null`).
+
+### 6.3 `task_list`
+
+**Input:** `TaskListInputSchema` — `status?: TaskStatus`, `parentID?: string` (both optional filters).
+
+**Output:** `{ tasks: TaskSummary[], reminder: string }` where `TaskSummary = { id, subject, status, owner?, blockedBy }` (note: not full `TaskObject`).
+
+**Behavior:**
+
+1. `readdirSync(dir)` → filter `T-*.json`.
+2. For each file: `readJsonSafe` + `TaskObjectSchema.safeParse` — silently skip invalid.
+3. Filter: exclude `status==="completed"` and `status==="deleted"` unless `input.status` explicitly asks for them; if `parentID` set, filter to matching.
+4. **Resolve blockers:** for each active task, `blockedBy = blockedBy.filter(id => tasksById[id]?.status !== "completed")` — only unresolved blockers returned. This is the scheduling primitive.
+5. Return summaries + reminder: `"1 task = 1 task. Maximize parallel execution…"`.
+
+**Error:** never throws on malformed files — skips them.
+
+### 6.4 `task_update`
+
+**Input:** `TaskUpdateInputSchema` — `id: string` (required), `subject?, description?, status?, activeForm?, owner?, addBlocks?: string[], addBlockedBy?: string[], metadata?: record, repoURL?, parentID?`.
+
+**Output:** `{ task: TaskObject }` or `{ error: "invalid_task_id" | "task_not_found" | "task_lock_unavailable" | "validation_error" | "internal_error" }`.
+
+**Behavior:**
+
+1. Validate input + `id` pattern.
+2. `acquireLock(dir)` (single attempt).
+3. Read existing file → validate.
+4. Apply updates:
+   - Scalar fields (`subject`,`description`,`status`,`activeForm`,`owner`,`repoURL`,`parentID`): direct replace if provided.
+   - `addBlocks`/`addBlockedBy`: additive — `new Set([...existing, ...add])` (dedup, append-only).
+   - `metadata`: shallow merge; `key: null` deletes the key; otherwise sets.
+5. Re-validate against `TaskObjectSchema`.
+6. `writeJsonAtomic` → `release()`.
+
+**Critical:** Dependencies are **additive only**. There is no `removeBlockedBy` or full-replace — intentional to avoid races. To "unblock" a task, complete the blocker; `task_list` will hide it. To change deps before creation, set them in `task_create`.
+
+```typescript
+task_update({ id:"T-003", addBlockedBy:["T-001"] })          // additive
+task_update({ id:"T-001", status:"completed" })               // unblocks T-003 via task_list filter
+task_update({ id:"T-001", metadata:{ priority:null } })       // delete key
+task_update({ id:"T-001", status:"in_progress", owner:"morpheus" })
+```
+
+### 6.5 `task_cleanup`
+
+**Input:** `TaskDeleteInputSchema` (source: `task-cleanup.ts`) — `olderThan?: string` (pattern `^(\d+)(d|h|m)$` → ms, e.g. `"7d"`, `"24h"`, `"30m"`). No `id` — deletions are bulk by age/status.
+
+**Output:** `{ deleted: number, remaining: number, deletedIds: string[] }`.
+
+**Behavior:**
+
+1. `readdirSync(dir)` → parse each `T-*.json` (validate, skip invalid).
+2. Filter `status==="completed"` only (never deletes `pending`/`in_progress`/`deleted`).
+3. If `olderThan` provided: `parseOlderThan(s)` → ms → for each completed task, compute `getTaskTimestamp(task)` fallback `time_updated ?? time_created ?? updatedAt ?? createdAt ?? 0` → keep only `Date.now() - ts > threshold`.
+4. `unlinkSync` each selected file.
+5. Return counts.
+
+**Invariants:** Only `completed` deleted; `pending`/`in_progress` never touched; malformed files ignored; empty `olderThan` deletes all completed.
+
+```typescript
+task_cleanup({ olderThan:"7d" })   // delete completed older than 7 days
+task_cleanup({})                    // delete all completed
+```
+
+### 6.6 Error Contract
+
+| Code | Tool | Cause | Caller action |
+|------|------|-------|---------------|
+| `invalid_task_id` | `task_get`, `task_update` | `id` fails `TASK_ID_PATTERN` | Fix ID |
+| `task_not_found` | `task_update` | file missing | Check `task_list` |
+| `task_lock_unavailable` | `task_create`, `task_update` | `.lock` held, not stale | Retry after ~100ms |
+| `validation_error` | all | Zod parse fails (strict) | Fix payload |
+| `internal_error` | `task_create`, `task_update`, `task_cleanup` | FS error, atomic write fail | Check `/tmp/matrixx.log` |
+
+All errors are returned as `{ error: string, message?: string }` — never thrown as exceptions to the LLM (hooks are the exception: they `throw` to block `TodoWrite`/`bash`).
 
 ---
 
-## TodoWrite Disabler Hook
+## 7. Dependencies & Scheduling
 
-When the task system is enabled, the `tasks-todowrite-disabler` hook (`src/hooks/tasks-todowrite-disabler/`) acts as an **enforcement layer**.
+### 7.1 Semantics
 
-### Behavior
+- `blocks: string[]` — IDs this task blocks (forward edge). Informational; `task_list` does not filter on it.
+- `blockedBy: string[]` — IDs blocking this task (backward edge). **Scheduling edge** — `task_list` resolves to unresolved only.
+- **Bidirectional sync:** `src/tools/delegate-task/sync-task-deps.ts` — when `task_create({blockedBy:[T-1]})`, caller should also update `T-1` with `addBlocks:[newId]` to keep graph consistent. Not enforced by storage — convention.
 
-| Aspect | Detail |
-|--------|--------|
-| **Hook type** | `tool.execute.before` — BLOCKING |
-| **Trigger** | Any call to `TodoWrite` or `TodoRead` |
-| **Response** | `throw new Error(...)` — blocks execution entirely |
-| **Error message** | Instructs the agent to use `TaskCreate`/`TaskUpdate`/`TaskList`/`TaskGet` instead |
+### 7.2 Additive Merge
 
-### Triple-Layer Enforcement
+`task_update` with `addBlocks`/`addBlockedBy` does `Set([...old, ...added])`. No removal API. Rationale: two agents adding deps concurrently would otherwise clobber each other. To evolve this, consider a `removeBlockedBy` that is also additive via a tombstone set — but current discipline is "complete the blocker."
 
-The task system enforces the transition from todos to tasks through three independent mechanisms:
+### 7.3 Unresolved Filter (Scheduler Primitive)
+
+`task_list` computes for each active task:
+
+```typescript
+const tasksById = Map(allTasks.map(t => [t.id, t]))
+const unresolvedBlockedBy = task.blockedBy.filter(id => tasksById.get(id)?.status !== "completed")
+```
+
+Missing blocker ID (deleted file) is treated as unresolved — defend against stale IDs by completing blockers rather than deleting them before dependents finish.
+
+### 7.4 Wave Planning (Morpheus Discipline)
+
+Morpheus decomposes work into **waves** that maximize parallelism:
+
+```
+Wave 1 (parallel):  T-001 Build frontend    blockedBy:[]
+                    T-002 Build backend     blockedBy:[]
+Wave 2 (blocked):   T-003 Integration tests blockedBy:[T-001,T-002]
+Wave 3 (blocked):   T-004 Deploy            blockedBy:[T-003]
+```
+
+Rules:
+1. Create independent tasks first (`blockedBy:[]`) — they can run via `delegate_task(category=…)` in parallel.
+2. `blockedBy` only when the task truly needs the blocker's output.
+3. Keep chains short — every edge is a serialization point.
+4. Check `task_list()` after each wave; `blockedBy:[]` on a `pending` task means "runnable now."
+
+Full example:
+
+```typescript
+// Wave 1 — parallel
+const t1 = task_create({ subject:"Build frontend" })   // T-001
+const t2 = task_create({ subject:"Build backend" })    // T-002
+// Wave 2 — blocked
+const t3 = task_create({ subject:"Integration tests", blockedBy:[t1.task.id, t2.task.id] })
+// Execute wave 1 in parallel via delegate_task, then:
+task_update({ id:t1.task.id, status:"completed" })
+task_update({ id:t2.task.id, status:"completed" })
+// task_list now shows T-003 with blockedBy:[] → runnable
+task_update({ id:t3.task.id, status:"in_progress", owner:"morpheus" })
+// ... work ...
+task_update({ id:t3.task.id, status:"completed" })
+```
+
+---
+
+## 8. Hooks & Continuation
+
+### 8.1 `task-continuation-enforcer` — Auto-Continue While Tasks Remain
+
+**Files:** `src/hooks/task-continuation-enforcer/{hook.ts, idle-event.ts, countdown.ts, session-state.ts, todo.ts, abort-detection.ts, types.ts, constants.ts}`
+
+**Wiring:** `src/plugin/hooks/create-continuation-hooks.ts` — gated on `isTaskSystemEnabled(config) && isHookEnabled("task-continuation-enforcer")`.
+
+**Trigger:** `event:idle` (session idle). Decoupled from `todo-continuation-enforcer` in `d8ca206` (dedicated enforcer per system).
+
+**State per session:** `SessionStateStore` (`session-state.ts`) — `{ abortDetectedAt?, consecutiveFailures, lastFailureAt, isRecovering }`.
+
+**Constants:**
+
+```
+HOOK_NAME                    = "task-continuation-enforcer"
+DEFAULT_SKIP_AGENTS          = ["oracle", "compaction"]
+COUNTDOWN_SECONDS            = 2
+TOAST_DURATION_MS            = 900
+COUNTDOWN_GRACE_PERIOD_MS    = 500
+ABORT_WINDOW_MS              = 3000
+CONTINUATION_COOLDOWN_MS     = 30_000
+MAX_CONSECUTIVE_FAILURES     = 5
+FAILURE_RESET_WINDOW_MS      = 300_000
+CONTINUATION_PROMPT          = systemDirective(TASK_CONTINUATION)
+                               + "Incomplete Matrixx tasks remain. Continue…"
+                               + "- Proceed without asking for permission"
+                               + "- Mark each task in_progress before starting, completed immediately after"
+                               + "- Respect blockedBy dependencies (skip blocked tasks)"
+                               + "- Do not stop until all tasks are done"
+```
+
+**State Machine (`handleSessionIdle` in `idle-event.ts`):**
+
+```
+event:idle
+  │
+  ├─ isRecovering? ──► skip (log)
+  ├─ abortDetectedAt && now - abort < 3s ──► clear flag, skip
+  ├─ backgroundManager.getTasksByParentSession(sessionID) has running? ──► skip
+  ├─ ctx.client.session.messages → isLastAssistantMessageAborted? ──► skip (API fallback)
+  ├─ isContinuationStopped(sessionID)? ──► skip
+  ├─ consecutiveFailures >=5 && now - lastFailure < 5min ──► skip (circuit breaker)
+  ├─ now - lastContinuation < 30s ──► skip (cooldown)
+  │
+  ├─ getIncompleteTaskCount(dir)  // task_list filtered count via storage
+  │     count == 0 ──► done (no injection)
+  │     count > 0  ──► startCountdown(2s) → injectContinuation(CONTINUATION_PROMPT)
+  │
+  └─ on injection failure → increment consecutiveFailures, record lastFailureAt
+```
+
+**Countdown:** `startCountdown(2s)` in `countdown.ts` — 2-second toast countdown with 500ms grace. Cancels if new tool activity arrives.
+
+**Recovery integration:** `sessionRecovery.setOnAbortCallback/markRecovering` and `setOnRecoveryCompleteCallback` in `create-continuation-hooks.ts` — abort detection via `onAbortCallbacks`, recovery flag via `onRecoveryCompleteCallbacks`.
+
+### 8.2 `tasks-todowrite-disabler` — Enforce Task System
+
+**Files:** `src/hooks/tasks-todowrite-disabler/{hook.ts, constants.ts}`
+
+**Hook type:** `tool.execute.before` — **BLOCKING** (`throw new Error(REPLACEMENT_MESSAGE)`).
+
+**Trigger:** `tool in ["TodoWrite","TodoRead"]` when `isTaskSystemEnabled(config)`.
+
+**Triple-Layer Enforcement:**
 
 | Layer | Mechanism | Location |
 |-------|-----------|----------|
-| 1. **Hook** | BLOCKING — throws error on TodoWrite/TodoRead | `hooks/tasks-todowrite-disabler/hook.ts` |
-| 2. **Global config** | Sets `todowrite: false`, `todoread: false` | `plugin-handlers/tool-config-handler.ts` |
-| 3. **Per-agent config** | Sets `todowrite: "deny"`, `todoread: "deny"` | Same, applied to 5 agents |
+| 1. Hook | `throw` on `TodoWrite`/`TodoRead` | `hooks/tasks-todowrite-disabler/hook.ts` |
+| 2. Global tool config | `todowrite:false`, `todoread:false` | `plugin-handlers/tool-config-handler.ts` |
+| 3. Per-agent config | `todowrite:"deny"`, `todoread:"deny"` on morpheus/keymaker/architect/oracle/mouse | same handler, 5 agents |
 
-This triple-layer approach ensures that even if one enforcement mechanism is bypassed, the others still prevent accidental todo usage.
+**Error message (4-step workflow):**
 
-### Hook Error Message
+> Use `TaskCreate` → `TaskUpdate(in_progress)` → do work → `TaskUpdate(completed)`. "DO NOT retry TodoWrite. Convert to TaskCreate NOW. Even trivial tasks MUST be registered."
 
-When triggered, the hook returns a detailed error instructing agents to:
+### 8.3 `task-edit-guard` — Block Raw Bash Edits
 
-1. **Create** the task with `TaskCreate`
-2. **Assign** themselves with `TaskUpdate({ status: "in_progress", owner: "..." })`
-3. **Do the work**
-4. **Complete** with `TaskUpdate({ status: "completed" })`
+**Files:** `src/hooks/task-edit-guard/{hook.ts, constants.ts}`
 
-The message explicitly warns: "DO NOT retry TodoWrite. Convert to TaskCreate NOW" and enforces registration even for trivial tasks: "Even if the task seems trivial (1 line fix, simple edit, quick change), you MUST first register it."
+**Hook type:** `tool.execute.before` for `bash`. **Unconditional** (not gated on `task_system`).
 
----
+**Patterns:** `BLOCKED_PATTERNS` regex — `sed|python|echo|cat|mv` operating on `.matrixx/plans` or `.matrixx/tasks` paths. Throws — instructs to use `Edit` (hashline IDs) for `.matrixx/plans/*.md` and `task_create`/`task_update`/`task_cleanup` for `.matrixx/tasks/T-*.json`. `grep` read-only is allowed via `isOnlyGrep` check.
 
-## Agent Prompt Integration
+**Duplicate hook name:** `HookNameSchema` in `src/config/schema/hooks.ts` lists `task-edit-guard` twice (lines 66/67) — harmless but should be deduped.
 
-All Matrixx agents have **dual-mode prompts**. When `useTaskSystem` is `true`, agent instructions switch from `todowrite`/`todoread` to the task tool set.
+### 8.4 `task-notepad` & `task-resume-info`
 
-### Morpheus
+| Hook | Trigger | Behavior |
+|------|---------|----------|
+| `task-notepad` (`src/hooks/task-notepad/`) | session start | Injects `.matrixx/tasks` context fragment (task counts) into prompt |
+| `task-resume-info` (`src/hooks/task-resume-info/`) | `tool.execute.after` for delegate targets | Extracts `session_id` via `SESSION_ID_PATTERNS` and appends `to continue: task(session_id="…")` if not already present; ignores `Error:` outputs. Always registered (`create-session-hooks.ts`). |
+| `empty-task-response-detector` (`src/hooks/empty-task-response-detector.ts`) | response analysis | Detects empty assistant message while tasks remain — triggers re-prompt |
+| `delegate-task-retry` (`src/hooks/delegate-task-retry/`) | `delegate_task` failure | Retries on transient LLM failures via pattern matching in `patterns.ts` |
+| `task-toast-manager` (`src/features/task-toast-manager/`) | `task_create`/`task_update` | Toast UI — created on `task_create`, removed on `task_update(completed)` |
 
-The `buildTaskManagementSection(useTaskSystem)` function produces the task management section of Morpheus's prompt. When enabled:
+### 8.5 Sibling — `todo-continuation-enforcer`
 
-- Uses `TaskCreate`/`TaskUpdate` workflow: Register -> Assign -> Work -> Complete
-- Includes a "Why This Is Non-Negotiable" section: user visibility, drift prevention, recovery, accountability
-- The hook note changes from:
-  - Disabled: `"YOUR TODO CREATION WOULD BE TRACKED BY HOOK([SYSTEM REMINDER - TODO CONTINUATION])"`
-  - Enabled: `"YOUR TASK CREATION WOULD BE TRACKED BY HOOK([SYSTEM REMINDER - TASK CONTINUATION])"`
-
-Source: `src/agents/morpheus.ts`
-
-### Keymaker
-
-The `buildTodoDisciplineSection(useTaskSystem)` function produces the discipline section. When enabled:
-
-- References `TaskCreate`/`TaskUpdate` instead of `todowrite`
-- Same structure: triggers table, workflow, anti-patterns table
-- Task creation replaces the todo creation trigger table
-
-Source: `src/agents/keymaker.ts`
-
-### Mouse (all 5 model variants)
-
-The Mouse agent adapts across all supported models:
-
-| Variant | File | Task System Behavior |
-|---------|------|---------------------|
-| **Claude** (default) | `default.ts` | Lists `task_create`, `task_update`, `task_list`, `task_get` as allowed tools |
-| **GPT** | `gpt.ts` | Table-based blocked/allowed tools with tracking spec |
-| **DeepSeek** | `deepseek.ts` | Uses shared constraint/discipline/verification utilities |
-| **Mimo** | `mimo.ts` | Concise: REQUIRES `task_create`/`task_update` |
-| **Qwen** | `qwen.ts` | Detailed tables: `task_create`/`task_update`/`task_list`/`task_get` allowed |
-
-All variants share common utilities in `src/agents/mouse/shared.ts`:
-
-- `buildConstraintsSection(useTaskSystem)`: Lists allowed tools (or mentions nothing for legacy mode)
-- `buildTodoDisciplineSection(useTaskSystem)`: Task discipline vs todo discipline
-- `buildVerificationTable(useTaskSystem)`: Verification section references `TaskUpdate` vs `todowrite`
+Parallel system for `SessionTodo` (`src/hooks/todo-continuation-enforcer/`). Same countdown mechanics but counts `Todo` not tasks. Both enforcers run independently when enabled; gated separately by `task_system` vs `todo` config. Decoupled in `d8ca206` (previously mirrored tasks to todos via `todo-sync.ts` dual-write — removed in `928440c`).
 
 ---
 
-## Dependencies and Parallel Execution
+## 9. Agent Integration
 
-The task system enables automatic parallel execution optimization through dependency tracking.
+### 9.1 Morpheus — Orchestrator
 
-### How It Works
+`buildTaskManagementSection(useTaskSystem)` in `src/agents/morpheus.ts` (and `dynamic-agent-prompt-builder.ts`).
 
-```
-[Build Frontend]    --+
-                      +---> [Integration Tests] ---> [Deploy]
-[Build Backend]     --+
-```
+When enabled:
+- Workflow: `TaskCreate` → `TaskUpdate(in_progress)` → work → `TaskUpdate(completed)` with "Why Non-Negotiable" (visibility, drift prevention, recovery, accountability).
+- Hook note switches from `TODO CONTINUATION` to `TASK CONTINUATION`.
+- Decomposition: creates waves with `blockedBy` to maximize parallelism; launches `delegate_task(category=…)` for each parallel wave.
 
-- Tasks with **empty `blockedBy`** have no dependencies and can run in parallel
-- Tasks with **non-empty `blockedBy`** wait until all blockers complete
-- `task_list()` automatically filters `blockedBy` to only show **unresolved** blockers (excluding completed ones)
+### 9.2 Mouse — Leaf Executor
 
-### Optimization Rules
+5 model variants (`src/agents/mouse/{default,gpt,deepseek,mimo,qwen}.ts`) + shared utils (`shared.ts`):
 
-1. **Start independent tasks first**: Tasks with `blockedBy: []` can begin immediately
-2. **Minimize dependency chains**: Only block a task if it truly depends on another's output
-3. **Short chains reduce bottlenecks**: Every dependency is a potential sequential bottleneck
+- `buildConstraintsSection(useTaskSystem)`: allowed tools list switches to `task_create`/`task_update`/`task_list`/`task_get`/`task_cleanup`.
+- `buildTodoDisciplineSection(useTaskSystem)`: task vs todo discipline.
+- `buildVerificationTable(useTaskSystem)`: verification references `TaskUpdate` vs `todowrite`.
+- Invariant: Mouse cannot spawn sub-agents (`task` tool blocked) — implementation in-house only.
 
-### Full Example Workflow
+### 9.3 `delegate_task` Integration
+
+`src/tools/delegate-task/{background-task.ts, sync-task.ts, sync-task-deps.ts, unstable-agent-task.ts}`:
+
+- **Background path:** `executeBackgroundTask` → `BackgroundManager.launch(...)` with `parentSessionID/messageID/model/agent/tools`. Waits up to `WAIT_FOR_SESSION_TIMEOUT_MS` for `sessionID` to materialize, then stores `sessionId` in `ctx.metadata` for TUI `Task` tool UI (`props.metadata.sessionId` lookup).
+- **Sync path:** `executeSyncTask` → ephemeral session, runs agent, aborts session after to prevent `todo-continuation` re-awakening.
+- **Dep sync:** `sync-task-deps.ts` — after `task_create({blockedBy:[T-1]})`, syncs reverse edge via `task_update({id:T-1, addBlocks:[newId]})`. Bidirectional graph maintenance.
+- **Task metadata:** `task(session_id="ses_…")` continuation hint injected via `task-resume-info` hook.
+
+---
+
+## 10. Commands & TUI
+
+| Command | Template | Tool Called | Behavior |
+|---------|----------|-------------|----------|
+| `/task-list` | `src/features/builtin-commands/templates/task-list.ts` | `task_list` | Renders `TaskList` summaries. Ignores global `search-mode` (fixed in `b7fbcf6`, `cc9e70d`). |
+| `/cleanup-tasks` | `src/features/builtin-commands/templates/cleanup-tasks.ts` | `task_cleanup` | Deletes completed tasks. Also ignores global `search-mode`. |
+
+**Toast manager:** `src/features/task-toast-manager/manager.ts` — `createTaskToastManager` shows toast on `task_create`, removes on `task_update(completed)` (also in `sync-task.ts` finally block: `toastManager.removeTask(taskId)`).
+
+**TUI fix:** `3d44108` hid completed tasks from TUI; only active tasks display.
+
+---
+
+## 11. Cross-Cutting Concerns
+
+### 11.1 Gating — Single Predicate
+
+`src/shared/task-system-gating.ts`:
 
 ```typescript
-// Step 1: Create independent tasks (parallel-capable)
-TaskCreate({ subject: "Build frontend" })                    // T-001
-TaskCreate({ subject: "Build backend" })                     // T-002
-
-// Step 2: Create dependent task
-TaskCreate({ subject: "Run integration tests",
-             blockedBy: ["T-001", "T-002"] })                 // T-003
-
-// Step 3: Check state
-TaskList()
-// T-001 [pending] Build frontend        blockedBy: []
-// T-002 [pending] Build backend         blockedBy: []
-// T-003 [pending] Integration tests     blockedBy: [T-001, T-002]
-
-// Step 4: Complete independent tasks
-TaskUpdate({ id: "T-001", status: "completed" })
-TaskUpdate({ id: "T-002", status: "completed" })
-
-// Step 5: T-003 is now unblocked -- can proceed
-TaskList()
-// T-003 [pending] Integration tests     blockedBy: []
+export const TASK_SYSTEM_DEFAULT = true as const
+export function isTaskSystemEnabled(config: Partial<MatrixxConfig> | undefined | null): boolean {
+  return config?.experimental?.task_system ?? TASK_SYSTEM_DEFAULT
+}
 ```
 
----
+Used by: `create-continuation-hooks`, `create-tool-guard-hooks`, `tasks-todowrite-disabler`. Never check `config.experimental.task_system` directly — always via `isTaskSystemEnabled`.
 
-## Comparison: TodoWrite vs Task System
+### 11.2 Compatibility Notes
 
-| Feature | TodoWrite | Task System |
-|---------|-----------|-------------|
-| Storage | Session memory (ephemeral) | File system (`~/.config/opencode/tasks/`) |
-| Persistence | Lost on session close | Survives restart |
-| Dependencies | None | Full `blockedBy`/`blocks` support |
-| Parallel execution | Manual | Automatic optimization |
-| Status tracking | pending/in_progress/completed | pending/in_progress/completed/deleted |
-| Owner tracking | Not supported | Per-task owner field |
-| Metadata | Not supported | Arbitrary key-value metadata |
-| Parent/child | Not supported | Full `parentID` support |
-| Locking | Not needed (in-memory) | File-based with 30s stale threshold |
-| Todo API sync | Direct (native) | Bidirectional sync |
-| Agent prompts | Todo-based instructions | Task-based instructions |
-| Enforcement | None | Triple-layer: hook + global config + per-agent |
+- **Claude Code alignment:** Field names (`subject`, `blockedBy`, `blocks`) follow Claude Code's Task tool signatures. Anthropic has not published official docs for these tools — Matrixx's `TaskObject` is a superset (adds `activeForm`, `repoURL`, `parentID`, atomic storage, additive deps, metadata merge, `task_cleanup`).
+- **No `morpheus.tasks.enabled`:** Despite legacy docs mention, `MorpheusTasksConfigSchema` has no `enabled` field. The toggle is `experimental.task_system` only. Do not add `enabled` under `morpheus.tasks`.
+- **Pre-existing `todo-sync.ts` removed:** Bulk sync `syncAllTasksToTodos` / `syncTaskTodoUpdate` existed in `src/tools/task/todo-sync.ts` (205 lines) for Todo API mirroring (`d004d84`–`0798df4`). Removed in `928440c`/`d8ca206` when enforcers decoupled. Do not reintroduce dual-write without revisiting the decouple rationale (debounce, direct DB fallback, host-blessed `SessionTodo.Service` writer).
 
 ---
 
-## When to Use
+## 12. Implementation Map
 
-**Use the Task System when:**
+| File | Purpose | Lines |
+|------|---------|-------|
+| `src/tools/task/task-create.ts` | `task_create` — lock + `T-{uuid}` + atomic write | 113 |
+| `src/tools/task/task-get.ts` | `task_get` — read single JSON + validate | 46 |
+| `src/tools/task/task-list.ts` | `task_list` — readdir + filter active + resolve blockedBy | 77 |
+| `src/tools/task/task-update.ts` | `task_update` — additive deps + metadata merge + atomic write | 151 |
+| `src/tools/task/task-cleanup.ts` | `task_cleanup` — delete completed + `olderThan` age filter | ~120 |
+| `src/tools/task/types.ts` | Zod schemas (`TaskObjectSchema`, `TaskCreate/Update/Get/ListInputSchema`) | 77 |
+| `src/tools/task/constants.ts` | `TASK_ID_PATTERN = /^T-[A-Za-z0-9-]+$/` | — |
+| `src/tools/task/index.ts` | Barrel re-exports | — |
+| `src/features/task-storage/storage.ts` | `getTaskDir`, `resolveTaskListId`, `writeJsonAtomic`, `acquireLock`, `migrateLegacy` | 169 |
+| `src/features/task-storage/types.ts` | Storage `TaskSchema` / `Task` type | — |
+| `src/features/task-storage/session-storage.ts` | Session-scoped helpers | — |
+| `src/features/task-toast-manager/manager.ts` | Toast lifecycle | — |
+| `src/features/background-agent/task-history.ts` | Background-task history persisted alongside tasks | — |
+| `src/hooks/task-continuation-enforcer/hook.ts` | Enforcer factory + `CONTINUATION_PROMPT` | — |
+| `src/hooks/task-continuation-enforcer/idle-event.ts` | `handleSessionIdle` state machine | — |
+| `src/hooks/task-continuation-enforcer/countdown.ts` | 2s countdown + grace | — |
+| `src/hooks/task-continuation-enforcer/session-state.ts` | Per-session `{abortDetectedAt, consecutiveFailures, lastFailureAt, isRecovering}` | — |
+| `src/hooks/task-continuation-enforcer/constants.ts` | `COUNTDOWN_SECONDS`, `ABORT_WINDOW_MS`, etc. | — |
+| `src/hooks/tasks-todowrite-disabler/hook.ts` | BLOCKING hook on `TodoWrite`/`TodoRead` | 33 |
+| `src/hooks/tasks-todowrite-disabler/constants.ts` | `REPLACEMENT_MESSAGE` (4-step workflow) | 30 |
+| `src/hooks/task-edit-guard/hook.ts` | Bash edit guard for `.matrixx/tasks` & `.matrixx/plans` | — |
+| `src/hooks/task-notepad/hook.ts` | Task notepad fragment injection | — |
+| `src/hooks/task-resume-info/hook.ts` | Resume hint `task(session_id="…")` | — |
+| `src/hooks/todo-continuation-enforcer/` | Sibling Todo enforcer (independent) | — |
+| `src/tools/delegate-task/background-task.ts` | `delegate_task` background path | — |
+| `src/tools/delegate-task/sync-task-deps.ts` | Bidirectional dep sync | — |
+| `src/config/schema/experimental.ts` | `task_system?: boolean = true` | — |
+| `src/config/schema/morpheus.ts` | `morpheus.tasks.{storage_path, task_list_id, scope, claude_code_compat}` | — |
+| `src/config/schema/hooks.ts` | `HookNameSchema` (includes `task-continuation-enforcer`, `tasks-todowrite-disabler`, `task-edit-guard`, etc.) | — |
+| `src/plugin/tool-registry.ts` | Conditional registration of 5 task tools | — |
+| `src/plugin/hooks/create-continuation-hooks.ts` | Gates `taskContinuationEnforcer` | — |
+| `src/plugin/hooks/create-tool-guard-hooks.ts` | Gates `tasksTodowriteDisabler` | — |
+| `src/plugin/hooks/create-session-hooks.ts` | Registers `taskResumeInfo` (always) | — |
+| `src/shared/task-system-gating.ts` | `isTaskSystemEnabled` canonical predicate | — |
+| `src/features/builtin-commands/templates/task-list.ts` | `/task-list` command | — |
+| `src/features/builtin-commands/templates/cleanup-tasks.ts` | `/cleanup-tasks` command | — |
 
-- **Multi-step work**: Tasks with clear dependencies and ordering requirements
-- **Multi-agent collaboration**: Multiple subagents working on related, dependent tasks
-- **Session-spanning work**: Progress must persist across session restarts
-- **Complex workflows**: Need dependency tracking and parallel execution analysis
-- **Team visibility**: Need task ownership and status tracking across runs
-
-**Stick with TodoWrite/TodoRead when:**
-
-- **Simple single-step tasks**: One-off commands with no dependencies
-- **Session-local tracking**: No need for persistence across restarts
-- **No multi-agent coordination**: Solo work on isolated changes
+**Key Dependencies:** `zod@4` (schemas), `@opencode-ai/plugin` (tool framework, `PluginInput`), `node:crypto` (`randomUUID`), `node:fs` (atomic ops), `node:path`.
 
 ---
 
-## Note on Claude Code Alignment
+## 13. Evolution Guide
 
-This implementation follows Claude Code's internal Task tool signatures (`TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`) and field naming conventions (`subject`, `blockedBy`, `blocks`, etc.).
+### Adding a Field to `Task`
 
-**However, Anthropic has not published official documentation for these tools.** The Task tools exist in Claude Code but are not documented on `docs.anthropic.com` or `code.claude.com`.
+1. Add to `src/features/task-storage/types.ts: TaskSchema` (storage layer).
+2. Add to `src/tools/task/types.ts: TaskObjectSchema` (API layer) — keep them in sync.
+3. Update `task_create` defaults and `task_update` apply-logic if the field is mutable.
+4. Update `task_list` / `task_get` return mapping if it should appear in summaries.
+5. Run `bun run typecheck && bun run lint && bun test`.
+6. Update this doc (§4.2, §6, §12) and `matrixx.example.jsonc` if config-adjacent.
 
-This is **Matrixx's own implementation** based on observed Claude Code behavior and internal specifications. Matrixx provides a superset of Claude Code's task capabilities, including:
+### Adding a New Tool or Hook
 
-- Atomic file-based storage with locking
-- Bidirectional sync to the OpenCode Todo API
-- Additive dependency management (`addBlocks`/`addBlockedBy`) rather than full replacement
-- Metadata merge with null-key deletion
-- Expanded fields (`repoURL`, `parentID`)
+- **Tool:** New file `src/tools/task/task-*.ts` + Zod input schema in `types.ts` + barrel in `index.ts` + registration in `src/plugin/tool-registry.ts` + hook wiring if needed + tests alongside source (`*.test.ts` with `//#given` `//#when` `//#then`).
+- **Hook:** New dir `src/hooks/<name>/` + entry in `HookNameSchema` (`src/config/schema/hooks.ts`) + factory `createXxxHook` + registration in appropriate `src/plugin/hooks/create-*-hooks.ts` + `isTaskSystemEnabled` gate if task-related.
+
+### Invariants to Preserve
+
+- **Strict schemas:** `TaskSchema` and `TaskObjectSchema` are `.strict()` — unknown keys rejected. Do not loosen.
+- **Additive deps only:** `addBlocks`/`addBlockedBy` via `Set`. No full-replace, no inline removal.
+- **Atomic writes:** Always `writeJsonAtomic` (tmp + rename). Never `writeFileSync` directly to `T-*.json`.
+- **Lock verification:** `release()` checks `id` before unlink. Never delete `.lock` unconditionally.
+- **Single owner:** One `in_progress` task per agent at a time (prompt invariant + `task-continuation-enforcer` expects this).
+- **Unresolved filter is the scheduler:** `task_list` must filter `blockedBy` to unresolved; changing this breaks wave planning.
+- **Gating via predicate:** Always `isTaskSystemEnabled(config)` — never read `config.experimental.task_system` inline.
+- **No bash edits:** `.matrixx/tasks/T-*.json` guarded by `task-edit-guard` — use tools, not `sed`/`echo`.
+
+### Testing
+
+- **Mock-heavy isolation:** Tests with `mock.module()` run isolated — add new such files to both `.github/workflows/ci.yml` + `publish.yml` mock-heavy list and the `grep -v -F` exclusion in `script/run-ci.sh`. Source of truth: `script/run-ci.sh`.
+- **Preload:** `tests/test-setup.ts` calls `_resetForTesting()` before each test.
+- **Existing suites:** `src/tools/task/*.test.ts`, `src/features/task-storage/*.test.ts`, `src/hooks/task-continuation-enforcer/*.test.ts`, `src/shared/task-system-gating.test.ts`, `tests/e2e-smoke-task-system.test.ts`.
 
 ---
 
-## Implementation Source Files
+## 14. Appendix — History & Decisions
 
-| File | Purpose |
-|------|---------|
-| `src/tools/task/task-create.ts` | `task_create` tool implementation (113 lines) |
-| `src/tools/task/task-get.ts` | `task_get` tool implementation (46 lines) |
-| `src/tools/task/task-list.ts` | `task_list` tool implementation (77 lines) |
-| `src/tools/task/task-update.ts` | `task_update` tool implementation (151 lines) |
-| `src/tools/task/todo-sync.ts` | Bidirectional Todo API sync (205 lines) |
-| `src/tools/task/types.ts` | Zod schemas for all task types (77 lines) |
-| `src/tools/task/constants.ts` | Task ID pattern (`/^T-[A-Za-z0-9-]+$/`) |
-| `src/tools/task/index.ts` | Barrel exports |
-| `src/features/task-storage/storage.ts` | Core persistence layer (169 lines) |
-| `src/features/task-storage/types.ts` | Task schema and types |
-| `src/features/task-storage/session-storage.ts` | Session-scoped task operations |
-| `src/hooks/tasks-todowrite-disabler/hook.ts` | Blocking hook (33 lines) |
-| `src/hooks/tasks-todowrite-disabler/constants.ts` | Hook error message (30 lines) |
-| `src/config/schema/experimental.ts` | `task_system` config field |
-| `src/config/schema/morpheus.ts` | `morpheus.tasks` config schema |
-| `src/plugin/tool-registry.ts` | Conditional tool registration |
-| `src/plugin-handlers/tool-config-handler.ts` | Permission denials |
-| `src/plugin-handlers/agent-config-handler.ts` | `useTaskSystem` propagation |
-| `src/shared/task-system-gating.ts` | canonical gating predicate `isTaskSystemEnabled` + `TASK_SYSTEM_DEFAULT=true` |
+| Date / Commit | Change | Rationale |
+|---------------|--------|-----------|
+| `d004d84` feat(hooks): mirror Task→Todo | Initial file→Todo API mirror | Tasks visible in OpenCode TUI |
+| `72abccb` / `401f336` | Direct DB fallback + debounce | Reliability under TUI load |
+| `0798df4` host-blessed `SessionTodo.Service` dual-write | Correct writer via `PluginInput` | Align with OpenCode SDK |
+| `4e694d0` migrate to project-scoped storage | `.matrixx/tasks` default; global only if `scope=global` | Project isolation, no cross-project leakage |
+| `0682bce` isolation suite (11 tests) | Verify project isolation | — |
+| `d16dc27` `task-edit-guard` | Block raw bash on `.matrixx/tasks` & `.matrixx/plans` | Prevent bypass of locking/validation |
+| `3d44108` hide completed from TUI | TUI shows only active tasks | Reduce noise |
+| `d8ca206` decouple `task-continuation-enforcer` from `todo-continuation-enforcer` | Dedicated enforcer per system; remove `todo-sync.ts` dual-write | Enforcers independent; no coupling debt |
+| `62e7061` wire enforcer to event bus & correct injection | `handleSessionIdle` via `onAbort`/`onRecoveryComplete` callbacks | Abort-aware, background-task-aware continuation |
+| `5459ef9` merge `feat/task-system-no-todowrite` | Remove stale specs, repair compaction | — |
+| `75fedac` default `task_system=true` + canonical gating | `isTaskSystemEnabled` + `_migrations` marker | Zero-config for fresh clones |
+| `8509b84`–`82f9f38` `/task-list` & `/cleanup-tasks` search-mode fixes | Ignore global `search-mode` | Commands must not leak into global search |
 
-### Key Dependencies
+**Known tech debt:**
 
-- **Zod v4**: Schema validation for all task inputs and storage objects
-- **`@opencode-ai/plugin`**: Tool definition framework, PluginInput client
-- **`node:crypto`**: `randomUUID()` for task ID generation
-- **`node:fs`**: File operations (atomic writes via temp + rename)
-- **`node:path`**: Path resolution for task storage directory
+- Duplicate `task-edit-guard` in `HookNameSchema` (lines 66/67) — dedup pending.
+- No dedicated `TaskManager` class — CRUD is stateless I/O + `.lock`. Intentional simplicity; do not introduce a manager unless contention profiling justifies it.
+
+---
+
+*End of Task System Engineering Specification. For config reference see `docs/configurations.md`; for orchestration see `docs/orchestration-guide.md` and `docs/agent-architecture.md`.*

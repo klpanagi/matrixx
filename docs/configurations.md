@@ -167,7 +167,6 @@ Override built-in agent settings:
 Each agent supports: `model`, `temperature`, `top_p`, `prompt`, `prompt_append`, `tools`, `disable`, `description`, `mode`, `color`, `permission`, `category`, `variant`, `maxTokens`, `thinking`, `reasoningEffort`, `textVerbosity`, `providerOptions`.
 
 ### Additional Agent Options
-
 | Option              | Type    | Description                                                                                     |
 | ------------------- | ------- | ----------------------------------------------------------------------------------------------- |
 | `category`          | string  | Category name to inherit model and other settings from category defaults                             |
@@ -177,7 +176,7 @@ Each agent supports: `model`, `temperature`, `top_p`, `prompt`, `prompt_append`,
 | `reasoningEffort`   | string  | OpenAI reasoning effort level. Values: `low`, `medium`, `high`, `xhigh`.                         |
 | `textVerbosity`      | string  | Text verbosity level. Values: `low`, `medium`, `high`.                                        |
 | `providerOptions`    | object  | Provider-specific options passed directly to OpenCode SDK.                                      |
-
+| `fallbackChain`      | array   | Fallback provider/model chain: `[{ providers: string[], model: string, variant?: string }]`      |
 #### Thinking Options (Anthropic)
 
 ```json
@@ -235,9 +234,9 @@ Fine-grained control over what agents can do:
 | `edit`               | File editing permission                | `ask` / `allow` / `deny`                                                    |
 | `bash`               | Bash command execution                 | `ask` / `allow` / `deny` or per-command: `{ "git": "allow", "rm": "deny" }` |
 | `webfetch`           | Web request permission                 | `ask` / `allow` / `deny`                                                    |
+| `task`               | Task tool (`task_create`/`task_update` etc.) | `ask` / `allow` / `deny`                                                    |
 | `doom_loop`          | Allow infinite loop detection override | `ask` / `allow` / `deny`                                                    |
 | `external_directory` | Access files outside project root      | `ask` / `allow` / `deny`                                                    |
-
 Or disable via `disabled_agents` in `~/.config/opencode/matrixx.json` or `.opencode/matrixx.json`:
 
 ```json
@@ -246,7 +245,7 @@ Or disable via `disabled_agents` in `~/.config/opencode/matrixx.json` or `.openc
 }
 ```
 
-Available agents: `morpheus`, `oracle`, `merovingian`, `operator`, `trinity`, `construct`, `seraph`, `smith`, `architect`, `cipher`, `sati`, `sentinel`, `keymaker`
+Available agents: `morpheus`, `oracle`, `merovingian`, `operator`, `trinity`, `construct`, `seraph`, `smith`, `architect`, `cipher`, `sati`, `sentinel`, `keymaker`, `bdd-contract` (+ aliases `build`, `plan`, `mouse`, `OpenCode-Builder` via `agent_definitions` overrides)
 
 ## Built-in Skills
 
@@ -366,13 +365,14 @@ Define custom skills directly in your config:
 
 ## Browser Automation
 
-Choose between two browser automation providers:
+Choose between four browser automation providers:
 
 | Provider | Interface | Features | Installation |
 |----------|-----------|----------|--------------|
 | **playwright** (default) | MCP tools | Playwright MCP server with structured tool calls | Auto-installed via npx |
 | **agent-browser** | Bash CLI | Vercel's CLI with session management, parallel browsers | Requires `bun add -g agent-browser` |
-
+| **dev-browser** | MCP tools | Dev browser MCP with enhanced debugging | Via MCP config |
+| **playwright-cli** | Bash CLI | Playwright CLI alternative | Requires `npx playwright` |
 **Switch providers** via `browser_automation_engine` in `matrixx.json`:
 
 ```json
@@ -705,9 +705,13 @@ Configure concurrency limits for background agent tasks. This controls how many 
 | --------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `defaultConcurrency`  | -       | Default maximum concurrent background tasks for all providers/models                                                    |
 | `staleTimeoutMs`      | `180000` | Stale timeout in milliseconds - interrupt tasks with no activity for this duration (minimum: 60000 = 1 minute)             |
+| `messageStalenessTimeoutMs` | `120000` | Timeout for message staleness detection (minimum: 60000)                                                         |
+| `maxToolCalls`        | `75`    | Maximum tool calls per background task (minimum: 10)                                                                    |
 | `providerConcurrency` | -       | Per-provider concurrency limits. Keys are provider names (e.g., `anthropic`, `openai`, `google`)                        |
 | `modelConcurrency`    | -       | Per-model concurrency limits. Keys are full model names (e.g., `anthropic/claude-opus-4-6`). Overrides provider limits. |
-
+| `circuitBreaker.enabled` | `false` | Enable circuit breaker for failing tasks                                                                            |
+| `circuitBreaker.maxToolCalls` | `50` | Max tool calls before circuit breaker trips                                                                       |
+| `circuitBreaker.consecutiveThreshold` | `3` | Consecutive failures before circuit breaker opens                                                              |
 **Priority Order**: `modelConcurrency` > `providerConcurrency` > `defaultConcurrency`
 
 **Use Cases**:
@@ -850,13 +854,13 @@ Each category can define a `temperature` that overrides the agent's default temp
 }
 ```
 
-### Additional Category Options
-
 | Option             | Type    | Default | Description                                                                                         |
 | ------------------ | ------- | ------- | --------------------------------------------------------------------------------------------------- |
 | `description`       | string  | -       | Human-readable description of the category's purpose. Shown in task prompt.                     |
 | `is_unstable_agent`| boolean | `false`  | Mark agent as unstable - forces background mode for monitoring. Auto-enabled for gemini models. |
-
+| `fallback_models`   | string\|string[] | - | Fallback model(s) for this category. Overrides provider chain.                            |
+| `complexity_downgrades` | object | -   | Map complexity level to model downgrade: `{ "2": "haiku" }`                              |
+| `disable`           | boolean | `false` | When `true`, disables this category.                                                        |
 ## Model Resolution System
 
 At runtime, Matrixx uses a 3-step resolution process to determine which model to use for each agent and category. This happens dynamically based on your configuration and available models.
@@ -992,8 +996,7 @@ Disable specific built-in hooks via `disabled_hooks` in `~/.config/opencode/matr
 }
 ```
 
-Available hooks: `todo-continuation-enforcer`, `context-window-monitor`, `session-recovery`, `session-notification`, `comment-checker`, `grep-output-truncator`, `tool-output-truncator`, `directory-agents-injector`, `directory-readme-injector`, `empty-task-response-detector`, `think-mode`, `anthropic-context-window-limit-recovery`, `rules-injector`, `background-notification`, `auto-update-checker`, `startup-toast`, `keyword-detector`, `agent-usage-reminder`, `non-interactive-env`, `interactive-bash-session`, `compaction-context-injector`, `thinking-block-validator`, `matrix-loop`, `preemptive-compaction`, `auto-slash-command`, `mouse-notepad`, `start-work`, `quality-gate`
-
+Available hooks (65 — see `src/config/schema/hooks.ts`): `agent-usage-reminder`, `anthropic-context-window-limit-recovery`, `anthropic-effort`, `architect`, `auto-slash-command`, `auto-update-checker`, `background-notification`, `bash-file-read-guard`, `category-skill-reminder`, `comment-checker`, `compaction-context-injector`, `compaction-todo-preserver`, `construct-notepad`, `context-mode-enforcer`, `context-window-monitor`, `delegate-task-retry`, `design-intent-preserver`, `directory-agents-injector`, `directory-readme-injector`, `edit-error-recovery`, `empty-task-response-detector`, `env-context-injector`, `env-file-write-guard`, `evolution-compressor`, `evolution-hitl`, `evolution-quality-gate`, `evolution-watcher`, `grep-output-truncator`, `hashline-edit-diff-enhancer`, `hashline-read-enhancer`, `interactive-bash-session`, `json-error-recovery`, `keyword-detector`, `matrix-loop`, `mcp-startup-notification`, `mouse-notepad`, `non-interactive-env`, `oracle-md-only`, `plan-persister`, `preemptive-compaction`, `question-label-truncator`, `read-image-resizer`, `rtk-bash-rewriter`, `rules-injector`, `runtime-fallback`, `secret-leak-guard`, `session-notification`, `session-recovery`, `start-work`, `startup-toast`, `stop-continuation-guard`, `task-continuation-enforcer`, `task-edit-guard`, `task-notepad`, `task-resume-info`, `tasks-todowrite-disabler`, `think-mode`, `thinking-block-validator`, `todo-continuation-enforcer`, `tool-output-truncator`, `tool-pair-validator`, `unstable-agent-babysitter`, `webfetch-redirect-guard`, `write-existing-file-guard`
 **Note on `directory-agents-injector`**: This hook is **automatically disabled** when running on OpenCode 1.1.37+ because OpenCode now has native support for dynamically resolving AGENTS.md files from subdirectories (PR #10678). This prevents duplicate AGENTS.md injection. For older OpenCode versions, the hook remains active to provide the same functionality.
 
 **Note on `auto-update-checker` and `startup-toast`**: The `startup-toast` hook is a sub-feature of `auto-update-checker`. To disable only the startup toast notification while keeping update checking enabled, add `"startup-toast"` to `disabled_hooks`. To disable all update checking features (including the toast), add `"auto-update-checker"` to `disabled_hooks`.
@@ -1010,8 +1013,7 @@ Disable specific built-in commands via `disabled_commands` in `~/.config/opencod
 }
 ```
 
-Available commands: `init-deep`, `start-work`
-
+Available commands (19): `init-deep`, `start-work`, `handoff`, `pickup`, `task-list`, `cleanup-tasks`, `dcp-profile`, `research`, `assembly`, `ultrawork`, `end-ultrawork`, `matrix-loop`, `cancel-loop`, `refactor`, `remove-deadcode`, `profile`, `bdd-contract`, `bdd-frontend`, `bdd-backend` (+ `ultrawork`/`ulw` keyword triggers)
 ## Comment Checker
 
 Configure comment-checker hook behavior. The comment checker warns when excessive comments are added to code.
@@ -1042,18 +1044,19 @@ Configure notification behavior for background task completion.
 
 | Option         | Default | Description                                                                                   |
 | -------------- | ------- | ---------------------------------------------------------------------------------------------- |
-| `force_enable` | `false` | Force enable session-notification even if external notification plugins are detected. Default: `false`. |
+| `force_enable` | - (absent = `false`) | Force enable session-notification even if external notification plugins are detected. |
 
 ## Morpheus Tasks
 
-Configure Morpheus Tasks system for advanced task management.
+Configure task storage for the Task System. The system is gated by `experimental.task_system` (default `true`) — see [Experimental](#experimental) and [Task System](./task-system.md).
 
 ```json
 {
   "morpheus": {
     "tasks": {
-      "enabled": false,
       "storage_path": ".matrixx/tasks",
+      "task_list_id": "my-project",
+      "scope": "project",
       "claude_code_compat": false
     }
   }
@@ -1062,11 +1065,12 @@ Configure Morpheus Tasks system for advanced task management.
 
 ### Tasks Configuration
 
-| Option               | Default            | Description                                                               |
-| -------------------- | ------------------ | ------------------------------------------------------------------------- |
-| `enabled`            | `false`            | Enable Morpheus Tasks system                                               |
-| `storage_path`       | `.matrixx/tasks`   | Storage path for tasks (relative to project root)                           |
-| `claude_code_compat` | `false`            | Enable Claude Code path compatibility mode                                   |
+| Option               | Type     | Default            | Description                                                               |
+| -------------------- | -------- | ------------------ | ------------------------------------------------------------------------- |
+| `storage_path`       | `string` | — (runtime default: `.matrixx/tasks` when `scope=project`) | Absolute or relative path override. When set, bypasses `scope`/`listId` resolution. |
+| `task_list_id`       | `string` | — (falls back to `basename(cwd)` sanitized) | Force task list ID (alternative to `ULTRAWORK_TASK_LIST_ID` / `CLAUDE_CODE_TASK_LIST_ID` env). Sanitized to `[a-zA-Z0-9_-]`. |
+| `scope`              | `"global" \| "project"` | `"project"` | `project` → `.matrixx/tasks` per project (default). `global` → `~/.config/opencode/tasks/{listId}`. |
+| `claude_code_compat` | `boolean` | `false`            | Enable Claude Code path compatibility mode.                                |
 
 ## MCPs
 
@@ -1160,20 +1164,280 @@ Opt-in experimental features that may change or be removed in future versions. U
 ```json
 {
   "experimental": {
+    "task_system": true,
     "truncate_all_tool_outputs": true,
     "aggressive_truncation": true,
-    "auto_resume": true
+    "auto_resume": true,
+    "preemptive_compaction": true,
+    "hashline_edit": true
   }
 }
 ```
 
 | Option                      | Default | Description                                                                                                                                                                                   |
 | --------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `task_system`               | `true`  | Enable Task System (`task_create`/`task_update` etc.) and `tasks-todowrite-disabler` hook. When `false`, restores `TodoWrite`/`TodoRead`. See [Task System](./task-system.md). |
 | `truncate_all_tool_outputs` | `false` | Truncates ALL tool outputs instead of just whitelisted tools (Grep, Glob, LSP, AST-grep). Tool output truncator is enabled by default - disable via `disabled_hooks`.                         |
 | `aggressive_truncation`     | `false` | When token limit is exceeded, aggressively truncates tool outputs to fit within limits. More aggressive than the default truncation behavior. Falls back to summarize/revert if insufficient. |
 | `auto_resume`               | `false` | Automatically resumes session after successful recovery from thinking block errors or thinking disabled violations. Extracts last user message and continues.                             |
+| `preemptive_compaction`     | `false` | Proactively compact context before hitting limits.                                                                                                                                          |
+| `plugin_load_timeout_ms`    | `10000` | Timeout in ms for `loadAllPluginComponents` during config handler init (min: 1000).                                                             |
+| `safe_hook_creation`        | `true` (at call site) | Wrap hook creation in try/catch to prevent one failing hook from crashing the plugin.                                                  |
+| `hashline_edit`             | `true` (at call site) | Enable hashline-anchored `Edit` tool for `.matrixx/plans/*.md` (line#hash IDs).                                                     |
+## Context Mode
+
+Enforce sandbox-based `ctx_*` tools (`ctx_read`, `ctx_grep`, `ctx_batch_execute`, `ctx_search`, `ctx_execute`) over raw `Read`/`Grep`/`Glob` for analysis. See [Context Management](./context-management.md) for the full 5-layer stack.
+
+```jsonc
+{
+  "context_mode": {
+    "enabled": true,      // default true — inject ctx_* discipline into prompts
+    "enforce": false,     // when true, blocks raw grep/glob/read via hook
+    "blocked_tools": ["read", "grep", "glob"]  // tools blocked when enforce:true
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | `boolean` | `true` | Inject context-mode discipline into agent prompts. |
+| `enforce` | `boolean` | `false` | When `true`, `context-mode-enforcer` hook blocks `read`/`grep`/`glob` for analysis — forces `ctx_*` sandbox (see `ctx_search(queries: [...])`). |
+| `blocked_tools` | `string[]` | `["read","grep","glob"]` | Tools blocked when `enforce:true`. |
+
+> Schema: `src/config/schema/context-mode.ts` (`ContextModeConfigSchema`). Example: `matrixx.example.jsonc` § context_mode.
+
+## Headroom
+
+Network-proxy compression via [Headroom](https://github.com/headroomlabs-ai/headroom) (`CacheAligner→ContentRouter→CCR`). Opt-in `headroom wrap opencode` proxy. See [Context Management §2.4](./context-management.md#24-headroom--network-proxy-compression).
+
+```jsonc
+{
+  "headroom": {
+    "enabled": false,                         // opt-in
+    "proxyUrl": "http://127.0.0.1:8787",     // HEADROOM_PROXY_URL override
+    "project": "my-project",                 // CCR scoping
+    "backend": "openai"                      // HEADROOM_BACKEND
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | `boolean` | `false` | Enable Headroom proxy + `headroom_retrieve`/`headroom_stats` discipline. |
+| `proxyUrl` | `string` (url) | `http://127.0.0.1:8787` | Proxy URL. |
+| `project` | `string` | — | CCR scoping per project. |
+| `backend` | `string` | — | Maps to `HEADROOM_BACKEND`. |
+
+> Schema: `src/config/schema/headroom.ts`. Requires `headroom wrap opencode` — see [Context Management](./context-management.md).
+
+## RTK
+
+Bash output compression via [RTK](https://github.com/rtk-ai/rtk) (`rtk <cmd>` rewriting hook). 60-90% token savings on `git`/`npm`/`cargo`/test outputs.
+
+```jsonc
+{
+  "rtk": {
+    "enabled": false,
+    "binary_path": "rtk",      // optional — resolves via PATH
+    "timeout_ms": 5000           // 1000–30000
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | `boolean` | `false` | Enable RTK bash-rewriter hook. |
+| `binary_path` | `string` | `rtk` | Path to `rtk` binary. |
+| `timeout_ms` | `number` | `5000` | Subprocess timeout (1000–30000). |
+
+> Schema: `src/config/schema/rtk.ts`. Install: `brew install rtk-ai/tap/rtk`.
+
+## DCP
+
+Dynamic Context Pruning — tiered pruning (`economy`/`balanced`/`performance`/`ultimate`) via [`@tarquinen/opencode-dcp`](https://github.com/tarquinen/opencode-dcp). Switch tiers with `/dcp-profile`.
+
+```jsonc
+{
+  "dcp": {
+    "enabled": true,
+    "default_profile": "balanced",   // economy | balanced | performance | ultimate
+    "profiles": { /* 4 built-in; override per tier */ },
+    "base": { "pruneNotificationType": "chat", "autoUpdate": false }
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | `boolean` | `true` | Enable DCP plugin bridge. Requires `@tarquinen/opencode-dcp` installed. |
+| `default_profile` | `string` | — | Default DCP tier. |
+| `profiles` | `object` | 4 built-in (`economy`/`balanced`/`performance`/`ultimate`) | Per-tier overrides for `compress`/`strategies`/`commands`/`manualMode`. |
+| `base` | `object` | — | Base overrides (`pruneNotificationType`, `autoUpdate`, `debug`, `compress`, `strategies`, `commands`, `manualMode`, `protectedFilePatterns`). |
+
+> Schema: `src/config/schema/dcp.ts` (~9.5k). Switch: `/dcp-profile <tier>` (`src/tools/dcp-switch-profile/`). Docs: [Context Management](./context-management.md).
+
+## Assembly
+
+Multi-model debate — 3-5 parallel voters from different providers, synthesis via reciprocal rank fusion.
+
+```jsonc
+{
+  "assembly": {
+    "enabled": false,           // default false — opt-in per call via assembly tool
+    "default_voters": 3,        // 2–5
+    "default_rounds": 2,        // 1–3
+    "timeout_ms": 60000,        // 10000–300000
+    "providers": [{ "providerID": "anthropic", "modelID": "claude-sonnet-4-6" }]
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | `boolean` | `false` | Enable assembly tool globally. |
+| `providers` | `array` | — | Provider-model pairs for auto-selection. |
+| `default_voters` | `number` | — | Default voters (2–5). |
+| `default_rounds` | `number` | — | Default synthesis rounds (1–3). |
+| `timeout_ms` | `number` | — | Max wait per voter (10000–300000). |
+
+> Schema: `src/config/schema/assembly.ts` (`AssemblyConfigSchema`). Tool: `src/tools/assembly/`.
+
+## Security
+
+Three-tier security: reactive hooks + policies + Sentinel agent. Hooks run first in pipeline (`position: pre`).
+
+```jsonc
+{
+  "security": {
+    "secret_scanning": { "enabled": true, "tool": "gitleaks", "block_on_detection": true },
+    "env_file_guard": { "enabled": true },
+    "dependency_audit": { "enabled": false }
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `secret_scanning.enabled` | `boolean` | `true` | Intercept `git commit`/`push`, run gitleaks, block on secrets. |
+| `secret_scanning.tool` | `string` | `gitleaks` | Scanner binary. |
+| `secret_scanning.block_on_detection` | `boolean` | `true` | Block commit/push when secrets found. |
+| `env_file_guard.enabled` | `boolean` | `true` | Block agent writes to `.env`/`*.pem`/`*.key`/`credentials.json`/`id_rsa` (+14 patterns). |
+| `dependency_audit.enabled` | `boolean` | `false` | Enable CVE/SBOM dependency audit (Sentinel). |
+
+> Schema: `src/config/schema/security.ts`. Auditor: Sentinel agent (`security-*` skills). Hook: `secret-leak-guard` + `env-file-write-guard`.
+
+## Evolution (Self-Evolution)
+
+Opt-in trace-driven skill evolution — watcher captures traces, compressor synthesizes, writer generates skills, governance approves, retention/budget gate.
+
+```jsonc
+{
+  "evolution": {
+    "enabled": false,
+    "watcher": { "maxArgChars": 4000, "maxOutputChars": 8000 },
+    "compressor": { "provider": "llm" },
+    "writer": { "outputDir": ".matrixx/evolution/skills" },
+    "governance": { "requireApproval": true },
+    "retention": { "maxTraces": 1000 },
+    "budget": { "maxCostPerRun": 1.0 }
+  }
+}
+```
+
+| Sub-config | Key fields | Default | Description |
+|------------|------------|---------|-------------|
+| `enabled` | `boolean` | `false` | Master toggle for self-evolution loop. |
+| `watcher` | `maxArgChars`, `maxOutputChars`, `skipTools` | `4000`, `8000`, `["evolution-watcher","evolution-compressor"]` | Trace capture. |
+| `compressor` | `provider` (`llm`\|`dspy-gepa`), `minTraces`, `maxInputTokens` | `llm`, `5`, `32000` | Trace synthesis. |
+| `writer` | `outputDir`, `globalSkills`, `allowToolGeneration`, `allowAgentGeneration` | `.matrixx/evolution/skills`, `false`, `false`, `false` | Skill generation. |
+| `governance` | `requireApproval` | `true` | Human approval before promotion. |
+| `retention` | `maxTraces`, `maxPending` | `1000` | Trace/proposal retention. |
+| `budget` | `maxCostPerRun` | `1.0` | Compression cost throttle. |
+
+> Schema: `src/config/schema/evolution.ts` (6 sub-schemas). Full docs: [Evolution](./evolution.md). Commands: `/evolution` (approve/reject/list/audit).
+
+## Matrix Loop
+
+Self-referential development loop — agent iterates until completion criteria met.
+
+```jsonc
+{
+  "matrix_loop": {
+    "enabled": false,
+    "default_max_iterations": 10,
+    "state_dir": ".matrixx/matrix-loop"
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | `boolean` | `false` | Enable matrix-loop hook. |
+| `default_max_iterations` | `number` | `10` | Default max iterations per loop. |
+| `state_dir` | `string` | `.matrixx/matrix-loop` | State directory. |
+
+> Schema: `src/config/schema/matrix-loop.ts`.
+
+## Babysitting
+
+Unstable-agent monitoring — forces background mode for flaky providers (auto-enabled for Gemini).
+
+```jsonc
+{
+  "babysitting": {
+    "timeout_ms": 30000
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `timeout_ms` | `number` | `30000` | Monitoring timeout for unstable agents. |
+
+> Schema: `src/config/schema/babysitting.ts`.
+
+## TDD Enforcer
+
+Enforce test-driven development — `*.test.ts` alongside source, BDD comments, fail→implement→pass→refactor.
+
+```jsonc
+{
+  "tdd_enforcer": {
+    "enabled": false
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | `boolean` | `false` | Enable TDD enforcer hook. |
+
+> Schema: `src/config/schema/tdd-enforcer.ts`. Skill: `tdd-enforcer`.
+
+## Runtime Fallback
+
+Provider fallback on transient errors — retry with next provider in chain.
+
+```jsonc
+{
+  "runtime_fallback": {
+    "enabled": true,
+    "retry_on_errors": ["rate_limit", "timeout"],
+    "max_fallback_attempts": 3
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | `boolean` | `true` | Enable runtime fallback. |
+| `retry_on_errors` | `string[]` | `["rate_limit","timeout"]` | Error types to retry. |
+| `max_fallback_attempts` | `number` | `3` | Max fallback attempts per call. |
+
+> Schema: `src/config/schema/runtime-fallback.ts`.
 
 ## Environment Variables
+
 
 | Variable              | Description                                                                                                                                     |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |

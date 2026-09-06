@@ -21,7 +21,7 @@ Meet the main agent: **Morpheus** (Claude Opus 4.6). Everything below is customi
 3. **Specialist delegation** — UI work goes to Sati (Claude Sonnet 4.6). Debugging goes to Merovingian (Claude Sonnet 4.6). The right model for the right job.
 4. **Contextual awareness** — spawns subagents to digest source code and documentation in real-time when working with unfamiliar frameworks.
 5. **Clean code enforcement** — either justifies a comment's existence or nukes it. Code should be indistinguishable from human-written.
-6. **Relentless execution** — bound by the TODO list. If he doesn't finish, the system forces him back. Your task gets done, period.
+6. **Relentless execution** — bound by the task list (`.matrixx/tasks`, see [Task System](./task-system.md)). If he doesn't finish, `task-continuation-enforcer` forces him back — tasks survive `/clear`. Your task gets done, period.
 7. **One keyword** — type `ultrawork` (or just `ulw`). Morpheus analyzes, gathers context, digs through external source code, and keeps going until the job is 100% complete.
 
 ### Morpheus's Teammates
@@ -38,16 +38,19 @@ Meet the main agent: **Morpheus** (Claude Opus 4.6). Everything below is customi
 | **Seraph** | Pre-planning analysis | Claude Opus 4.6 |
 | **Smith** | Plan validation | Claude Sonnet 4.6 |
 | **Architect** | Plan execution orchestrator | Claude Sonnet 4.6 |
-|| **Mouse** | Category-spawned task executor (delegated worker) | Claude Sonnet 4.6 |
+| **Mouse** | Category-spawned task executor (delegated worker) | Claude Sonnet 4.6 |
+| **Sati** | Frontend specialist (components, a11y, perf, testing) | Claude Sonnet 4.6 |
+| **Sentinel** | Security auditor | Claude Sonnet 4.6 |
+| **BDD Contract** | BDD contract authoring | Claude Sonnet 4.6 |
 | **Sati** | Frontend specialist (components, a11y, perf, testing) | Claude Sonnet 4.6 |
 
 ### Built-in Capabilities
 
 - Full LSP / AST-Grep support
-- ~52 Lifecycle Hooks — context injection, think mode, comment checking, todo enforcement, error recovery, quality gate
-- 16 Tool Directories — LSP, AST-Grep, search tools, delegation, skills, task management, and more
-- Todo Continuation Enforcer — keeps the agent on mission
-- Comment Checker — prevents AI comment slop
+- 65 Lifecycle Hooks — context injection, think mode, comment checking, task/todo continuation enforcement (`task-continuation-enforcer` + sibling), error recovery, quality gate, `task-edit-guard`
+- 22 Tool Directories (40 registrations) — LSP, AST-Grep, search, delegation, skills, task system (`task_create`/`task_update`/`task_list`/`task_get`/`task_cleanup` via `.matrixx/tasks`), and more
+- Task Continuation Enforcer — file-backed `.matrixx/tasks` keep the agent on mission (survives `/clear`; see [Task System](./task-system.md))
+
 - Claude Code Compatibility — commands, agents, skills, MCPs, hooks
 - Curated MCPs: Exa (web search), Context7 (official docs), Grep.app (GitHub code search), Document Reader
 - Interactive terminal via Tmux integration

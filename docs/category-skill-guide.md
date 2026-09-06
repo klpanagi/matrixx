@@ -53,20 +53,26 @@ When you use a Category, a special agent called **Mouse** performs the work.
 
 A Skill is a mechanism that injects **specialized knowledge (Context)** and **tools (MCP)** for specific domains into agents.
 
-### Built-in Skills (31 total)
+### Built-in Skills (37 total)
 
-**Development & Tools (5):**
+**Development & Tools (6):**
 - **`git-master`** — Git expert. Detects commit styles, splits atomic commits, rebase strategies.
+- **`docker-master`** — Container & compose orchestration.
 - **`tdd-enforcer`** — TDD workflow enforcement (RED → GREEN → REFACTOR).
 - **`quality-gate`** — Automated quality verification: lint, typecheck, test, build.
 - **`software-dev`** — Structured 6-phase development pipeline (PLAN → BUILD → VERIFY → REVIEW → SECURE → SHIP).
 - **`review-work`** — Post-implementation review orchestrator with 5 parallel agents.
 
-**Frontend & Browser (4):**
+**Frontend & Browser (8):**
 - **`playwright`** — Browser automation. Web page testing, screenshots, scraping. MCP: `@playwright/mcp` (auto-executed)
+- **`playwright-cli`** — Playwright CLI alternative.
 - **`dev-browser`** — Browser automation with persistent page state.
 - **`agent-browser`** — Agent-controlled browser automation.
 - **`frontend-ui-ux`** — Designer mindset. Color, typography, motion guidelines.
+- **`frontend-a11y`** — Accessibility (WCAG 2.2).
+- **`frontend-perf`** — Core Web Vitals & performance.
+- **`frontend-testing`** — Vitest + Playwright + Storybook.
+(+ `frontend-build-tooling`, `frontend-state-data`, `frontend-react-nextjs`, `frontend-svelte-sveltekit` variants — see `src/features/builtin-skills/skills/`)
 
 **DSL Engineering (11):**
 - **`dsl-core`**, **`dsl-grammar`**, **`dsl-codegen`**, **`dsl-metamodel`**, **`dsl-tooling`**
@@ -78,8 +84,13 @@ A Skill is a mechanism that injects **specialized knowledge (Context)** and **to
 - **`security-dependencies`**, **`security-api`**, **`security-crypto`**
 - **`security-infra`**, **`security-review`**
 
-**Configuration (1):**
+**BDD & Research (5):**
+- **`bdd-backend`**, **`bdd-contract`**, **`bdd-frontend`**, **`bdd-tests`** — BDD pipeline (Gherkin → contract → tests/frontend/backend).
+- **`ulw-research`** — Saturation research orchestrator.
+
+**Configuration & Cleanup (2):**
 - **`matrixx-self-config`** — Configure and tune Matrixx for the current user.
+- **`remove-ai-slops`** — Detect & remove AI-generated code smells (7 categories).
 
 ### Usage
 
@@ -182,6 +193,9 @@ You can fine-tune categories in `matrixx.json`.
 | `tools` | object | Tool usage control (disable with `{ "tool_name": false }`) |
 | `maxTokens` | number | Maximum response token count |
 | `is_unstable_agent` | boolean | Mark agent as unstable - forces background mode for monitoring |
+| `fallback_models` | string\|string[] | Fallback model(s) for this category. Overrides provider chain. |
+| `complexity_downgrades` | object | Map complexity level to model downgrade: `{ "2": "haiku" }` |
+| `disable` | boolean | When `true`, disables this category. |
 
 ### Example Configuration
 
