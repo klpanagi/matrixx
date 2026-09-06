@@ -1,6 +1,6 @@
 # PROJECT KNOWLEDGE BASE
 
-**Version:** 2.5.0 (package.json) · OpenCode plugin SDK `@opencode-ai/plugin` v1.3.15 · Bun-types 1.3.6
+**Version:** 2.6.1 (package.json) · OpenCode plugin SDK `@opencode-ai/plugin` v1.3.15 · Bun-types 1.3.6
 
 ---
 
@@ -100,11 +100,11 @@ Matrixx is a **plugin for OpenCode**. You will frequently need to examine OpenCo
 
 ## OVERVIEW
 
-Matrixx is a multi-agent orchestration **plugin for OpenCode**. 14 built-in agents (Morpheus, Sati, Sentinel, Cipher, etc.) via 63 lifecycle hooks and 22 custom tools. ~900 TS source files, 246 test files.
+Matrixx is a multi-agent orchestration **plugin for OpenCode**. 14 built-in agents (Morpheus, Sati, Sentinel, Cipher, etc.) via 64 lifecycle hooks and 22 custom tools. ~960 TS source files, 246 test files.
 
 | Aspect | Value |
 |---|---|
-| Package | `opencode-matrixx` (npm, v2.5.0) |
+| Package | `opencode-matrixx` (npm, v2.6.1) |
 | Entry | `src/index.ts` → `MatrixxPlugin` |
 | Stack | Bun 1.4.0 + TypeScript 5.7 + Zod v4 + Biome 2.5 (linter only) |
 | License | SUL-1.0 |
@@ -121,7 +121,7 @@ matrixx/
 │   ├── plugin-config.ts            # Config load + Zod validation
 │   ├── plugin-state.ts             # Model context-limit cache
 │   ├── agents/   → 14 agents + AGENTS.md
-│   ├── hooks/    → 63 hooks in 3 tiers
+│   ├── hooks/    → 64 hooks (HookNameSchema, 58 dirs + loose .ts) in 3 tiers
 │   ├── tools/    → 22 dirs (LSP, AST-grep, delegate-task, bdd-*, handoff, etc.)
 │   ├── features/ → 18 dirs (background-agent, skills, commands, handoff, CC compat)
 │   ├── shared/   → 80+ utilities (logger → /tmp/matrixx.log)
@@ -164,6 +164,8 @@ Local-dev install: `bun run build`, then add `"plugin": ["file:///abs/path/to/ma
 
 **Mock-heavy isolation** — ~30 files use `mock.module()` and pollute Bun's module cache. CI runs them isolated (one `bun test` per file/dir). When adding a new `mock.module()` test, add it to **both** `.github/workflows/ci.yml` and `publish.yml` in the mock-heavy list **and** the `grep -v -F` exclusion in the `find | xargs bun test` catch-all. Source of truth: `script/run-ci.sh` — never duplicate the exclusion list elsewhere. Verify via `bash script/run-ci.sh` or `act pull_request -j test`.
 
+**Task system is execution substrate** — `experimental.task_system=true` (default since v2.5) uses file-backed `.matrixx/tasks/T-{uuid}.json` (project-scoped via `getTaskDir()`, atomic `tmp+renameSync`, `task-continuation-enforcer` with 30s lock). `todo-continuation-enforcer` is legacy fallback only when `task_system=false`. Never mutate `.matrixx/tasks/` via bash/`sed`; use `task_create/update/get/list/cleanup` tools. `.matrixx/plans/*.md` checkbox `- [ ]`→`- [x]` via `Read`+`Edit` LINE#ID only (blocked by `task-edit-guard` + `compaction-todo-preserver`).
+
 `bunfig.toml` preloads `tests/test-setup.ts` → `_resetForTesting()` before each test.
 
 ## PLUGIN INIT — `src/index.ts` (10 steps)
@@ -199,13 +201,13 @@ Local-dev install: `bun run build`, then add `"plugin": ["file:///abs/path/to/ma
 | `event` | no | Session lifecycle |
 | `config` | — | Register agents / MCPs / commands |
 | `experimental.chat.messages.transform` | no | Context injection, keyword detection |
-| `experimental.session.compacting` | no | Todo preservation on compaction |
+| `experimental.session.compacting` | no | Task/todo preservation on compaction |
 
 Safe-creation: `isHookEnabled("name") ? safeCreateHook("name", () => createHook(ctx), { enabled: safeHookEnabled }) : null`.
 
 ## TDD
 
-Mandatory. `*.test.ts` alongside source → BDD comments `//#given` `//#when` `//#then` → fail → implement → pass → refactor. Never delete failing tests. See `tdd-enforcer` skill.
+Mandatory when `tdd_enforcer.enabled=true` (now enabled in `~/.config/opencode/matrixx.jsonc`). `*.test.ts` alongside source → BDD comments `//#given` `//#when` `//#then` → fail → implement → pass → refactor. Never delete failing tests. See `tdd-enforcer` skill + `docs/tdd.md`. When disabled, skill is stripped from `availableSkills` and Oracle still generates test decision but execution is not enforced.
 
 ## CONVENTIONS
 
@@ -258,7 +260,7 @@ Never `bun publish` or bump `package.json` version locally.
 
 ## HOTSPOTS
 
-`background-agent/manager.ts` (task lifecycle) · `anthropic-context-window-limit-recovery/` · `todo-continuation-enforcer/` · `architect/` · `matrix-loop/` · `keyword-detector/` · `rules-injector/` · `think-mode/` · `session-recovery/`
+`background-agent/manager.ts` + `features/task-storage/` + `task-continuation-enforcer/` (file-backed `.matrixx/tasks/T-{uuid}.json`, atomic write, 30s stale lock) · `todo-continuation-enforcer/` (legacy, gated by `experimental.task_system=false`) · `anthropic-context-window-limit-recovery/` · `architect/` · `matrix-loop/` · `keyword-detector/` · `rules-injector/` · `think-mode/` · `session-recovery/` · `task-edit-guard`
 
 ## NOTES
 
