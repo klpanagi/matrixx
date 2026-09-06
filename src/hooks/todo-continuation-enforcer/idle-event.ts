@@ -39,6 +39,10 @@ export async function handleSessionIdle(args: {
   log(`[${HOOK_NAME}] session.idle`, { sessionID })
 
   const state = sessionStateStore.getState(sessionID)
+  if (state.countdownTimer || state.countdownInterval) {
+    log(`[${HOOK_NAME}] Skipped: countdown already active`, { sessionID })
+    return
+  }
   if (state.isRecovering) {
     log(`[${HOOK_NAME}] Skipped: in recovery`, { sessionID })
     return

@@ -50,7 +50,10 @@ export function startCountdown(args: {
   } = args
 
   const state = sessionStateStore.getState(sessionID)
-  sessionStateStore.cancelCountdown(sessionID)
+  if (state.countdownTimer || state.countdownInterval) {
+    log(`[${HOOK_NAME}] Skipped: countdown already active`, { sessionID })
+    return
+  }
 
   let secondsRemaining = COUNTDOWN_SECONDS
   showCountdownToast(ctx, secondsRemaining, incompleteCount)
