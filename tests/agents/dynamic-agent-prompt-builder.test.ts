@@ -402,7 +402,7 @@ describe("buildCompactContextDisciplineSection", () => {
     //#then
     expect(result).toContain("LINE#ID")
     expect(result).toContain("read→edit")
-    expect(result).toContain("When in doubt, use ctx_*")
+    expect(result).toContain("MUST use ctx_* when available")
   })
 
   it("should not contain full-table rows", () => {
