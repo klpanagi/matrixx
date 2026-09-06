@@ -19,12 +19,12 @@ src/
 ├── cli/                              # CLI installer, doctor (107+ files) — see cli/AGENTS.md
 ├── config/                           # Zod schema — see config/AGENTS.md
 ├── features/                         # Background agents, skills, commands (20 dirs) — see features/AGENTS.md
-├── hooks/                            # ~52 lifecycle hooks (49 dirs) — see hooks/AGENTS.md
+│   ├── hooks/                            # 64 hooks (HookNameSchema, 58 dirs + loose .ts) in 3 tiers — see hooks/AGENTS.md
 ├── mcp/                              # Built-in MCPs (4 MCPs) — see mcp/AGENTS.md
 ├── plugin/                           # Plugin interface composition (21 files)
 ├── plugin-handlers/                  # Config loading, plan inheritance (15 files) — see plugin-handlers/AGENTS.md
 ├── shared/                           # Cross-cutting utilities (~85 files) — see shared/AGENTS.md
-└── tools/                            # 28 tools (16 dirs) — see tools/AGENTS.md
+└── tools/                            # 22 tools (16 dirs + MCP, task/*, assembly, bdd-*) — see tools/AGENTS.md
 ```
 
 ## PLUGIN INITIALIZATION (10 steps)
@@ -51,7 +51,7 @@ src/
 - Transform (3): keyword-detector, context-injector, thinking-block-validator
 
 **Continuation Hooks** (`create-continuation-hooks.ts`):
-- 7 hooks: stop-continuation-guard, compaction-context-injector, todo-continuation-enforcer, architect, ...
+- 9 hooks: `stop-continuation-guard`, `compaction-context-injector`, `compaction-todo-preserver`, `task-continuation-enforcer` (file-backed `.matrixx/tasks`, project-scoped), `todo-continuation-enforcer` (legacy `experimental.task_system=false`), `architect`, `task-notepad`, `task-resume-info`, `plan-persister` ...
 
 **Skill Hooks** (`create-skill-hooks.ts`):
 - 2 hooks: category-skill-reminder, auto-slash-command

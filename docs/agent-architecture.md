@@ -101,25 +101,27 @@ sequenceDiagram
 
     Note over M: Phase 1: Codebase Assessment<br/>→ Disciplined codebase, follow patterns
 
-    Note over M: Phase 2A: Create todo list
+    Note over M: Phase 2A: Create task waves (file-backed, .matrixx/tasks)
 
-    M->>O: task(subagent="oracle")<br/>Create work plan
+    M->>O: task(subagent_type="oracle")<br/>Create work plan
     O-->>M: Structured plan
 
-    M->>S: task(subagent="smith")<br/>Review plan
+    M->>S: task(subagent_type="smith")<br/>Review plan
     S-->>M: Plan validated ✓
 
-    Note over M: Phase 2B: Execute plan
+    Note over M: Phase 2B: Execute waves via task_create/blockedBy
 
-    loop For each todo item
+    M->>M: task_create × N with blockedBy DAG (Wave 1: parallel, Wave 2: blocked)
+    loop For each wave (task_list blockedBy:[])
         alt Simple change
-            M->>M: Direct implementation
-        else Complex module work
-            M->>MO: task(category="source")<br/>Implement auth middleware
-            MO-->>M: Implementation complete
+            M->>M: Direct implementation + task_update(completed)
+        else Category work (parallel wave)
+            M->>MO: task(category="source", blockedBy=[]) — Wave 1 parallel<br/>or task(category="source", blockedBy=[T-001]) — blocked
+            MO-->>M: Implementation + task_update(completed)
         end
-        Note over M: Mark todo complete
     end
+    Note over M: task-continuation-enforcer keeps session alive while tasks remain
+
 
     Note over M: Phase 3: Verify & Report
     M-->>U: Done. All items complete.
@@ -177,7 +179,7 @@ flowchart LR
 
 ```mermaid
 graph TD
-    subgraph SKILL_REGISTRY["Skill Registry (31 Built-in Skills)"]
+    subgraph SKILL_REGISTRY["Skill Registry (37 Built-in Skills)"]
         subgraph DSL_SKILLS["Cipher's DSL Skills (11)"]
             S1["dsl-core"]
             S2["dsl-grammar"]
@@ -240,7 +242,7 @@ graph LR
         ND2["Mouse"]
     end
 
-    TOOLS["26+ Tools<br/>LSP, AST-Grep, Grep,<br/>Glob, Read, Edit, Write,<br/>Bash, task(), background,<br/>session, look_at, skill"]
+    TOOLS["26+ Tools<br/>LSP, AST-Grep, Grep,<br/>Glob, Read, Edit, Write,<br/>Bash, task(), background,<br/>session, look_at, skill,<br/>task_create/list/get/update/cleanup"]
 
     TOOLS --> FULL_ACCESS
     TOOLS -.->|"filtered"| READ_ONLY
@@ -328,9 +330,11 @@ flowchart TD
 ## Key Design Principles
 
 1. **Morpheus delegates, specialists execute** — Morpheus is the orchestrator, not the implementer
-2. **Parallel by default** — Exploration agents always run in background
-3. **Skills are composable** — Any agent can load any skill via `load_skills`
-4. **Session continuity** — Every delegation returns a session_id for efficient follow-up
-5. **Model fallback chains** — Every agent has a fallback chain for provider flexibility
-6. **Tool restrictions enforce roles** — Read-only agents can't write; executors can't delegate
-7. **Two-phase execution** — Sync (blocking) for critical path, async (background) for exploration
+2. **Parallel by default** — Exploration agents always run in background; execution waves via `blockedBy` DAG maximize parallel Mouse workers
+3. **Task system is the execution substrate** — `.matrixx/tasks/T-*.json` (scope:project default, file-backed, survives `/clear`; see [Task System](./task-system.md))
+4. **Skills are composable** — Any agent can load any skill via `load_skills`
+5. **Session continuity** — Every delegation returns a `session_id` for efficient follow-up (`task(session_id="…")`)
+6. **Model fallback chains** — Every agent has a fallback chain for provider flexibility
+7. **Tool restrictions enforce roles** — Read-only agents can't write; executors can't delegate; `task-edit-guard` blocks raw bash on `.matrixx/tasks`
+8. **Two-phase execution** — Sync (blocking) for critical path, async (background) for exploration; task waves add a third (DAG-scheduled)
+

@@ -572,9 +572,10 @@ Hooks intercept and modify behavior at key points in the agent lifecycle.
 |------|-------|-------------|
 | **grep-output-truncator** | PostToolUse | Dynamically truncates grep output based on context window. Keeps 50% headroom, caps at 50k tokens. |
 | **tool-output-truncator** | PostToolUse | Truncates output from Grep, Glob, LSP, AST-grep tools. |
-| **headroom-integration** | Opt-in | Network-proxy compression (L4) via `headroom wrap opencode` — CacheAligner->ContentRouter->CCR, 60-95% JSON reduction. Matrixx bridge: `headroom: {enabled, proxyUrl?, project?, backend?}` + `hasHeadroom` discipline. Headroom owns `headroom_retrieve`/transport; Matrixx detects only. |
-
-> **Note:** "headroom" in `grep-output-truncator` above is generic token-budget phrasing (50% safety margin). For the network-proxy plugin `headroomlabs-ai/headroom`, see **Headroom Integration** in README.
+| **context-mode-enforcer** | PreToolUse (BLOCKING when `enforce:true`) | Blocks `read`/`grep`/`glob` for analysis — forces `ctx_*` sandbox (`ctx_search`, `ctx_batch_execute`). See [Context Management](./context-management.md). |
+| **rtk-bash-rewriter** | PreToolUse | Rewrites bash via `rtk <cmd>` for 60-90% token compression on git/npm/test outputs. |
+| **dcp** | Opt-in | Dynamic Context Pruning tiers `economy`/`balanced`/`performance`/`ultimate` via `/dcp-profile`. See [Context Management](./context-management.md). |
+| **headroom-integration** | Opt-in | Network-proxy compression (L4) via `headroom wrap opencode` — CacheAligner→ContentRouter→CCR, 60-95% JSON reduction. Matrixx bridge: `headroom: {enabled, proxyUrl?, project?, backend?}` + `hasHeadroom` discipline. |
 
 #### Notifications & UX
 
@@ -589,9 +590,13 @@ Hooks intercept and modify behavior at key points in the agent lifecycle.
 
 | Hook | Event | Description |
 |------|-------|-------------|
-| **task-resume-info** | PostToolUse | Provides task resume information for continuity. |
-| **delegate-task-retry** | PostToolUse | Retries failed task calls. |
-
+| **task-continuation-enforcer** | Stop | Auto-continues session while incomplete tasks remain (2s countdown, toast, abort/cooldown/circuit-breaker). See [Task System](./task-system.md) §8.1. |
+| **tasks-todowrite-disabler** | PreToolUse (BLOCKING) | Throws on `TodoWrite`/`TodoRead` when `experimental.task_system=true` — forces `task_create`/`task_update`. Triple-layer with tool config. |
+| **task-edit-guard** | PreToolUse (BLOCKING) | Blocks raw `sed`/`echo`/`cat`/`mv` on `.matrixx/tasks/T-*.json` and `.matrixx/plans/*.md` — forces `task_*` / `Edit` (hashline). |
+| **task-resume-info** | PostToolUse | Provides task resume hint `task(session_id="…")` for delegate_task continuity. |
+| **delegate-task-retry** | PostToolUse | Retries failed delegate_task calls on transient LLM errors. |
+| **task-notepad** | UserPromptSubmit | Injects `.matrixx/tasks` context fragment on session start. |
+| **empty-task-response-detector** | PostToolUse | Re-prompts on empty assistant message while tasks remain. |
 #### Integration
 
 | Hook | Event | Description |
@@ -678,7 +683,19 @@ Disable specific hooks in config:
 | **task** | Category-based task delegation. Supports categories (visual, business-logic) or direct agent targeting. |
 | **background_output** | Retrieve background task results |
 | **background_cancel** | Cancel running background tasks |
-||| **assembly** | Spawns multiple AI agents (voters) with different model providers to independently analyze a question/decision, then synthesizes their reasoning into a unified consensus. Supports 2-5 voters, 1-3 rounds, and model override. |
+| **assembly** | Spawns multiple AI agents (voters) with different model providers to independently analyze a question/decision, then synthesizes their reasoning into a unified consensus. Supports 2-5 voters, 1-3 rounds, and model override. |
+
+### Task Tools — File-Backed Task System
+
+| Tool | Description |
+|------|-------------|
+| **task_create** | Create `T-{uuid}` task (`pending`, `blockedBy`/`blocks`, `metadata`). Atomic write + lock. See [Task System](./task-system.md) §6.1. |
+| **task_get** | Read single task by ID. Returns `TaskObject` or `null`. Validates `T-` pattern. |
+| **task_list** | List active tasks (filters `completed`/`deleted`, resolves `blockedBy` to unresolved only). Scheduler primitive for wave planning. |
+| **task_update** | Update task — scalar fields + additive `addBlocks`/`addBlockedBy` (Set merge) + `metadata` merge (`null` deletes). |
+| **task_cleanup** | Delete `completed` tasks by age (`olderThan: "7d"`/`"24h"`/`"30m"`). Bulk cleanup — never deletes `pending`/`in_progress`. |
+| **task_list** (command) | `/task-list` → `task_list` tool. Ignores global `search-mode`. |
+| **task_cleanup** (command) | `/cleanup-tasks` → `task_cleanup` tool. |
 
 ### Assembly Tool
 

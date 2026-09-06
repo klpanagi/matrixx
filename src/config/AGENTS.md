@@ -9,10 +9,10 @@ Zod schema definitions for plugin configuration. Schema component files composin
 config/
 ├── schema/                    # schema component files
 │   ├── matrixx-config.ts         # Root schema composition (57 lines)
-│   ├── agent-names.ts         # BuiltinAgentNameSchema (13 agents), BuiltinSkillNameSchema
+│   ├── agent-names.ts         # BuiltinAgentNameSchema (14 agents), BuiltinSkillNameSchema (36 skills)
 │   ├── agent-overrides.ts     # AgentOverrideConfigSchema (model, variant, temp, thinking...)
 │   ├── categories.ts          # 8 categories: construct, source, deep-jack, matrix-bend, bullet-time, ...
-│   ├── hooks.ts               # HookNameSchema (100+ hook names)
+│   ├── hooks.ts               # HookNameSchema (64 hooks, 58 dirs + loose .ts)
 │   ├── commands.ts            # BuiltinCommandNameSchema
 │   ├── experimental.ts        # ExperimentalConfigSchema
 │   ├── background-task.ts     # BackgroundTaskConfigSchema
@@ -36,11 +36,11 @@ config/
 
 ## ROOT SCHEMA
 
-`MatrixxConfigSchema` composes: `$schema`, `new_task_system_enabled`, `default_run_agent`, `auto_update`, `disabled_{mcps,agents,skills,hooks,commands,tools}`, `agents` (14 agent keys), `categories` (8 built-in), `claude_code`, `morpheus_agent`, `comment_checker`, `experimental`, `skills`, `matrix_loop`, `background_task`, `notification`, `babysitting`, `git_master`, `browser_automation_engine`, `websearch`, `tmux`, `morpheus`
+`MatrixxConfigSchema` composes: `$schema`, `global_model`/`default_tier`, `experimental.task_system` (replaces legacy `new_task_system_enabled`), `default_run_agent`, `auto_update`, `disabled_{mcps,agents,skills,hooks,commands,tools}`, `agents` (14), `categories` (8), `tdd_enforcer` (`{enabled:false}` opt-in, now enabled in user config), `assembly`, `security`, `headroom`, `context_mode`, `rtk`, `evolution`, `morpheus`, `morpheus_agent`, `matrix_loop`, `background_task`, `babysitting`, `notification`, `browser_automation_engine`, `websearch`, `tmux`, `dcp`, `_migrations`
 
 ## CONFIGURATION HIERARCHY
 
-Project (`.opencode/matrixx.json`) → User (`~/.config/opencode/matrixx.json`) → Defaults
+Project (`.opencode/matrixx.jsonc`) → User (`~/.config/opencode/matrixx.jsonc`) → Defaults — both JSONC (`jsonc-parser.ts`, comments + trailing commas). Legacy `new_task_system_enabled` + old agent/hook names auto-migrated via `shared/migration/`.
 
 ## AGENT OVERRIDE FIELDS
 

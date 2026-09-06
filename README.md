@@ -13,7 +13,7 @@
 [![License: SUL-1.0](https://img.shields.io/badge/license-SUL--1.0-blue.svg)](https://github.com/klpanagi/opencode-matrixx/blob/master/LICENSE)
 
 **Multi-model agent orchestration for [OpenCode](https://github.com/sst/opencode).**<br/>
-**14 specialized agents. ~52 lifecycle hooks. 28 tools. One plugin.**
+**14 specialized agents. 64 lifecycle hooks. 22 tools. 36 skills. One plugin.**
 
 </div>
 
@@ -43,7 +43,7 @@ Morpheus (Claude Opus)     → Plans the implementation
 | Problem | Matrixx Solution |
 |---------|------------------|
 | One model does everything poorly | **14 specialists** — right model for the right job |
-| Agent forgets what it was doing | **Todo Continuation** — forces completion, no exceptions |
+| Agent forgets what it was doing | **Task Continuation** — `task-continuation-enforcer` (file-backed `.matrixx/tasks`, survives `/clear`, project-scoped) — forces completion |
 | Slow sequential tool calls | **Parallel background agents** — 5+ running simultaneously |
 | AI-generated code looks like AI | **Comment Checker** — code indistinguishable from human-written |
 | Context window fills up fast | **Aggressive delegation** — subagents carry the load |
@@ -160,7 +160,7 @@ Use `--json` for machine-readable output or `--category <name>` for a specific c
 
 **Model:** Claude Opus 4.6 · `temperature: 0.1`
 
-Plans, delegates, and executes. Fires background agents in parallel, leverages LSP and AST-Grep for surgical refactoring, and never stops until the TODO list is empty. Morpheus sees the code for what it truly is — and routes every task to the agent best suited for it.
+Plans, delegates, and executes. Fires background agents in parallel, leverages LSP and AST-Grep for surgical refactoring, and never stops until the task list is empty. Morpheus sees the code for what it truly is — and routes every task to the agent best suited for it.
 
 ---
 
@@ -355,10 +355,10 @@ Every agent, model, temperature, and permission is fully customizable. [**Meet t
 
 | | |
 |---|---|
-| **Agent Orchestration** | 15 agents (incl. **Mouse** dedicated executor, **Sati** frontend specialist, **Sentinel** security auditor, **Cipher** DSL expert), parallel background execution, category-based routing, session continuity |
+| **Agent Orchestration** | 14 agents (incl. **Mouse** task executor, **Sati** frontend specialist, **Sentinel** security auditor, **Cipher** DSL expert), parallel background execution, category-based routing (`source`/`deep-jack`/…), session continuity, file-backed tasks |
 | **Developer Tools** | LSP (goto def, rename, diagnostics), AST-Grep (search & replace), Tmux terminal |
-| **~52 Lifecycle Hooks** | Context injection, think mode, comment checking, todo enforcement, error recovery, quality gate |
-|| **33 Built-in Skills** | DSL engineering (11), security (9), browser, git, frontend (7 via **Sati**), saturation research, AI slop detection, software dev pipeline |
+| **64 Lifecycle Hooks** | Context injection, think mode, comment checking, task/todo continuation enforcement, error recovery, quality gate, preemptive compaction, session recovery |
+| **36 Built-in Skills** | DSL engineering (11), security (9), browser, git, frontend (7 via **Sati**), BDD (4: `bdd-contract`/`backend`/`frontend`/`tests` + pipeline), saturation research, AI slop detection, TDD (`tdd-enforcer` opt-in), software dev pipeline |
 | **Curated MCPs** | Exa (web search), Context7 (official docs), Grep.app (GitHub code search), Document Reader |
 | **Claude Code Compat** | Full compatibility — commands, agents, skills, MCPs, hooks from `settings.json` |
 | **Software Dev Pipeline** | 6-phase TDD workflow (PLAN→BUILD→VERIFY→REVIEW→SECURE→SHIP), 5 team roles, adaptive phases |
@@ -379,9 +379,9 @@ Matrixx includes a structured **6-phase development pipeline** that coordinates 
 
 | Role | Agent | Skills | Purpose |
 |------|-------|--------|---------|
-| **Architect** | Oracle (Claude Opus) | — | System design, architecture decisions, task breakdown |
-| **Developer** | Source category | `git-master`, `tdd-enforcer` | Implementation code with TDD |
-| **Tester** | Source category | `tdd-enforcer`, `quality-gate` | Test authoring, coverage, verification |
+| **Architect** | Oracle (`claude-sonnet-4-6`) | — | System design, architecture decisions, plan (`/.matrixx/plans/*.md`) breakdown |
+| **Developer** | `category="source"` (Mouse) | `git-master`, `tdd-enforcer` (opt-in `tdd_enforcer.enabled=true`) | Implementation — RED→GREEN→REFACTOR per task |
+| **Tester** | `category="source"` (Mouse) | `tdd-enforcer`, `quality-gate` | Test authoring (`src/**/*.test.ts`, `//#given//#when//#then`), coverage |
 | **Quality Evaluator** | Red-pill category | `quality-gate`, `review-work` | Lint, typecheck, 5-agent code review |
 | **Security Expert** | Sentinel (Claude Opus) | `security-core`, `security-sast`, `security-api`, `security-dependencies` | Vulnerability scanning, CVE checks |
 
@@ -389,7 +389,7 @@ Matrixx includes a structured **6-phase development pipeline** that coordinates 
 
 | Phase | Skip? | Role | Exit Criteria |
 |-------|-------|------|---------------|
-| **PLAN** | Small tasks | Architect | Approach defined, files listed, edge cases documented |
+| **PLAN** | Small tasks | Architect (Oracle) | Approach defined, files listed, edge cases + test decision (`TDD/tests-after/none`) documented |
 | **BUILD** | Never | Developer | TDD (RED→GREEN→REFACTOR), `bun test` passes |
 | **VERIFY** | Never | Quality | `lint` + `typecheck` + `test` + `build` — all pass |
 | **REVIEW** | Small tasks | Quality (5-agent) | All reviewers PASS, no CRITICAL/MAJOR issues |
@@ -665,6 +665,8 @@ To disable, set `headroom.enabled: false` or run OpenCode without `headroom wrap
 | [Orchestration](docs/orchestration-guide.md) | How agents coordinate, delegate, and recover |
 | [Categories & Skills](docs/category-skill-guide.md) | Task categories, skill injection, delegation patterns |
 | [Context Management](docs/context-management.md) | 5-layer context stack (Native, RTK, context-mode, DCP, Headroom) — setup, config, verification |
+| [Task System](docs/task-system.md) | File-backed execution substrate (`.matrixx/tasks/T-{uuid}.json`), dependency graph, `task-continuation-enforcer` |
+| [TDD](docs/tdd.md) | RED→GREEN→REFACTOR planning (Oracle) + enforcement (`tdd-enforcer` opt-in) |
 
 ---
 

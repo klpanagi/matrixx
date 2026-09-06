@@ -8,11 +8,11 @@ Matrixx is built on the philosophy that **software development is a team sport, 
 
 **Orchestration Over Monolith**: The Morpheus agent (default orchestrator) is explicitly instructed to *delegate* everything non-trivial. The architect hook actively BLOCKS orchestrators from writing code directly via `ORCHESTRATOR_DELEGATION_REQUIRED` warnings. The philosophy is: orchestrators orchestrate, workers work.
 
-**Mandatory Quality Gates**: Quality isn't an afterthought — it's structurally enforced. The todo-continuation-enforcer ensures tasks aren't abandoned. The quality-gate hook auto-lints after every write. The software-dev skill mandates verification at every phase boundary. The review-work skill spawns 5 parallel review agents. The system is designed so you *can't* ship bad code without explicitly circumventing multiple safeguards.
+**Mandatory Quality Gates**: Quality isn't an afterthought — it's structurally enforced. The `task-continuation-enforcer` (and sibling `todo-continuation-enforcer`) ensure tasks aren't abandoned. The quality-gate hook auto-lints after every write. The software-dev skill mandates verification at every phase boundary. The review-work skill spawns 5 parallel review agents. The system is designed so you *can't* ship bad code without explicitly circumventing multiple safeguards.
 
 **TDD as Default**: The RED-GREEN-REFACTOR cycle is embedded into the Oracle plan template itself — every generated plan includes test-first structure regardless of whether the tdd-enforcer skill is enabled. The philosophy: tests aren't optional, they're the specification.
 
-**Continuation Over Interruption**: Matrixx aggressively prevents task abandonment. The todo-continuation-enforcer counts down 2 seconds after a session goes idle, then injects a continuation prompt if incomplete tasks remain. The matrix-loop runs iterations until completion. The system treats stopping before completion as a failure state.
+**Continuation Over Interruption**: Matrixx aggressively prevents task abandonment. The `task-continuation-enforcer` counts down 2 seconds after a session goes idle, then injects a continuation prompt if incomplete tasks remain (sibling `todo-continuation-enforcer` does the same for legacy todos). The matrix-loop runs iterations until completion. The system treats stopping before completion as a failure state — see [Task System](./task-system.md) §8.1.
 
 ---
 
@@ -50,18 +50,19 @@ Located in `src/hooks/architect/`, this runs on every session:
 - **Tool-Execute-After**: After task completion, collects git diffs, extracts subagent session IDs, reads mission state, and appends progress reminders.
 - **Mission Continuation Injector**: The engine — resolves model, checks for running tasks, calls `ctx.client.session.promptAsync()` with continuation prompts.
 
-### B. Todo Continuation Enforcer (Task Completion Guarantee)
+### B. Continuation Enforcers — Task & Todo (Dual System)
 
-Located in `src/hooks/todo-continuation-enforcer/` (14 files, ~2000 LOC):
+Two independent enforcers (decoupled in `d8ca206`): `src/hooks/task-continuation-enforcer/` (14 files, task system — gated by `isTaskSystemEnabled`) + `src/hooks/todo-continuation-enforcer/` (legacy todos). Each operates:
 
 ```
 session.idle event
-  → Safety checks (not recovering, no abort, no background tasks, agent has write access, incomplete todos exist, not within 30s cooldown, < 5 consecutive failures)
+  → Safety checks (not recovering, no abort, no background tasks, agent has write access, incomplete tasks/todos exist, not within 30s cooldown, < 5 consecutive failures)
   → 2-second countdown with toast notification
   → Inject CONTINUATION_PROMPT via session.promptAsync()
-  → Track failure count (max 5)
+  → Track failure count (max 5, 5min reset window)
 ```
 
+`sibling todo-continuation-enforcer` remains active when `experimental.task_system=false`. When enabled, the task enforcer drives wave execution (see [Task System](./task-system.md) §8.1); tasks survive `/clear` via `.matrixx/tasks` file backing.
 ### C. Matrix Loop (Self-Referential Dev Loop)
 
 Located in `src/hooks/matrix-loop/`:
@@ -181,10 +182,9 @@ Enforces:
 ### C. Software-Dev Skill Pipeline (Orchestral)
 
 Phase 2 BUILD mandates `load_skills=["git-master", "tdd-enforcer"]` with explicit instruction: "Follow tdd-enforcer: write test FIRST (RED), then minimum code (GREEN), then refactor."
-
 ### Enforcement Mechanism
 
-The todo-continuation-enforcer ensures TDD tasks aren't abandoned. If a BUILD phase has incomplete TODOs, the 2-second countdown fires and injects continuation prompts until all test-first cycles are complete.
+The `task-continuation-enforcer` ensures TDD tasks aren't abandoned (file-backed `.matrixx/tasks` survive `/clear`). If a BUILD phase has incomplete tasks, the 2-second countdown fires and injects continuation prompts until all test-first cycles are complete. Legacy todos use the sibling `todo-continuation-enforcer` when `experimental.task_system=false`.
 
 ---
 
@@ -219,10 +219,10 @@ The `VERIFICATION_REMINDER` template mandates 4 steps:
 4. **Add QA tasks to todo** if needed
 
 Key quote from the system: *"Subagents FREQUENTLY LIE about completion. Tests FAILING, code has ERRORS, implementation INCOMPLETE — but they say 'done'."*
+### Layer 4: Task & Todo Continuation Enforcers (Always-On)
 
-### Layer 4: Todo Continuation Enforcer (Always-On for Active Missions)
+Ensures quality tasks aren't abandoned. If incomplete tasks (`.matrixx/tasks`) or todos remain when a session goes idle, the respective enforcer's 2-second countdown fires and forces continuation. File-backed tasks survive `/clear` — see [Task System](./task-system.md) §8.1.
 
-Ensures quality tasks aren't abandoned. If incomplete QA tasks remain when a session goes idle, the 2-second countdown fires and forces continuation.
 
 ### When Quality-Gate Skill Is Used
 
@@ -337,8 +337,8 @@ The cost tiers (free → cheap → normal → expensive) ensure agents are used 
 |---|---|---|---|---|---|---|
 | **Stars** | ~100 | ~500 | 6,089 ⭐ | 29 | 186 | 3 |
 | **Agent Count** | **14** | 11 | 7+1 | 9 | 4 | 0 (skills only) |
-| **Hook Count** | ~52 | 54+ (61 w/ Team Mode) | Unknown | Similar to oh-my | Unknown | Unknown |
-| **Built-in Skills** | 31 | Shared library | LazySkills TUI | Limited | None | 14 |
+| **Hook Count** | **65** | 54+ (61 w/ Team Mode) | Unknown | Similar to oh-my | Unknown | Unknown |
+| **Built-in Skills** | **37** | Shared library | LazySkills TUI | Limited | None | 14 |
 | **TDD Enforcement** | ✅ Mandatory (opt-in) | ❌ | ❌ | ❌ | ❌ | ✅ test-driven skill |
 | **Quality Gate** | ✅ 4-step checklist | ❌ | ❌ | ❌ | ❌ | ✅ verification skill |
 | **Security Auditing** | ✅ Sentinel + 9 skills | ❌ | ❌ | ❌ | ❌ | ❌ |
@@ -371,7 +371,7 @@ The cost tiers (free → cheap → normal → expensive) ensure agents are used 
 - **No Team Mode equivalent** (oh-my-openagent has lead + 8 parallel workers)
 
 ### Architectural Differentiation
-
+Matrixx's **3-tier hook system** (Core → Continuation → Skill) with safe-creation pattern is the most structured in the ecosystem. The **category + skill delegation system** with mandatory `load_skills` parameter ensures subagents are always properly equipped. The **dual task/todo-continuation-enforcers** (each with 2-second countdown + 5-failure circuit breaker, `task-continuation-enforcer` file-backed via `.matrixx/tasks`) are the most aggressive task-completion mechanisms available.
 Matrixx's **3-tier hook system** (Core → Continuation → Skill) with safe-creation pattern is the most structured in the ecosystem. The **category + skill delegation system** with mandatory `load_skills` parameter ensures subagents are always properly equipped. The **todo-continuation-enforcer** with its 2-second countdown + 5-failure circuit breaker is the most aggressive task-completion mechanism available.
 
 The closest competitor is **oh-my-openagent** (code-yeongyu/oh-my-openagent) which shares similar architectural DNA (Ralph Loop ≈ Matrix Loop, Todo Enforcer ≈ Todo Continuation Enforcer, 5 categories ≈ 8 categories) — but lacks the specialist agents (Sentinel, Cipher, Sati) and the structured quality pipeline.

@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-15 feature modules extending plugin capabilities: agent orchestration, skill management, MCP infrastructure, task storage, handoff, and tmux integration.
+18 feature modules (background-agent, tmux-subagent, builtin-skills/commands, task-storage, bdd, assembly-state, evolution, handoff, context-injector, session-state...) — task-storage is now execution substrate (file-backed `.matrixx/tasks/`, replaces ephemeral todos).
 
 ## STRUCTURE
 ```
@@ -15,8 +15,8 @@ features/
 ├── builtin-skills/             # Built-in skills (8 files, ~1700 LOC)
 │   └── skills/                 # dev-browser, frontend-ui-ux, git-master (1111), matrixx-self-config, playwright
 ├── builtin-commands/           # 6 command templates (11 files, 1511 LOC)
-│   └── templates/              # refactor, matrix-loop, init-deep, handoff, start-work, stop-continuation
-├── task-storage/               # Task schema + storage (7 files, 1165 LOC)
+│   └── templates/              # 22 templates: refactor, matrix-loop, init-deep, handoff, start-work, research, assembly, bdd-*, dcp-profile, evolution...
+├── task-storage/               # Task system: schema + file-backed storage (project-scoped `getTaskDir()`, atomic `tmp+renameSync`, `addBlocks`/`addBlockedBy` Set) — 7 files, 1165 LOC + `task-toast-manager/`
 ├── context-injector/           # AGENTS.md, README.md, rules injection (6 files, 809 LOC)
 ├── handoff/                    # Multi-action handoff: create, read, list, archive
 ├── session-state/              # Subagent session state tracking (3 files)

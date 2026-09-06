@@ -22,7 +22,7 @@ Is it a quick fix or simple task?
 
 ---
 
-This document provides a comprehensive guide to the orchestration system that implements Matrixx's core philosophy: **"Separation of Planning and Execution"**.
+This document provides a comprehensive guide to the orchestration system that implements Matrixx's core philosophy: **"Separation of Planning and Execution"**. Execution is driven by the **task system** as substrate — see [`docs/task-system.md`](./task-system.md) for the file-backed task spec (`.matrixx/tasks`, waves, continuation).
 
 ## 1. Overview
 
@@ -259,14 +259,19 @@ flowchart TD
     end
     
     PlanFile --> StartWork[//start-work/]
-    StartWork --> MissionState[mission-state.json]
+    StartWork --> MissionState["mission-state.json<br>+ .matrixx/tasks/T-*.json"]
     
-    subgraph Execution Phase
-        MissionState --> Architect[Architect<br>Orchestrator]
-        Architect --> Merovingian[Merovingian]
-        Architect --> Frontend[Frontend<br>Engineer]
-        Architect --> Trinity[Trinity]
+    subgraph Execution Substrate — Task System
+        MissionState --> Morpheus[Morpheus<br>Wave Planner]
+        Morpheus -->|"task_create + blockedBy"| Tasks[".matrixx/tasks/T-*.json<br>scope:project default<br>survives /clear"]
+        Tasks --> MouseA[Mouse — Wave 1<br>parallel via task category]
+        Tasks --> MouseB[Mouse — Wave 2<br>blockedBy Wave 1]
+        Tasks -.->|"task-continuation-enforcer<br>Stop-handler, 2s countdown"| Tasks
     end
+    
+    MouseA --> Merovingian[Merovingian]
+    MouseB --> Frontend[Frontend<br>Sati]
+    MouseA --> Trinity[Trinity]
 ```
 
 ---
@@ -322,10 +327,10 @@ When the user requests "Make it a plan", plan generation begins.
 
 When the user enters `/start-work`, the execution phase begins.
 
-1. **State Management**: Creates/reads `mission-state.json` file to track current plan and session ID.
-2. **Task Execution**: Architect reads the plan and processes TODOs one by one.
-3. **Delegation**: UI work is delegated to Sati (Frontend specialist), complex logic to Merovingian.
-4. **Continuity**: Even if the session is interrupted, work continues in the next session through `mission-state.json`.
+1. **State Management**: Creates/reads `mission-state.json` for plan tracking; task state lives in `.matrixx/tasks/T-*.json` (file-backed, `scope:project` default — survives `/clear` and restarts, unlike ephemeral session todos). See [`docs/task-system.md`](./task-system.md) §3 for `getTaskDir()` resolution and `scope:global` alternative (`~/.config/opencode/tasks/{listId}`).
+2. **Wave Planning**: Morpheus decomposes the plan into **task waves** via `task_create` with `blockedBy` dependencies — independent tasks in Wave 1 run in parallel via `task(category=...)` → Mouse workers; Wave 2 tasks declare `blockedBy:[Wave1 IDs]` and become runnable when `task_list` shows `blockedBy:[]`.
+3. **Delegation**: Category-based — `task(category="...")` spawns Mouse (or Sati/Cipher via `subagent_type` when specialization is needed); the task graph drives scheduling, not a linear Todo list.
+4. **Continuation**: `task-continuation-enforcer` (Stop-handler, 2s countdown with toast, abort/cooldown/circuit-breaker checks) re-injects while incomplete tasks remain; `/clear` does not lose tasks because `.matrixx/tasks` is file-backed. Legacy `todo-continuation-enforcer` remains as independent sibling when `experimental.task_system=false` (gated by `isTaskSystemEnabled`, decoupled in `d8ca206`).
 
 ---
 
@@ -385,11 +390,11 @@ You can control related features in `matrixx.json`.
 
 1. **Don't Rush Planning**: Invest sufficient time in the interview with Oracle. The more perfect the plan, the faster the execution.
 
-2. **Single Plan Principle**: No matter how large the task, contain all TODOs in one plan file (`.md`). This prevents context fragmentation.
+2. **Single Plan Principle**: No matter how large the task, contain all work in one plan file (`.md`). The plan is the spec; execution decomposes into `task_create` waves in `.matrixx/tasks` — tasks are the runtime, not a Todo list copy.
 
-3. **Active Delegation**: During execution, delegate to specialized agents via `task` rather than modifying code directly.
+3. **Active Delegation**: During execution, delegate to specialized agents via `task(category=...)` with `blockedBy` waves rather than modifying code directly or maintaining a manual Todo list.
 
-4. **Trust /start-work Continuity**: Don't worry about session interruptions. `/start-work` will always resume your work from mission-state.json.
+4. **Trust /start-work + task continuation**: Don't worry about session interruptions. `/start-work` resumes from `mission-state.json`; `task-continuation-enforcer` resumes from `.matrixx/tasks`. File-backed tasks survive `/clear` — see [`docs/task-system.md`](./task-system.md) §8.1.
 
 5. **Use `ulw` for Convenience**: When in doubt, type `ulw` and let the system figure out the best approach.
 
@@ -422,3 +427,7 @@ Type `exit` or start a new session. Architect is primarily entered via `/start-w
 **For most tasks**: Type `ulw` in Morpheus.
 
 **Use Keymaker when**: You specifically need GPT 5.3 Codex's reasoning style for deep architectural work or complex debugging.
+
+---
+
+> **Task system deep dive:** [`docs/task-system.md`](./task-system.md) — storage, dependencies, hooks, and wave discipline.

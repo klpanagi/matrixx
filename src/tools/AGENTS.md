@@ -2,12 +2,12 @@
 
 ## OVERVIEW
 
-28 tools across 16 directories. Two patterns: Direct ToolDefinition (static) and Factory Function (context-dependent).
+22 tool dirs (LSP ×6, AST-grep ×2, grep/glob, session-manager ×4, task ×5 `create/list/get/update/cleanup`, delegate-task/agent, background-task, handoff, hashline-edit, interactive-bash, look-at, skill/slashcommand, assembly, bdd-*/dcp-switch/pdf-extract). Two patterns: Direct ToolDefinition (static) and Factory Function (context-dependent).
 
 ## STRUCTURE
 ```
 tools/
-├── delegate-task/    # Category routing (constants.ts 569 lines, tools.ts 213 lines)
+├── delegate-task/    # Category routing (constants.ts 569 lines, tools.ts 213 lines) + complexity routing
 ├── task/             # 4 individual tools: create, list, get, update (task-create.ts, task-list.ts, task-get.ts, task-update.ts)
 ├── lsp/              # 6 LSP tools: goto_definition, find_references, symbols, diagnostics, prepare_rename, rename
 ├── ast-grep/         # 2 tools: search, replace (25 languages)
@@ -22,6 +22,13 @@ tools/
 ├── look-at/          # Multimodal PDF/image analysis (156 lines)
 ├── skill/            # Skill execution with MCP support (211 lines)
 ├── skill-mcp/        # MCP tool/resource/prompt operations (182 lines)
+├── assembly/         # Multi-model voting (assembly tool)
+├── bdd-create-contract/ # BDD contract generation
+├── bdd-parse-gherkin/ # Gherkin parsing
+├── bdd-pipeline/      # BDD pipeline
+├── bdd-validate-contract/ # BDD validation
+├── dcp-switch-profile/ # DCP profile switch
+├── pdf-extract-figures/ # PDF figure extraction
 └── slashcommand/     # Slash command dispatch
 ```
 

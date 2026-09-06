@@ -79,7 +79,7 @@ shared/
 **System Directive Filtering**:
 ```typescript
 if (isSystemDirective(message)) return  // Skip system-generated
-const directive = createSystemDirective("TODO CONTINUATION")
+const directive = createSystemDirective("TASK CONTINUATION") // was TODO CONTINUATION pre-v2.5
 ```
 
 ## ANTI-PATTERNS
