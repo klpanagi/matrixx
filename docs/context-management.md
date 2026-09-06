@@ -26,7 +26,7 @@ Every layer handles one concern and delegates the rest. The result is orthogonal
 |-------|-------|-----------|-----------|------------|-------------|
 | L0 Native | Matrixx | 70% warning, 78% preemptive compaction, anthropic recovery, output truncators | Prevents OOM, keeps headroom | `experimental.*`, `disabled_hooks` | `context-window-monitor`, `preemptive-compaction`, `compaction-*`, `tool-output-truncator` |
 | L1 RTK | `rtk-ai/rtk` | Bash output rewrite via filtering, grouping, deduplication | 60-90% on bash | `rtk` | `rtk-bash-rewriter` (`tool.execute.before`) |
-| L2 context-mode | `mksglu/context-mode` | FTS5 sandbox, `ctx_*` tools, Think-in-Code | Up to 98% tool output | none (external plugin) | `ctx_batch_execute`, `ctx_execute`, `ctx_search`, `ctx_stats`, `compress` |
+| L2 context-mode | `mksglu/context-mode` | FTS5 sandbox, `ctx_*` tools, Think-in-Code | Up to 98% tool output | `context_mode` (`enabled`/`enforce`/`blocked_tools`) + external `plugin: ["context-mode"]` | `ctx_batch_execute`, `ctx_execute`, `ctx_search`, `ctx_stats`, `compress` + `context-mode-enforcer` hook |
 | L3 DCP | `@tarquinen/opencode-dcp` | Profile-tiered pruning `economy` to `ultimate` | Tiered, see profiles | `dcp` | `/dcp-profile`, `dcp_switch_profile` |
 | L4 Headroom | `headroomlabs-ai/headroom` | Proxy `CacheAligner` to `ContentRouter` to `CCR` | 60-95% JSON, 15-20% coding | `headroom` | `headroom wrap opencode`, `headroom_retrieve` |
 
@@ -194,13 +194,29 @@ ctx stats
 
 #### Configuration
 
-No Matrixx schema key. context-mode is configured through its own plugin config, not `matrixx.jsonc`. Matrixx auto-detects it at runtime:
+Matrixx gate `context_mode` (default `enabled:true`) + external plugin `plugin: ["context-mode"]` in `opencode.jsonc`:
 
+```jsonc
+{
+  // opencode.jsonc — external plugin
+  "plugin": ["context-mode", "opencode-matrixx"]
+}
+```
+```jsonc
+{
+  // matrixx.jsonc — discipline + enforcer gate
+  "context_mode": {
+    "enabled": true,                    // false = hide discipline, disable enforcer
+    "enforce": false,                   // true = block grep/glob (hard), false = warn (soft)
+    "blocked_tools": ["grep", "glob"]   // tools to gate (add "read"/"bash" to also cover those)
+  }
+}
+```
 ```ts
-const hasContextMode = availableTools.some(t => t.name.startsWith("ctx_"))
+const hasContextMode = availableTools.some(t => t.name.startsWith("ctx_")) && pluginConfig.context_mode?.enabled !== false
 ```
 
-When detected, Matrixx injects a Context Discipline table into agent prompts that mandates `ctx_batch_execute` for gathering, `ctx_search` for recall, and `ctx_execute` or `ctx_execute_file` for processing.
+When `hasContextMode` is true, Matrixx injects `MUST use ctx_*` discipline and `context-mode-enforcer` hook warns/blocks raw `grep`/`glob`/`read` per `enforce`/`blocked_tools`.
 
 #### Verification
 
