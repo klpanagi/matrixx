@@ -150,6 +150,7 @@
           "anthropic-effort",
           "hashline-read-enhancer",
           "secret-leak-guard",
+          "input-secret-guard",
           "env-context-injector",
           "env-file-write-guard",
           "json-error-recovery",
@@ -5057,6 +5058,75 @@
           "required": [
             "enabled",
             "on_package_change"
+          ],
+          "additionalProperties": false
+        },
+        "input_secret_guard": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "default": true,
+              "type": "boolean"
+            },
+            "mode": {
+              "default": "prompt",
+              "type": "string",
+              "enum": [
+                "prompt",
+                "block",
+                "off"
+              ]
+            },
+            "blocklist_mode": {
+              "default": "prompt",
+              "type": "string",
+              "enum": [
+                "prompt",
+                "block"
+              ]
+            },
+            "warnlist_mode": {
+              "default": "prompt",
+              "type": "string",
+              "enum": [
+                "prompt",
+                "off"
+              ]
+            },
+            "allowlist_patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "detection": {
+              "type": "object",
+              "properties": {
+                "entropy_threshold": {
+                  "default": 4.5,
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 8
+                },
+                "max_scan_bytes": {
+                  "default": 65536,
+                  "type": "integer",
+                  "minimum": 1024,
+                  "maximum": 262144
+                }
+              },
+              "required": [
+                "entropy_threshold",
+                "max_scan_bytes"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "enabled",
+            "mode",
+            "blocklist_mode",
+            "warnlist_mode"
           ],
           "additionalProperties": false
         }
