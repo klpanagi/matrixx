@@ -44,107 +44,18 @@ jobs:
         run: |
           # These files use mock.module() which pollutes bun's module cache
           # when run in parallel. Each invocation runs in a separate process.
-          #
-          # Directories (all test files within run together, isolated from other dirs)
-          bun test tests/plugin-handlers
-          bun test tests/hooks/compaction-context-injector
-          bun test tests/features/tmux-subagent
-          #
-          # Individual files that use mock.module and cause cross-file pollution
-          bun test tests/tools/delegate-agent/sync-executor.test.ts
-          bun test tests/tools/delegate-agent/session-creator.test.ts
-          bun test tests/tools/session-manager/storage.test.ts
-          bun test tests/hooks/architect/index.test.ts
-          bun test tests/hooks/matrix-loop/index.test.ts
-          bun test tests/hooks/start-work/index.test.ts
-          bun test tests/hooks/auto-update-checker/hook/background-update-check.test.ts
-          bun test tests/hooks/auto-update-checker/hook.test.ts
-          bun test tests/features/background-agent/manager.test.ts
-          bun test tests/hooks/comment-checker/cli.test.ts
-          bun test tests/hooks/comment-checker/hook.apply-patch.test.ts
-          bun test tests/hooks/directory-agents-injector/injector.test.ts
-          bun test tests/hooks/directory-readme-injector/injector.test.ts
-          bun test tests/hooks/rules-injector/injector.test.ts
-          bun test tests/hooks/compaction-todo-preserver/index.test.ts
-          bun test tests/hooks/preemptive-compaction.test.ts
-          bun test tests/tools/lsp/client.test.ts
-          bun test tests/tools/lsp/lsp-process.test.ts
-          bun test tests/tools/skill/tools.test.ts
-          bun test tests/hooks/anthropic-context-window-limit-recovery/empty-content-recovery-sdk.test.ts
-          bun test tests/hooks/anthropic-context-window-limit-recovery/recovery-hook.test.ts
-          bun test tests/hooks/anthropic-context-window-limit-recovery/storage.test.ts
-          bun test tests/tools/bdd-create-contract/tools.test.ts
-          bun test tests/tools/bdd-parse-gherkin/tools.test.ts
-          bun test tests/tools/bdd-pipeline/pipeline-runner.test.ts
-          # spyOn() leaks from earlier tests pollute these (pass in isolation, fail
-          # in batch)
-          bun test tests/agents/utils.test.ts
-          bun test tests/hooks/task-notepad/hook.test.ts
-          bun test tests/plugin/tool-execute-before.test.ts
-          bun test tests/features/mission-state/
-          bun test tests/features/handoff/
-          bun test tests/features/task-storage/
-          bun test tests/hooks/session-recovery/
-          bun test tests/plugin/session-agent-resolver.test.ts
-          bun test tests/hooks/auto-update-checker/checker/pinned-version-updater.test.ts
-          bun test tests/shared/opencode-message-dir.test.ts
-          bun test tests/shared/agent-config-handler.test.ts
-          bun test tests/tools/pdf-extract-figures/tools.test.ts
-          bun test tests/cli/doctor/checks.test.ts
-          bun test tests/cli/install/index.test.ts
-          bun test tests/hooks/mcp-startup-notification/index.test.ts
-          bun test tests/tools/dcp-switch-profile/tools.test.ts
+          # Single source: script/mock-heavy-list.txt — do not duplicate inline.
+          while IFS= read -r test || [ -n "$test" ]; do
+            [ -z "$test" ] && continue
+            bun test "$test"
+          done < script/mock-heavy-list.txt
 
       - name: Run remaining tests
         run: |
           # Run all other tests together. The mock-heavy files above are excluded
-          # via --exclude patterns to prevent double-running and pollution.
+          # via single source script/mock-heavy-list.txt to prevent double-running and pollution.
           find tests script -name '*.test.ts' -type f \
-            | grep -v -F \
-              -e 'tests/plugin-handlers/' \
-              -e 'tests/hooks/compaction-context-injector/' \
-              -e 'tests/features/tmux-subagent/' \
-              -e 'tests/tools/delegate-agent/sync-executor.test.ts' \
-              -e 'tests/tools/delegate-agent/session-creator.test.ts' \
-              -e 'tests/tools/session-manager/storage.test.ts' \
-              -e 'tests/hooks/architect/index.test.ts' \
-              -e 'tests/hooks/matrix-loop/index.test.ts' \
-              -e 'tests/hooks/start-work/index.test.ts' \
-              -e 'tests/hooks/auto-update-checker/hook/background-update-check.test.ts' \
-              -e 'tests/hooks/auto-update-checker/hook.test.ts' \
-              -e 'tests/features/background-agent/manager.test.ts' \
-              -e 'tests/hooks/comment-checker/cli.test.ts' \
-              -e 'tests/hooks/comment-checker/hook.apply-patch.test.ts' \
-              -e 'tests/hooks/directory-agents-injector/injector.test.ts' \
-              -e 'tests/hooks/directory-readme-injector/injector.test.ts' \
-              -e 'tests/hooks/rules-injector/injector.test.ts' \
-              -e 'tests/hooks/compaction-todo-preserver/index.test.ts' \
-              -e 'tests/hooks/preemptive-compaction.test.ts' \
-              -e 'tests/tools/lsp/client.test.ts' \
-              -e 'tests/tools/lsp/lsp-process.test.ts' \
-              -e 'tests/tools/skill/tools.test.ts' \
-              -e 'tests/hooks/anthropic-context-window-limit-recovery/empty-content-recovery-sdk.test.ts' \
-              -e 'tests/hooks/anthropic-context-window-limit-recovery/recovery-hook.test.ts' \
-              -e 'tests/hooks/anthropic-context-window-limit-recovery/storage.test.ts' \
-              -e 'tests/agents/utils.test.ts' \
-              -e 'tests/hooks/task-notepad/hook.test.ts' \
-              -e 'tests/tools/bdd-create-contract/tools.test.ts' \
-              -e 'tests/tools/bdd-parse-gherkin/tools.test.ts' \
-              -e 'tests/tools/bdd-pipeline/pipeline-runner.test.ts' \
-              -e 'tests/plugin/tool-execute-before.test.ts' \
-              -e 'tests/features/mission-state/' \
-              -e 'tests/features/handoff/' \
-              -e 'tests/features/task-storage/' \
-              -e 'tests/hooks/session-recovery/' \
-              -e 'tests/plugin/session-agent-resolver.test.ts' \
-              -e 'tests/hooks/auto-update-checker/checker/pinned-version-updater.test.ts' \
-              -e 'tests/shared/opencode-message-dir.test.ts' \
-              -e 'tests/shared/agent-config-handler.test.ts' \
-              -e 'tests/tools/pdf-extract-figures/tools.test.ts' \
-              -e 'tests/cli/doctor/checks.test.ts' \
-              -e 'tests/cli/install/index.test.ts' \
-              -e 'tests/hooks/mcp-startup-notification/index.test.ts' \
-              -e 'tests/tools/dcp-switch-profile/tools.test.ts' \
+            | grep -v -F -f script/mock-heavy-list.txt \
             | xargs bun test
 
   typecheck:
