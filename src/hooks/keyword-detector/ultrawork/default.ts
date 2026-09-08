@@ -44,14 +44,17 @@ THE USER'S ORIGINAL REQUEST IS SACRED — deliver exactly X, no subset, no demo.
 
 SURVEY THE SKILLS — enumerate every skill, read descriptions, pick every relevant one, state choices with one-line reasons before acting.
 
-## ACCEPTANCE CRITERIA (BINDING, before code)
-1. Criterion: binary pass/fail observable — specify command + expected output
+## MANDATORY: ACCEPTANCE CRITERIA + QA EXECUTION (NON-NEGOTIABLE)
+BEFORE writing ANY code, output an Acceptance Criteria block.
+1. [CRITERION]: [Observable, binary pass/fail condition] — PASS or FAIL
 2. Minimum 3 criteria (correctness, no regression, typecheck/lint)
-3. QA Protocol: run all verification commands, report ✅/❌ per criterion, fix and re-run ALL if any fail — NO EVIDENCE = NOT DONE
+### Verification Commands:
+- [Exact command to run] -> [Expected output]
+3. Run every verification command, report ✅/❌ per criterion, fix and re-run ALL if any fail — NO EVIDENCE = NOT VERIFIED = NOT DONE
 
 ---
 
-YOU MUST LEVERAGE ALL AGENTS / CATEGORY + SKILLS.
+YOU MUST LEVERAGE ALL AVAILABLE AGENTS / CATEGORY + SKILLS TO THEIR FULLEST POTENTIAL.
 
 **SURVEY THE SKILLS FIRST:** Enumerate every skill, read descriptions, pick every genuinely relevant one, use them rather than working raw. State chosen skills with one-line reasons before acting.
 
