@@ -37,6 +37,7 @@
     "opencode",
     "opencode-plugin",
     "claude",
+    "claude-code",
     "anthropic",
     "openai",
     "gemini",

@@ -35,6 +35,8 @@ export function resolveTaskListId(config: Partial<MatrixxConfig> = {}): string {
   const envId = process.env.ULTRAWORK_TASK_LIST_ID?.trim()
   if (envId) return sanitizePathSegment(envId)
 
+  const claudeEnvId = process.env.CLAUDE_CODE_TASK_LIST_ID?.trim()
+  if (claudeEnvId) return sanitizePathSegment(claudeEnvId)
 
   const configId = config.morpheus?.tasks?.task_list_id?.trim()
   if (configId) return sanitizePathSegment(configId)

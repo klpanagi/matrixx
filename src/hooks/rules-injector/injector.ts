@@ -1,4 +1,5 @@
 import { readFileSync, statSync, watch } from "node:fs";
+import { homedir } from "node:os";
 import { relative, resolve } from "node:path";
 import type { SessionInjectedRulesCache } from "./cache";
 import { findProjectRoot, findRuleFiles } from "./finder";
@@ -171,8 +172,9 @@ export function createRuleInjectionProcessor(deps: {
 
     const projectRoot = findProjectRoot(resolved);
     const cache = getSessionCache(sessionID);
+    const home = homedir();
 
-    const ruleFileCandidates = findRuleFiles(projectRoot, resolved);
+    const ruleFileCandidates = findRuleFiles(projectRoot, home, resolved);
     const toInject: RuleToInject[] = [];
     let dirty = false;
 

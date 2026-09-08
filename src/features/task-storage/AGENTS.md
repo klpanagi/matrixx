@@ -1,8 +1,8 @@
-# TASK STORAGE KNOWLEDGE BASE
+# CLAUDE TASKS KNOWLEDGE BASE
 
 ## OVERVIEW
 
-Task schema and storage. Core task management with file-based persistence, atomic writes, and OpenCode todo sync.
+Claude Code compatible task schema and storage. Core task management with file-based persistence, atomic writes, and OpenCode todo sync.
 
 ## STORAGE SCOPE
 

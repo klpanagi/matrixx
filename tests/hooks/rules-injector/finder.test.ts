@@ -6,9 +6,11 @@ import { findProjectRoot, findRuleFiles } from "../../../src/hooks/rules-injecto
 
 describe("findRuleFiles", () => {
   const TEST_DIR = join(tmpdir(), `rules-injector-test-${Date.now()}`);
+  const homeDir = join(TEST_DIR, "home");
 
   beforeEach(() => {
     mkdirSync(TEST_DIR, { recursive: true });
+    mkdirSync(homeDir, { recursive: true });
     mkdirSync(join(TEST_DIR, ".git"), { recursive: true });
   });
 
@@ -38,7 +40,7 @@ describe("findRuleFiles", () => {
       writeFileSync(currentFile, "code");
 
       // when finding rules for a file
-      const candidates = findRuleFiles(TEST_DIR, currentFile);
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
 
       // then should find both instruction files
       const paths = candidates.map((c) => c.path);
@@ -65,7 +67,7 @@ describe("findRuleFiles", () => {
       writeFileSync(currentFile, "code");
 
       // when finding rules
-      const candidates = findRuleFiles(TEST_DIR, currentFile);
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
 
       // then should only find .instructions.md file
       const paths = candidates.map((c) => c.path);
@@ -90,7 +92,7 @@ describe("findRuleFiles", () => {
       writeFileSync(currentFile, "code");
 
       // when finding rules
-      const candidates = findRuleFiles(TEST_DIR, currentFile);
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
 
       // then should find nested instruction file
       const paths = candidates.map((c) => c.path);
@@ -114,7 +116,7 @@ describe("findRuleFiles", () => {
       writeFileSync(currentFile, "code");
 
       // when finding rules
-      const candidates = findRuleFiles(TEST_DIR, currentFile);
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
 
       // then should find the single file rule
       const singleFile = candidates.find((c) =>
@@ -137,7 +139,7 @@ describe("findRuleFiles", () => {
       writeFileSync(currentFile, "code");
 
       // when finding rules
-      const candidates = findRuleFiles(TEST_DIR, currentFile);
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
 
       // then isSingleFile should be true
       const copilotFile = candidates.find((c) => c.isSingleFile);
@@ -160,7 +162,7 @@ describe("findRuleFiles", () => {
       writeFileSync(currentFile, "code");
 
       // when finding rules from deeply nested file
-      const candidates = findRuleFiles(TEST_DIR, currentFile);
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
 
       // then single file should have distance 0
       const copilotFile = candidates.find((c) => c.isSingleFile);
@@ -168,10 +170,10 @@ describe("findRuleFiles", () => {
     });
   });
 
-  describe("rule directory discovery", () => {
-    it("should discover .matrixx/rules/ files", () => {
-      // given .matrixx/rules/ directory
-      const rulesDir = join(TEST_DIR, ".matrixx", "rules");
+  describe("backward compatibility", () => {
+    it("should still discover .claude/rules/ files", () => {
+      // given .claude/rules/ directory
+      const rulesDir = join(TEST_DIR, ".claude", "rules");
       mkdirSync(rulesDir, { recursive: true });
       writeFileSync(join(rulesDir, "typescript.md"), "TS rules");
 
@@ -179,11 +181,11 @@ describe("findRuleFiles", () => {
       writeFileSync(currentFile, "code");
 
       // when finding rules
-      const candidates = findRuleFiles(TEST_DIR, currentFile);
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
 
-      // then should find matrixx rules
+      // then should find claude rules
       const paths = candidates.map((c) => c.path);
-      expect(paths.some((p) => p.includes(".matrixx/rules/"))).toBe(true);
+      expect(paths.some((p) => p.includes(".claude/rules/"))).toBe(true);
     });
 
     it("should still discover .cursor/rules/ files", () => {
@@ -196,7 +198,7 @@ describe("findRuleFiles", () => {
       writeFileSync(currentFile, "code");
 
       // when finding rules
-      const candidates = findRuleFiles(TEST_DIR, currentFile);
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
 
       // then should find cursor rules
       const paths = candidates.map((c) => c.path);
@@ -204,8 +206,8 @@ describe("findRuleFiles", () => {
     });
 
     it("should discover .mdc files in rule directories", () => {
-      // given .mdc file in .matrixx/rules/
-      const rulesDir = join(TEST_DIR, ".matrixx", "rules");
+      // given .mdc file in .claude/rules/
+      const rulesDir = join(TEST_DIR, ".claude", "rules");
       mkdirSync(rulesDir, { recursive: true });
       writeFileSync(join(rulesDir, "advanced.mdc"), "MDC rules");
 
@@ -213,7 +215,7 @@ describe("findRuleFiles", () => {
       writeFileSync(currentFile, "code");
 
       // when finding rules
-      const candidates = findRuleFiles(TEST_DIR, currentFile);
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
 
       // then should find .mdc file
       const paths = candidates.map((c) => c.path);
@@ -224,16 +226,16 @@ describe("findRuleFiles", () => {
   describe("mixed sources", () => {
     it("should discover rules from all sources", () => {
       // given rules in multiple directories
-      const matrixxRules = join(TEST_DIR, ".matrixx", "rules");
+      const claudeRules = join(TEST_DIR, ".claude", "rules");
       const cursorRules = join(TEST_DIR, ".cursor", "rules");
       const githubInstructions = join(TEST_DIR, ".github", "instructions");
       const githubDir = join(TEST_DIR, ".github");
 
-      mkdirSync(matrixxRules, { recursive: true });
+      mkdirSync(claudeRules, { recursive: true });
       mkdirSync(cursorRules, { recursive: true });
       mkdirSync(githubInstructions, { recursive: true });
 
-      writeFileSync(join(matrixxRules, "matrixx.md"), "matrixx");
+      writeFileSync(join(claudeRules, "claude.md"), "claude");
       writeFileSync(join(cursorRules, "cursor.md"), "cursor");
       writeFileSync(
         join(githubInstructions, "copilot.instructions.md"),
@@ -245,12 +247,12 @@ describe("findRuleFiles", () => {
       writeFileSync(currentFile, "code");
 
       // when finding rules
-      const candidates = findRuleFiles(TEST_DIR, currentFile);
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
 
       // then should find all rules
       expect(candidates.length).toBeGreaterThanOrEqual(4);
       const paths = candidates.map((c) => c.path);
-      expect(paths.some((p) => p.includes(".matrixx/rules/"))).toBe(true);
+      expect(paths.some((p) => p.includes(".claude/rules/"))).toBe(true);
       expect(paths.some((p) => p.includes(".cursor/rules/"))).toBe(true);
       expect(paths.some((p) => p.includes(".github/instructions/"))).toBe(
         true
@@ -273,7 +275,7 @@ describe("findRuleFiles", () => {
       writeFileSync(currentFile, "code");
 
       // when finding rules
-      const candidates = findRuleFiles(TEST_DIR, currentFile);
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
 
       // then should only have one copilot-instructions.md entry
       const copilotFiles = candidates.filter((c) =>
@@ -283,6 +285,43 @@ describe("findRuleFiles", () => {
     });
   });
 
+  describe("user-level rules", () => {
+    it("should discover user-level .claude/rules/ files", () => {
+      // given user-level rules
+      const userRulesDir = join(homeDir, ".claude", "rules");
+      mkdirSync(userRulesDir, { recursive: true });
+      writeFileSync(join(userRulesDir, "global.md"), "Global user rules");
+
+      const currentFile = join(TEST_DIR, "app.ts");
+      writeFileSync(currentFile, "code");
+
+      // when finding rules
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
+
+      // then should find user-level rules
+      const userRule = candidates.find((c) => c.isGlobal);
+      expect(userRule).toBeDefined();
+      expect(userRule?.path).toContain("global.md");
+    });
+
+    it("should mark user-level rules as isGlobal: true", () => {
+      // given user-level rules
+      const userRulesDir = join(homeDir, ".claude", "rules");
+      mkdirSync(userRulesDir, { recursive: true });
+      writeFileSync(join(userRulesDir, "user.md"), "User rules");
+
+      const currentFile = join(TEST_DIR, "app.ts");
+      writeFileSync(currentFile, "code");
+
+      // when finding rules
+      const candidates = findRuleFiles(TEST_DIR, homeDir, currentFile);
+
+      // then isGlobal should be true
+      const userRule = candidates.find((c) => c.path.includes("user.md"));
+      expect(userRule?.isGlobal).toBe(true);
+      expect(userRule?.distance).toBe(9999);
+    });
+  });
 });
 
 describe("findProjectRoot", () => {

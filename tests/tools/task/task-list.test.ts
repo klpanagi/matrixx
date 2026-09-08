@@ -27,6 +27,7 @@ describe("createTaskList", () => {
       morpheus: {
         tasks: {
           storage_path: join(testProjectDir, ".matrixx/tasks"),
+          claude_code_compat: false,
         },
       },
     }
@@ -68,6 +69,7 @@ describe("createTaskList", () => {
       morpheus: {
         tasks: {
           storage_path: join(testProjectDir, ".matrixx/tasks"),
+          claude_code_compat: false,
         },
       },
     }
@@ -110,6 +112,7 @@ describe("createTaskList", () => {
        morpheus: {
          tasks: {
            storage_path: join(testProjectDir, ".matrixx/tasks"),
+           claude_code_compat: false,
          },
        },
      }
@@ -143,6 +146,7 @@ describe("createTaskList", () => {
        morpheus: {
          tasks: {
            storage_path: join(testProjectDir, ".matrixx/tasks"),
+           claude_code_compat: false,
          },
        },
      }
@@ -206,6 +210,7 @@ describe("createTaskList", () => {
        morpheus: {
          tasks: {
            storage_path: join(testProjectDir, ".matrixx/tasks"),
+           claude_code_compat: false,
          },
        },
      }
@@ -248,6 +253,7 @@ describe("createTaskList", () => {
        morpheus: {
          tasks: {
            storage_path: join(testProjectDir, ".matrixx/tasks"),
+           claude_code_compat: false,
          },
        },
      }
@@ -279,6 +285,7 @@ describe("createTaskList", () => {
        morpheus: {
          tasks: {
            storage_path: join(testProjectDir, ".matrixx/tasks"),
+           claude_code_compat: false,
          },
        },
      }
@@ -310,6 +317,7 @@ describe("createTaskList", () => {
        morpheus: {
          tasks: {
            storage_path: join(testProjectDir, ".matrixx/tasks"),
+           claude_code_compat: false,
          },
        },
      }

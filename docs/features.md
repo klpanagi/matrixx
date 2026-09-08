@@ -314,6 +314,8 @@ Also integrated into `review-work` as Agent 6 (advisory SUP).
 Load custom skills from:
 - `.opencode/skills/*/SKILL.md` (project)
 - `~/.config/opencode/skills/*/SKILL.md` (user)
+- `.claude/skills/*/SKILL.md` (Claude Code compat)
+- `~/.claude/skills/*/SKILL.md` (Claude Code user)
 
 Disable built-in skills via `disabled_skills: ["playwright"]` in config.
 
@@ -508,6 +510,8 @@ Uses Architect agent to execute planned tasks systematically.
 Load custom commands from:
 - `.opencode/command/*.md` (project)
 - `~/.config/opencode/command/*.md` (user)
+- `.claude/commands/*.md` (Claude Code compat)
+- `~/.claude/commands/*.md` (Claude Code user)
 
 ---
 
@@ -532,7 +536,7 @@ Hooks intercept and modify behavior at key points in the agent lifecycle.
 |------|-------|-------------|
 | **directory-agents-injector** | PostToolUse | Auto-injects AGENTS.md when reading files. Walks from file to project root, collecting all AGENTS.md files. **Deprecated for OpenCode 1.1.37+** - Auto-disabled when native AGENTS.md injection is available. |
 | **directory-readme-injector** | PostToolUse | Auto-injects README.md for directory context. |
-| **rules-injector** | PostToolUse | Injects rules from `.matrixx/rules/` when conditions match. Supports globs and alwaysApply. |
+| **rules-injector** | PostToolUse | Injects rules from `.claude/rules/` when conditions match. Supports globs and alwaysApply. |
 | **compaction-context-injector** | Stop | Preserves critical context during session compaction. |
 
 #### Productivity & Control
@@ -612,6 +616,28 @@ Hooks intercept and modify behavior at key points in the agent lifecycle.
 | Hook | Event | Description |
 |------|-------|-------------|
 | **oracle-md-only** | PostToolUse | Enforces markdown-only output for Oracle planner. |
+
+### Claude Code Hooks Integration
+
+Run custom scripts via Claude Code's `settings.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{ "type": "command", "command": "eslint --fix $FILE" }]
+      }
+    ]
+  }
+}
+```
+
+**Hook locations**:
+- `~/.claude/settings.json` (user)
+- `./.claude/settings.json` (project)
+- `./.claude/settings.local.json` (local, git-ignored)
 
 ### Disabling Hooks
 
@@ -915,7 +941,7 @@ project/
 
 ### Conditional Rules
 
-Inject rules from `.matrixx/rules/` when conditions match:
+Inject rules from `.claude/rules/` when conditions match:
 
 ```markdown
 ---
@@ -930,5 +956,66 @@ Supports:
 - `.md` and `.mdc` files
 - `globs` field for pattern matching
 - `alwaysApply: true` for unconditional rules
-- Walks upward from file to project root
+- Walks upward from file to project root, plus `~/.claude/rules/`
 
+---
+
+## Claude Code Compatibility
+
+Full compatibility layer for Claude Code configurations.
+
+### Config Loaders
+
+| Type | Locations |
+|------|-----------|
+| **Commands** | `~/.claude/commands/`, `.claude/commands/` |
+| **Skills** | `~/.claude/skills/*/SKILL.md`, `.claude/skills/*/SKILL.md` |
+| **Agents** | `~/.claude/agents/*.md`, `.claude/agents/*.md` |
+| **MCPs** | `~/.claude/.mcp.json`, `.mcp.json`, `.claude/.mcp.json` |
+
+MCP configs support environment variable expansion: `${VAR}`.
+
+### Data Storage
+
+| Data | Location | Format |
+|------|----------|--------|
+| Todos | `~/.claude/todos/` | Claude Code compatible |
+| Transcripts | `~/.claude/transcripts/` | JSONL |
+
+### Compatibility Toggles
+
+Disable specific features:
+
+```json
+{
+  "claude_code": {
+    "mcp": false,
+    "commands": false,
+    "skills": false,
+    "agents": false,
+    "hooks": false,
+    "plugins": false
+  }
+}
+```
+
+| Toggle | Disables |
+|--------|----------|
+| `mcp` | `.mcp.json` files (keeps built-in MCPs) |
+| `commands` | `~/.claude/commands/`, `.claude/commands/` |
+| `skills` | `~/.claude/skills/`, `.claude/skills/` |
+| `agents` | `~/.claude/agents/` (keeps built-in agents) |
+| `hooks` | settings.json hooks |
+| `plugins` | Claude Code marketplace plugins |
+
+Disable specific plugins:
+
+```json
+{
+  "claude_code": {
+    "plugins_override": {
+      "claude-mem@thedotmack": false
+    }
+  }
+}
+```
