@@ -10,6 +10,10 @@ export const ExperimentalConfigSchema = z.object({
   task_system: z.boolean().optional().default(true),
   /** Timeout in ms for loadAllPluginComponents during config handler init (default: 10000, min: 1000) */
   plugin_load_timeout_ms: z.number().min(1000).optional(),
+  /** Warn threshold 0-1 (default 0.70). Monitor is read-only. */
+  context_warning_threshold: z.number().min(0.1).max(0.95).optional(),
+  /** Proactive compaction trigger 0-1 (default 0.78). Must exceed warning threshold. */
+  preemptive_compaction_threshold: z.number().min(0.1).max(0.95).optional(),
   /** Wrap hook creation in try/catch to prevent one failing hook from crashing the plugin (default: true at call site) */
   safe_hook_creation: z.boolean().optional(),
   /** Enable hashline_edit tool for improved file editing with hash-based line anchors */

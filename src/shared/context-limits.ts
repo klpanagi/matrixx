@@ -1,3 +1,4 @@
+import type { ExperimentalConfig } from "../config/schema/experimental"
 import type { ContextLimitModelCacheState } from "./context-limit-resolver"
 import { isAnthropicProvider, resolveActualContextLimit } from "./context-limit-resolver"
 
@@ -47,4 +48,14 @@ export function getActualLimit(
 /** Display limit is fixed 1M for Anthropic UI; actual may be smaller. */
 export function getDisplayLimit(): number {
   return ANTHROPIC_DISPLAY_LIMIT
+}
+
+export function resolveWarningThreshold(experimental?: ExperimentalConfig): number {
+  const v = experimental?.context_warning_threshold
+  return typeof v === "number" ? v : CONTEXT_WARNING_THRESHOLD
+}
+
+export function resolvePreemptiveThreshold(experimental?: ExperimentalConfig): number {
+  const v = experimental?.preemptive_compaction_threshold
+  return typeof v === "number" ? v : PREEMPTIVE_COMPACTION_THRESHOLD
 }

@@ -1169,6 +1169,8 @@ Opt-in experimental features that may change or be removed in future versions. U
     "aggressive_truncation": true,
     "auto_resume": true,
     "preemptive_compaction": true,
+    "context_warning_threshold": 0.70,
+    "preemptive_compaction_threshold": 0.78,
     "hashline_edit": true
   }
 }
@@ -1181,6 +1183,8 @@ Opt-in experimental features that may change or be removed in future versions. U
 | `aggressive_truncation`     | `false` | When token limit is exceeded, aggressively truncates tool outputs to fit within limits. More aggressive than the default truncation behavior. Falls back to summarize/revert if insufficient. |
 | `auto_resume`               | `false` | Automatically resumes session after successful recovery from thinking block errors or thinking disabled violations. Extracts last user message and continues.                             |
 | `preemptive_compaction`     | `false` | Proactively compact context before hitting limits.                                                                                                                                          |
+| `context_warning_threshold` | `0.70`  | Warn threshold 0-1 for `context-window-monitor` (read-only, Anthropic only). Must be < `preemptive_compaction_threshold` or a warning is logged. 0.1-0.95. |
+| `preemptive_compaction_threshold` | `0.78`  | Proactive compaction trigger 0-1 for `preemptive-compaction`. Must exceed `context_warning_threshold`. 0.1-0.95. |
 | `plugin_load_timeout_ms`    | `10000` | Timeout in ms for `loadAllPluginComponents` during config handler init (min: 1000).                                                             |
 | `safe_hook_creation`        | `true` (at call site) | Wrap hook creation in try/catch to prevent one failing hook from crashing the plugin.                                                  |
 | `hashline_edit`             | `true` (at call site) | Enable hashline-anchored `Edit` tool for `.matrixx/plans/*.md` (line#hash IDs).                                                     |

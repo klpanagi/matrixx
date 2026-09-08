@@ -1,11 +1,15 @@
 // Boundary: 70% warn (read-only) → preemptive-compaction 78% (proactive) → context-window-limit-recovery (reactive, error-parse only). Shared: context-limits.ts + token-cache.ts.
 import type { PluginInput } from "@opencode-ai/plugin"
+import type { MatrixxConfig } from "../config"
+import type { ExperimentalConfig } from "../config/schema/experimental"
 import {
   ANTHROPIC_DISPLAY_LIMIT,
-  CONTEXT_WARNING_THRESHOLD,
   DEFAULT_ANTHROPIC_ACTUAL_LIMIT,
   isAnthropicProvider,
+  resolvePreemptiveThreshold,
+  resolveWarningThreshold,
 } from "../shared/context-limits"
+import { log } from "../shared/logger"
 import { createSystemDirective, SystemDirectiveTypes } from "../shared/system-directive"
 import { clearTokenCache, updateTokenCache } from "../shared/token-cache"
 
@@ -33,8 +37,18 @@ interface CachedTokenState {
   tokens: TokenInfo
 }
 
+let misorderWarned = false
 
-export function createContextWindowMonitorHook(_ctx: PluginInput) {
+export function createContextWindowMonitorHook(
+  _ctx: PluginInput,
+  pluginConfig?: MatrixxConfig | { experimental?: ExperimentalConfig },
+) {
+  const warningThreshold = resolveWarningThreshold(pluginConfig?.experimental)
+  const preemptiveThreshold = resolvePreemptiveThreshold(pluginConfig?.experimental)
+  if (!misorderWarned && warningThreshold >= preemptiveThreshold) {
+    misorderWarned = true
+    log("[context-limits] context_warning_threshold >= preemptive_compaction_threshold — monitor will warn at/after compaction")
+  }
   const remindedSessions = new Set<string>()
   const tokenCache = new Map<string, CachedTokenState>()
 
@@ -56,7 +70,7 @@ export function createContextWindowMonitorHook(_ctx: PluginInput) {
 
     const actualUsagePercentage = totalInputTokens / ANTHROPIC_ACTUAL_LIMIT
 
-    if (actualUsagePercentage < CONTEXT_WARNING_THRESHOLD) return
+    if (actualUsagePercentage < warningThreshold) return
 
     remindedSessions.add(sessionID)
 

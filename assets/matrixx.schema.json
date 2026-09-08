@@ -4073,6 +4073,16 @@
           "type": "number",
           "minimum": 1000
         },
+        "context_warning_threshold": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 0.95
+        },
+        "preemptive_compaction_threshold": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 0.95
+        },
         "safe_hook_creation": {
           "type": "boolean"
         },
