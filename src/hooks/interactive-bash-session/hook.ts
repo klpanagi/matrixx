@@ -3,7 +3,7 @@ import { subagentSessions } from "../../features/session-state";
 import { log } from "../../shared/logger";
 import { buildSessionReminderMessage } from "./constants";
 import { extractSessionNameFromTokens, findSubcommand, tokenizeCommand } from "./parser";
-import { getOrCreateState, isOmoSession, killAllTrackedSessions } from "./state-manager";
+import { getOrCreateState, isMatrixxSession, killAllTrackedSessions } from "./state-manager";
 import { clearInteractiveBashSessionState, saveInteractiveBashSessionState } from "./storage";
 import type { InteractiveBashSessionState } from "./types";
 
@@ -76,10 +76,10 @@ export function createInteractiveBashSessionHook(ctx: PluginInput) {
 
     const sessionName = extractSessionNameFromTokens(tokens, subCommand);
 
-    if (isNewSession && isOmoSession(sessionName)) {
+    if (isNewSession && isMatrixxSession(sessionName)) {
       state.tmuxSessions.add(sessionName as string);
       stateChanged = true;
-    } else if (isKillSession && isOmoSession(sessionName)) {
+    } else if (isKillSession && isMatrixxSession(sessionName)) {
       state.tmuxSessions.delete(sessionName as string);
       stateChanged = true;
     } else if (isKillServer) {

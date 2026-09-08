@@ -1,18 +1,12 @@
 export const AGENT_NAME_MAP: Record<string, string> = {
-  // Legacy Sisyphus variants → "morpheus"
-  Sisyphus: "morpheus",
-  sisyphus: "morpheus",
   morpheus: "morpheus",
 
   // Legacy Prometheus variants → "oracle"
-  "Planner-Sisyphus": "oracle",
-  "planner-sisyphus": "oracle",
   "Prometheus (Planner)": "oracle",
   prometheus: "oracle",
   "oracle-planner": "oracle",
 
   // Legacy Atlas variants → "architect"
-  "orchestrator-sisyphus": "architect",
   Atlas: "architect",
   atlas: "architect",
   architect: "architect",
@@ -28,9 +22,6 @@ export const AGENT_NAME_MAP: Record<string, string> = {
   momus: "smith",
   smith: "smith",
 
-  // Legacy Sisyphus-Junior → "mouse"
-  "Sisyphus-Junior": "mouse",
-  "sisyphus-junior": "mouse",
   mouse: "mouse",
 
   build: "build",

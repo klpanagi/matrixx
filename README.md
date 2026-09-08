@@ -1,8 +1,6 @@
 >
 > [![Matrixx](./.github/assets/orchestrator-architect.png?v=3)](https://github.com/klpanagi/opencode-matrixx)
 >
-> Matrixx is **highly inspired by** [oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode) — the project that pioneered the "oh-my-zsh for OpenCode" concept.
-> Full credit to [code-yeongyu](https://github.com/code-yeongyu) for the original vision.
 >
 
 <div align="center">

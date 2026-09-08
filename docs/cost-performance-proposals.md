@@ -17,12 +17,11 @@ Total: 15 proposals across 3 tiers, plus a recommended implementation sequence a
 
 ## 1. Comparator Landscape
 
-### 1.1 Three named comparators
+### 1.1 Two named comparators
 
 | Project | Stars | Approach | Cost/perf focus |
 |---|---|---|---|
 | **code-yeongyu/oh-my-openagent** | 5K+ | 6-tier agent workflow (Explore→Plan→Build→Test→Review→Document), 11+ agents, Build/Review/Fix 3-stage cycle | Process quality, no direct cost optimization |
-| **alvinunreal/oh-my-opencode-slim** | 1K+ | Reduced/safer subset of OMO; plugin manager, security guard, notifications | Safety-focused; minimal cost optimization |
 | **obra/superpowers** | 250K+ | Pure methodology: 14 SKILL.md files + bootstrap hook; zero runtime code | **SDO + rationalization tables + progress ledger** are the transferable insights |
 
 ### 1.2 Twelve other similar projects (curated by relevance)
@@ -298,7 +297,6 @@ If Tier 2 (P6–P8, P10) is also added: **~60–80% reduction on tool-heavy sess
 | Project | URL | Stars |
 |---|---|---|
 | code-yeongyu/oh-my-openagent | https://github.com/code-yeongyu/oh-my-openagent | 5K+ |
-| alvinunreal/oh-my-opencode-slim | https://github.com/alvinunreal/oh-my-opencode-slim | 1K+ |
 | obra/superpowers | https://github.com/obra/superpowers | 250K+ |
 | rtk-ai/rtk | https://github.com/rtk-ai/rtk | 69.8K |
 | mksglu/context-mode | https://github.com/mksglu/context-mode | 18.7K |

@@ -30,7 +30,7 @@ export function isPlannerAgent(agentName?: string): boolean {
  * Checks if agent is a non-Matrixx agent (e.g., OpenCode's built-in Builder/Plan).
  * Non-Matrixx agents should not receive ultrawork injection.
  */
-export function isNonOmoAgent(agentName?: string): boolean {
+export function isNonMatrixxAgent(agentName?: string): boolean {
   if (!agentName) return false
   const lowerName = agentName.toLowerCase()
   return lowerName.includes("builder") || lowerName === "plan"
