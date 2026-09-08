@@ -31,7 +31,7 @@ export function allowSession(sessionID: string, hash: string): void {
 export function consumeOneShot(sessionID: string, hash: string): boolean {
   const k = keyFor(sessionID, hash)
   const s = oneShotAllow.get(k)
-  if (!s || !s.has(hash)) return false
+  if (!s?.has(hash)) return false
   s.delete(hash)
   if (s.size === 0) oneShotAllow.delete(k)
   return true

@@ -194,7 +194,7 @@ describe("detectSecrets edge", () => {
 describe("detectSecrets performance", () => {
   test("median <50ms on 32KB", () => {
     //#given
-    const big = "x".repeat(32000) + " api_key= hunter2notarealsecretvalue123 "
+    const big = `${"x".repeat(32000)} api_key= hunter2notarealsecretvalue123 `
     //#when
     const times: number[] = []
     for (let i = 0; i < 20; i++) {
