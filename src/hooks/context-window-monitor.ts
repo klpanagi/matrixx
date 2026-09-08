@@ -1,14 +1,19 @@
+// Boundary: 70% warn (read-only) → preemptive-compaction 78% (proactive) → context-window-limit-recovery (reactive, error-parse only). Shared: context-limits.ts + token-cache.ts.
 import type { PluginInput } from "@opencode-ai/plugin"
+import {
+  ANTHROPIC_DISPLAY_LIMIT,
+  CONTEXT_WARNING_THRESHOLD,
+  DEFAULT_ANTHROPIC_ACTUAL_LIMIT,
+  isAnthropicProvider,
+} from "../shared/context-limits"
 import { createSystemDirective, SystemDirectiveTypes } from "../shared/system-directive"
 import { clearTokenCache, updateTokenCache } from "../shared/token-cache"
 
-const ANTHROPIC_DISPLAY_LIMIT = 1_000_000
 const ANTHROPIC_ACTUAL_LIMIT =
   process.env.ANTHROPIC_1M_CONTEXT === "true" ||
   process.env.VERTEX_ANTHROPIC_1M_CONTEXT === "true"
-    ? 1_000_000
-    : 200_000
-const CONTEXT_WARNING_THRESHOLD = 0.70
+    ? ANTHROPIC_DISPLAY_LIMIT
+    : DEFAULT_ANTHROPIC_ACTUAL_LIMIT
 
 const CONTEXT_REMINDER = `${createSystemDirective(SystemDirectiveTypes.CONTEXT_WINDOW_MONITOR)}
 
@@ -28,9 +33,6 @@ interface CachedTokenState {
   tokens: TokenInfo
 }
 
-function isAnthropicProvider(providerID: string): boolean {
-  return providerID === "anthropic" || providerID === "google-vertex-anthropic"
-}
 
 export function createContextWindowMonitorHook(_ctx: PluginInput) {
   const remindedSessions = new Set<string>()

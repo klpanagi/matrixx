@@ -488,16 +488,16 @@ Source: `src/hooks/compaction-context-injector/`.
 
 Source: `src/hooks/compaction-todo-preserver/`.
 
-### 3.5 anthropic-context-window-limit-recovery
+### 3.5 context-window-limit-recovery
 
 | Property | Value |
 |----------|-------|
 | Event | `event` (parses `context limit` / `token limit` errors on idle) plus `tool.execute.after` |
-| Behavior | When a token limit error is detected, executes compaction with three fallback strategies in order: 1) aggressive truncation, 2) summarize and retry, 3) target token truncation. Caps attempts at 3 to avoid recovery storms (P15). |
+| Behavior | When a token limit / context limit error is detected via keyword+pattern parsing (any provider), executes three fallback strategies in order: 1) aggressive truncation (target token ratio 0.5, cap 5), 2) summarize and retry (cap 2, exponential backoff 2s capped 30s), 3) target token truncation. Caps retried API calls, escalates via toast.
 | Config key | `experimental.aggressive_truncation` influences the first strategy |
-| Disable | `"anthropic-context-window-limit-recovery"` in `disabled_hooks` |
+| Disable | `"context-window-limit-recovery"` in `disabled_hooks` |
 
-Source: `src/hooks/anthropic-context-window-limit-recovery/` (~2232 LOC).
+Source: `src/hooks/context-window-limit-recovery/ (~1100 LOC).
 
 ### 3.6 tool-output-truncator and grep-output-truncator
 
@@ -614,7 +614,7 @@ Unified `matrixx.jsonc` showing every context management key. All keys are optio
     // "preemptive-compaction",
     // "compaction-context-injector",
     // "compaction-todo-preserver",
-    // "anthropic-context-window-limit-recovery",
+    // "context-window-limit-recovery",
     // "tool-output-truncator",
     // removed: grep-output-truncator was an alias, now deleted
     // "quality-gate",

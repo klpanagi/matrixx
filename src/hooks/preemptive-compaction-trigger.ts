@@ -1,8 +1,9 @@
+// Boundary: 70% warn (monitor) → 78% preemptive (proactive, here) → recovery (reactive, error-parse only).
 import type { MatrixxConfig } from "../config"
 import {
   type ContextLimitModelCacheState,
-  resolveActualContextLimit,
-} from "../shared/context-limit-resolver"
+  PREEMPTIVE_COMPACTION_THRESHOLD,
+  resolveActualContextLimit,} from "../shared/context-limits"
 import { log } from "../shared/logger"
 import type {
   CachedCompactionState,
@@ -11,7 +12,6 @@ import type {
 import { resolveCompactionModel } from "./shared/compaction-model-resolver"
 
 const PREEMPTIVE_COMPACTION_TIMEOUT_MS = 60_000
-const PREEMPTIVE_COMPACTION_THRESHOLD = 0.78
 const PREEMPTIVE_COMPACTION_COOLDOWN_MS = 60_000
 
 declare function setTimeout(handler: () => void, timeout?: number): unknown

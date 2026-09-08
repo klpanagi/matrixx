@@ -6,7 +6,7 @@ export type ContextLimitModelCacheState = {
   modelContextLimitsCache?: Map<string, number>
 }
 
-function isAnthropicProvider(providerID: string): boolean {
+export function isAnthropicProvider(providerID: string): boolean {
   const normalized = providerID.toLowerCase()
   return (
     normalized === "anthropic" ||

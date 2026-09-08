@@ -1,8 +1,9 @@
+// Boundary: reactive only (parses token_limit errors on session.error/message.updated/session.idle). Proactive 78% lives in preemptive-compaction. Do not add proactive threshold here. Cap API calls 2.
 import type { PluginInput } from "@opencode-ai/plugin"
 import type { ExperimentalConfig } from "../../config"
 import { log } from "../../shared/logger"
 import { executeCompact, getLastAssistant } from "./executor"
-import { parseAnthropicTokenLimitError } from "./parser"
+import { parseTokenLimitError } from "./parser"
 import type { AutoCompactState, ParsedTokenLimitError } from "./types"
 
 export interface AnthropicContextWindowLimitRecoveryOptions {
@@ -56,7 +57,7 @@ export function createAnthropicContextWindowLimitRecoveryHook(
       log("[auto-compact] session.error received", { sessionID, error: props?.error })
       if (!sessionID) return
 
-      const parsed = parseAnthropicTokenLimitError(props?.error)
+      const parsed = parseTokenLimitError(props?.error)
       log("[auto-compact] parsed result", { parsed, hasError: !!props?.error })
       if (parsed) {
         autoCompactState.pendingCompact.add(sessionID)
@@ -102,7 +103,7 @@ export function createAnthropicContextWindowLimitRecoveryHook(
 
       if (sessionID && info?.role === "assistant" && info.error) {
         log("[auto-compact] message.updated with error", { sessionID, error: info.error })
-        const parsed = parseAnthropicTokenLimitError(info.error)
+        const parsed = parseTokenLimitError(info.error)
         log("[auto-compact] message.updated parsed result", { parsed })
         if (parsed) {
           parsed.providerID = info.providerID as string | undefined
@@ -163,3 +164,6 @@ export function createAnthropicContextWindowLimitRecoveryHook(
     event: eventHandler,
   }
 }
+
+export type ContextWindowLimitRecoveryOptions = AnthropicContextWindowLimitRecoveryOptions
+export const createContextWindowLimitRecoveryHook = createAnthropicContextWindowLimitRecoveryHook

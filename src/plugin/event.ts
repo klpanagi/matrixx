@@ -39,7 +39,7 @@ export function createEventHandler(args: {
     await Promise.resolve(hooks.directoryAgentsInjector?.event?.(input))
     await Promise.resolve(hooks.rulesInjector?.event?.(input))
     await Promise.resolve(hooks.thinkMode?.event?.(input))
-    await Promise.resolve(hooks.anthropicContextWindowLimitRecovery?.event?.(input))
+    await Promise.resolve(hooks.contextWindowLimitRecovery?.event?.(input))
     await Promise.resolve(hooks.agentUsageReminder?.event?.(input))
     await Promise.resolve(hooks.categorySkillReminder?.event?.(input))
     await Promise.resolve(hooks.interactiveBashSession?.event?.(input))

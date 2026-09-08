@@ -57,7 +57,7 @@ Total: 15 proposals across 3 tiers, plus a recommended implementation sequence a
 | Runtime model fallback | `src/hooks/runtime-fallback/` | Auto-downgrade on failure |
 | Context window monitor (70% warn) | `src/hooks/context-window-monitor.ts` | Pre-empts overload |
 | Preemptive compaction | `src/hooks/preemptive-compaction.ts` | Optional |
-| Multi-strategy context recovery | `src/hooks/anthropic-context-window-limit-recovery/` (~2232 LOC) | Up to 22 API calls worst case — could be capped |
+| Multi-strategy context recovery | `src/hooks/context-window-limit-recovery/ (~1100 LOC)
 | Concurrency limits + circuit breakers | `src/features/background-agent/concurrency.ts` | Model-specific limits |
 | 8-category delegation routing | `src/tools/delegate-task/constants.ts` (591 LOC) | Has per-category models |
 | 45 built-in skills | `src/features/builtin-skills/skills/` | **Loaded eagerly** ← optimization opportunity |
@@ -212,11 +212,11 @@ Total: 15 proposals across 3 tiers, plus a recommended implementation sequence a
 
 ### P15. Cap Context Recovery at 3 Strategies (internal optimization)
 
-- **What:** Current worst case is 22+ API calls in `anthropic-context-window-limit-recovery`. Add an early-termination cap + escalation to user.
+- **What:** Current worst case is 22+ API calls in `context-window-limit-recovery` (now capped 2 summarize + 5 truncations + toast). Add an early-termination cap + escalation to user.
 - **Cost impact:** Avoids pathological recovery storms.
 - **Performance impact:** Faster failure path.
 - **Complexity:** **Low.** Tune existing thresholds.
-- **Where:** `src/hooks/anthropic-context-window-limit-recovery/` (~2232 LOC)
+- **Where:** `src/hooks/context-window-limit-recovery/ (~1100 LOC)
 - **Source:** Internal hotspot analysis
 
 ### P16. Headroom Network-Proxy Compression (headroomlabs-ai/headroom)

@@ -11,13 +11,14 @@ const parseAnthropicTokenLimitErrorMock = mock(() => ({
   modelID: "claude-sonnet-4-5",
 }))
 
-mock.module("../../../src/hooks/anthropic-context-window-limit-recovery/executor", () => ({
+mock.module("../../../src/hooks/context-window-limit-recovery/executor", () => ({
   executeCompact: executeCompactMock,
   getLastAssistant: getLastAssistantMock,
 }))
 
-mock.module("../../../src/hooks/anthropic-context-window-limit-recovery/parser", () => ({
+mock.module("../../../src/hooks/context-window-limit-recovery/parser", () => ({
   parseAnthropicTokenLimitError: parseAnthropicTokenLimitErrorMock,
+  parseTokenLimitError: parseAnthropicTokenLimitErrorMock,
 }))
 
 mock.module("../../../src/shared/logger", () => ({
@@ -79,7 +80,7 @@ describe("createAnthropicContextWindowLimitRecoveryHook", () => {
   test("cancels pending timer when session.idle handles compaction first", async () => {
     //#given
     const { restore, getClearTimeoutCalls } = setupDelayedTimeoutMocks()
-    const { createAnthropicContextWindowLimitRecoveryHook } = await import("../../../src/hooks/anthropic-context-window-limit-recovery/recovery-hook")
+    const { createAnthropicContextWindowLimitRecoveryHook } = await import("../../../src/hooks/context-window-limit-recovery/recovery-hook")
     const hook = createAnthropicContextWindowLimitRecoveryHook(createMockContext())
 
     try {

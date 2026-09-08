@@ -1,9 +1,9 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test"
-import * as storage from "../../../src/hooks/anthropic-context-window-limit-recovery/storage"
-import { truncateUntilTargetTokens } from "../../../src/hooks/anthropic-context-window-limit-recovery/storage"
+import * as storage from "../../../src/hooks/context-window-limit-recovery/storage"
+import { truncateUntilTargetTokens } from "../../../src/hooks/context-window-limit-recovery/storage"
 
 // Mock the entire module
-mock.module("../../../src/hooks/anthropic-context-window-limit-recovery/storage", () => {
+mock.module("../../../src/hooks/context-window-limit-recovery/storage", () => {
   return {
     ...storage,
     findToolResultsBySize: mock(() => []),
@@ -12,7 +12,7 @@ mock.module("../../../src/hooks/anthropic-context-window-limit-recovery/storage"
 })
 
 afterAll(() => {
-  mock.module("../../../src/hooks/anthropic-context-window-limit-recovery/storage", () => storage)
+  mock.module("../../../src/hooks/context-window-limit-recovery/storage", () => storage)
   mock.restore()
 })
 
@@ -21,13 +21,13 @@ describe("truncateUntilTargetTokens", () => {
   
   beforeEach(() => {
     // Reset mocks
-    const { findToolResultsBySize, truncateToolResult } = require("../../../src/hooks/anthropic-context-window-limit-recovery/storage")
+    const { findToolResultsBySize, truncateToolResult } = require("../../../src/hooks/context-window-limit-recovery/storage")
     findToolResultsBySize.mockReset()
     truncateToolResult.mockReset()
   })
 
   test("truncates only until target is reached", async () => {
-    const { findToolResultsBySize, truncateToolResult } = require("../../../src/hooks/anthropic-context-window-limit-recovery/storage")
+    const { findToolResultsBySize, truncateToolResult } = require("../../../src/hooks/context-window-limit-recovery/storage")
     
     // given: Two tool results, each 1000 chars. Target reduction is 500 chars.
     const results = [
@@ -55,7 +55,7 @@ describe("truncateUntilTargetTokens", () => {
   })
 
   test("truncates all if target not reached", async () => {
-    const { findToolResultsBySize, truncateToolResult } = require("../../../src/hooks/anthropic-context-window-limit-recovery/storage")
+    const { findToolResultsBySize, truncateToolResult } = require("../../../src/hooks/context-window-limit-recovery/storage")
     
     // given: Two tool results, each 100 chars. Target reduction is 500 chars.
     const results = [

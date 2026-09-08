@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 import * as messagesReader from "../../../src/hooks/session-recovery/storage/messages-reader"
-import { executeCompact } from "../../../src/hooks/anthropic-context-window-limit-recovery/executor"
-import * as storage from "../../../src/hooks/anthropic-context-window-limit-recovery/storage"
+import { executeCompact } from "../../../src/hooks/context-window-limit-recovery/executor"
+import * as storage from "../../../src/hooks/context-window-limit-recovery/storage"
 
 type TimerCallback = (...args: unknown[]) => void
 type ToastCall = [{ body: { title: string } }]

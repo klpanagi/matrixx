@@ -260,7 +260,7 @@ Never `bun publish` or bump `package.json` version locally.
 
 ## HOTSPOTS
 
-`background-agent/manager.ts` + `features/task-storage/` + `task-continuation-enforcer/` (file-backed `.matrixx/tasks/T-{uuid}.json`, atomic write, 30s stale lock) · `todo-continuation-enforcer/` (legacy, gated by `experimental.task_system=false`) · `anthropic-context-window-limit-recovery/` · `architect/` · `matrix-loop/` · `keyword-detector/` · `rules-injector/` · `think-mode/` · `session-recovery/` · `task-edit-guard`
+`background-agent/manager.ts` + `features/task-storage/` + `task-continuation-enforcer/` (file-backed `.matrixx/tasks/T-{uuid}.json`, atomic write, 30s stale lock) · `todo-continuation-enforcer/` (legacy, gated by `experimental.task_system=false`) · `context-window-limit-recovery/` · `architect/` · `matrix-loop/` · `keyword-detector/` · `rules-injector/` · `think-mode/` · `session-recovery/` · `task-edit-guard`
 
 ## NOTES
 

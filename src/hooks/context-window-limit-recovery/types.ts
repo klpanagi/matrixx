@@ -35,7 +35,7 @@ export const RETRY_CONFIG = {
 } as const
 
 export const TRUNCATE_CONFIG = {
-  maxTruncateAttempts: 20,
+  maxTruncateAttempts: 5,
   minOutputSizeToTruncate: 500,
   targetTokenRatio: 0.5,
   charsPerToken: 4,

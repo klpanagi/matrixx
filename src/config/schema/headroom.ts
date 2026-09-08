@@ -13,7 +13,7 @@ import { z } from "zod"
  *   so the proxy sits transparently in front of the transport.
  * - Native transport integration is deferred until the compaction hook
  *   stabilizes (Headroom #76 collision risk with
- *   anthropic-context-window-limit-recovery).
+ *   context-window-limit-recovery).
  */
 export const HeadroomConfigSchema = z.object({
   /** Enable Headroom proxy detection/discipline (default: false — opt-in) */

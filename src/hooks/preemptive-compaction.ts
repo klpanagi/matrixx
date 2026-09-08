@@ -1,3 +1,4 @@
+// Boundary: 70% warn (monitor, read-only) → 78% preemptive (proactive, here) → recovery (reactive, error-parse only).
 import type { MatrixxConfig } from "../config"
 import type { ContextLimitModelCacheState } from "../shared/context-limit-resolver"
 import { clearTokenCache, updateTokenCache } from "../shared/token-cache"
