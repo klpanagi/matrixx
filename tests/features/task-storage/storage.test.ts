@@ -20,7 +20,6 @@ const TEST_DIR_ABS = join(process.cwd(), TEST_DIR)
 
 describe("getTaskDir", () => {
   const originalTaskListId = process.env.ULTRAWORK_TASK_LIST_ID
-  const originalClaudeTaskListId = process.env.CLAUDE_CODE_TASK_LIST_ID
 
   beforeEach(() => {
     if (originalTaskListId === undefined) {
@@ -29,11 +28,6 @@ describe("getTaskDir", () => {
       process.env.ULTRAWORK_TASK_LIST_ID = originalTaskListId
     }
 
-    if (originalClaudeTaskListId === undefined) {
-      delete process.env.CLAUDE_CODE_TASK_LIST_ID
-    } else {
-      process.env.CLAUDE_CODE_TASK_LIST_ID = originalClaudeTaskListId
-    }
   })
 
   afterEach(() => {
@@ -43,11 +37,6 @@ describe("getTaskDir", () => {
       process.env.ULTRAWORK_TASK_LIST_ID = originalTaskListId
     }
 
-    if (originalClaudeTaskListId === undefined) {
-      delete process.env.CLAUDE_CODE_TASK_LIST_ID
-    } else {
-      process.env.CLAUDE_CODE_TASK_LIST_ID = originalClaudeTaskListId
-    }
   })
 
   test("returns global config path for default config", () => {
@@ -75,18 +64,6 @@ describe("getTaskDir", () => {
     expect(result).toBe(join(configDir, "tasks", "custom-list-id"))
   })
 
-  test("respects CLAUDE_CODE_TASK_LIST_ID env var when ULTRAWORK_TASK_LIST_ID not set", () => {
-    //#given
-    delete process.env.ULTRAWORK_TASK_LIST_ID
-    process.env.CLAUDE_CODE_TASK_LIST_ID = "claude list/id"
-    const configDir = getOpenCodeConfigDir({ binary: "opencode" })
-
-    //#when
-    const result = getTaskDir()
-
-    //#then
-    expect(result).toBe(join(configDir, "tasks", "claude-list-id"))
-  })
 
   test("falls back to sanitized cwd basename when env var not set", () => {
     //#given
@@ -107,7 +84,6 @@ describe("getTaskDir", () => {
       morpheus: {
         tasks: {
           storage_path: "/tmp/custom-task-path",
-          claude_code_compat: false,
         },
       },
     }
@@ -125,7 +101,6 @@ describe("getTaskDir", () => {
       morpheus: {
         tasks: {
           storage_path: ".custom/tasks",
-          claude_code_compat: false,
         },
       },
     }
@@ -140,7 +115,6 @@ describe("getTaskDir", () => {
 
 describe("resolveTaskListId", () => {
   const originalTaskListId = process.env.ULTRAWORK_TASK_LIST_ID
-  const originalClaudeTaskListId = process.env.CLAUDE_CODE_TASK_LIST_ID
 
   beforeEach(() => {
     if (originalTaskListId === undefined) {
@@ -149,11 +123,6 @@ describe("resolveTaskListId", () => {
       process.env.ULTRAWORK_TASK_LIST_ID = originalTaskListId
     }
 
-    if (originalClaudeTaskListId === undefined) {
-      delete process.env.CLAUDE_CODE_TASK_LIST_ID
-    } else {
-      process.env.CLAUDE_CODE_TASK_LIST_ID = originalClaudeTaskListId
-    }
   })
 
   afterEach(() => {
@@ -163,11 +132,6 @@ describe("resolveTaskListId", () => {
       process.env.ULTRAWORK_TASK_LIST_ID = originalTaskListId
     }
 
-    if (originalClaudeTaskListId === undefined) {
-      delete process.env.CLAUDE_CODE_TASK_LIST_ID
-    } else {
-      process.env.CLAUDE_CODE_TASK_LIST_ID = originalClaudeTaskListId
-    }
   })
 
   test("returns env var when set", () => {
@@ -181,29 +145,7 @@ describe("resolveTaskListId", () => {
     expect(result).toBe("custom-list")
   })
 
-  test("returns CLAUDE_CODE_TASK_LIST_ID when ULTRAWORK_TASK_LIST_ID not set", () => {
-    //#given
-    delete process.env.ULTRAWORK_TASK_LIST_ID
-    process.env.CLAUDE_CODE_TASK_LIST_ID = "claude-list"
 
-    //#when
-    const result = resolveTaskListId()
-
-    //#then
-    expect(result).toBe("claude-list")
-  })
-
-  test("sanitizes CLAUDE_CODE_TASK_LIST_ID special characters", () => {
-    //#given
-    delete process.env.ULTRAWORK_TASK_LIST_ID
-    process.env.CLAUDE_CODE_TASK_LIST_ID = "claude list/id"
-
-    //#when
-    const result = resolveTaskListId()
-
-    //#then
-    expect(result).toBe("claude-list-id")
-  })
 
   test("sanitizes special characters", () => {
     //#given
@@ -265,7 +207,7 @@ describe("listTaskFiles", () => {
     //#given
     const config: Partial<MatrixxConfig> = {
       new_task_system_enabled: false,
-      morpheus: { tasks: { storage_path: TEST_DIR, claude_code_compat: false } }
+      morpheus: { tasks: { storage_path: TEST_DIR } }
     }
 
     //#when
@@ -279,7 +221,7 @@ describe("listTaskFiles", () => {
     //#given
     const config: Partial<MatrixxConfig> = {
       new_task_system_enabled: false,
-      morpheus: { tasks: { storage_path: TEST_DIR, claude_code_compat: false } }
+      morpheus: { tasks: { storage_path: TEST_DIR } }
     }
     mkdirSync(TEST_DIR_ABS, { recursive: true })
     writeFileSync(join(TEST_DIR_ABS, "other.json"), "{}", "utf-8")
@@ -295,7 +237,7 @@ describe("listTaskFiles", () => {
     //#given
     const config: Partial<MatrixxConfig> = {
       new_task_system_enabled: false,
-      morpheus: { tasks: { storage_path: TEST_DIR, claude_code_compat: false } }
+      morpheus: { tasks: { storage_path: TEST_DIR } }
     }
     mkdirSync(TEST_DIR_ABS, { recursive: true })
     writeFileSync(join(TEST_DIR_ABS, "T-abc123.json"), "{}", "utf-8")
@@ -316,7 +258,7 @@ describe("listTaskFiles", () => {
     //#given
     const config: Partial<MatrixxConfig> = {
       new_task_system_enabled: false,
-      morpheus: { tasks: { storage_path: TEST_DIR, claude_code_compat: false } }
+      morpheus: { tasks: { storage_path: TEST_DIR } }
     }
     mkdirSync(TEST_DIR_ABS, { recursive: true })
     writeFileSync(join(TEST_DIR_ABS, "T-test-id.json"), "{}", "utf-8")

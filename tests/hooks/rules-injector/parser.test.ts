@@ -108,7 +108,7 @@ description: "TypeScript coding standards"
     });
   });
 
-  describe("existing globs/paths parsing (backward compatibility)", () => {
+  describe("existing globs parsing (backward compatibility)", () => {
     it("should still parse globs field correctly", () => {
       // given existing globs format
       const content = `---
@@ -123,8 +123,8 @@ Python/TypeScript rules`;
       expect(result.metadata.globs).toEqual(["*.py", "**/*.ts"]);
     });
 
-    it("should still parse paths field as alias", () => {
-      // given paths field (Claude Code style)
+    it("should ignore unknown paths field", () => {
+      // given paths field (no longer supported)
       const content = `---
 paths: ["src/**"]
 ---
@@ -133,8 +133,8 @@ Source rules`;
       // when parsing
       const result = parseRuleFrontmatter(content);
 
-      // then should map to globs
-      expect(result.metadata.globs).toEqual(["src/**"]);
+      // then paths should be ignored
+      expect(result.metadata.globs).toBeUndefined();
     });
 
     it("should parse alwaysApply correctly", () => {

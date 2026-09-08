@@ -34,7 +34,7 @@ export function getCacheDir(): string {
  * Returns the matrixx cache directory.
  * All platforms: ~/.cache/matrixx
  */
-export function getMatrixxCacheDir(): string {
+export function getOmoOpenCodeCacheDir(): string {
   return path.join(getCacheDir(), "matrixx")
 }
 

@@ -4,7 +4,7 @@ import {
   isDeepseekModel,
   isGeminiModel,
   isGlmModel,
-  isNonMatrixxAgent,
+  isNonOmoAgent,
   isPlannerAgent,
 } from "../../../../src/hooks/keyword-detector/ultrawork/source-detector"
 
@@ -70,27 +70,27 @@ describe("isGlmModel", () => {
   })
 })
 
-describe("isNonMatrixxAgent", () => {
+describe("isNonOmoAgent", () => {
   test("detects builder agents", () => {
-    expect(isNonMatrixxAgent("builder")).toBe(true)
-    expect(isNonMatrixxAgent("openCode-builder")).toBe(true)
-    expect(isNonMatrixxAgent("Builder")).toBe(true)
+    expect(isNonOmoAgent("builder")).toBe(true)
+    expect(isNonOmoAgent("openCode-builder")).toBe(true)
+    expect(isNonOmoAgent("Builder")).toBe(true)
   })
 
   test("detects plan agent", () => {
-    expect(isNonMatrixxAgent("plan")).toBe(true)
-    expect(isNonMatrixxAgent("Plan")).toBe(true)
+    expect(isNonOmoAgent("plan")).toBe(true)
+    expect(isNonOmoAgent("Plan")).toBe(true)
   })
 
   test("rejects matrixx agents", () => {
-    expect(isNonMatrixxAgent("morpheus")).toBe(false)
-    expect(isNonMatrixxAgent("oracle")).toBe(false)
-    expect(isNonMatrixxAgent("trinity")).toBe(false)
+    expect(isNonOmoAgent("morpheus")).toBe(false)
+    expect(isNonOmoAgent("oracle")).toBe(false)
+    expect(isNonOmoAgent("trinity")).toBe(false)
   })
 
   test("returns false for undefined/empty", () => {
-    expect(isNonMatrixxAgent(undefined)).toBe(false)
-    expect(isNonMatrixxAgent("")).toBe(false)
+    expect(isNonOmoAgent(undefined)).toBe(false)
+    expect(isNonOmoAgent("")).toBe(false)
   })
 })
 
