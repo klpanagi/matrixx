@@ -60,7 +60,8 @@ const COMPILED_BLOCKLIST = (() => {
 
 const WARN_KEYWORD_REGEX = (() => {
   try {
-    return new RegExp(WARNLIST_HEURISTICS.find((r) => r.id === "generic-secret-assignment")!.pattern, "gi")
+    const heuristic = WARNLIST_HEURISTICS.find((r) => r.id === "generic-secret-assignment")
+    return heuristic ? new RegExp(heuristic.pattern, "gi") : null
   } catch {
     return null
   }

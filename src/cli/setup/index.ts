@@ -60,7 +60,7 @@ export async function executeSetup(opts: { dryRun: boolean; yes: boolean }): Pro
   const lines = [
     "",
     "┌──────────────────────────────────────┐",
-    "│  Matrixx Setup Complete" + dry.padEnd(12) + "│",
+    `│  Matrixx Setup Complete${dry.padEnd(12)}│`,
     "└──────────────────────────────────────┘",
     "",
     report,

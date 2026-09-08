@@ -14,6 +14,7 @@ import { log } from "../../shared/logger"
 import { isSqliteBackend } from "../../shared/opencode-storage-detection"
 import { TaskObjectSchema } from "../../tools/task/types"
 import {
+  BOOTSTRAP_PROMPT,
   CONTINUATION_PROMPT,
   DEFAULT_SKIP_AGENTS,
   HOOK_NAME,
@@ -66,29 +67,50 @@ export async function injectContinuation(args: {
 
   const tasks: Task[] = []
   let total = 0
+  let isBootstrap = false
   try {
     const taskDir = getTaskDir({}, ctx.directory)
     if (!existsSync(taskDir)) {
-      log(`[${HOOK_NAME}] Skipped injection: no task dir`, { sessionID, taskDir })
-      return
-    }
-    const files = readdirSync(taskDir).filter((f) => f.startsWith("T-") && f.endsWith(".json"))
-    for (const f of files) {
-      const parsed = readJsonSafe(`${taskDir}/${f}`, TaskObjectSchema)
-      if (parsed) tasks.push(parsed)
-    }
-    total = tasks.length
-    if (total === 0) {
-      log(`[${HOOK_NAME}] Skipped injection: no tasks`, { sessionID })
-      return
+      const hadBgTasks = backgroundManager ? backgroundManager.getTasksByParentSession(sessionID).length > 0 : false
+      if (hadBgTasks) {
+        log(`[${HOOK_NAME}] Bootstrap injection: no task dir (hadBgTasks)`, { sessionID, taskDir })
+        isBootstrap = true
+      } else {
+        log(`[${HOOK_NAME}] Skipped injection: no task dir`, { sessionID, taskDir })
+        return
+      }
+      total = 0
+    } else {
+      const files = readdirSync(taskDir).filter((f) => f.startsWith("T-") && f.endsWith(".json"))
+      for (const f of files) {
+        const parsed = readJsonSafe(`${taskDir}/${f}`, TaskObjectSchema)
+        if (parsed) tasks.push(parsed)
+      }
+      total = tasks.length
+      if (total === 0) {
+        const hadBgTasks = backgroundManager ? backgroundManager.getTasksByParentSession(sessionID).length > 0 : false
+        if (hadBgTasks) {
+          log(`[${HOOK_NAME}] Bootstrap injection: no tasks (hadBgTasks)`, { sessionID })
+          isBootstrap = true
+        } else {
+          log(`[${HOOK_NAME}] Skipped injection: no tasks`, { sessionID })
+          return
+        }
+      }
     }
   } catch (error) {
     log(`[${HOOK_NAME}] Failed to fetch tasks`, { sessionID, error: String(error) })
     return
   }
 
-  const freshIncompleteCount = getIncompleteTaskCount(tasks)
-  if (freshIncompleteCount === 0) {
+  const stateForBootstrap = sessionStateStore.getExistingState(sessionID) as unknown as Record<string, unknown> | undefined
+  if (stateForBootstrap?._bootstrap) {
+    isBootstrap = true
+    stateForBootstrap._bootstrap = undefined
+  }
+
+  const freshIncompleteCount = isBootstrap ? 1 : getIncompleteTaskCount(tasks)
+  if (!isBootstrap && freshIncompleteCount === 0) {
     log(`[${HOOK_NAME}] Skipped injection: no incomplete tasks`, { sessionID, total })
     return
   }
@@ -130,19 +152,24 @@ export async function injectContinuation(args: {
     return
   }
 
-  const byId = new Map(tasks.map((t) => [t.id, t]))
-  const incompleteTasks = tasks.filter((task) => {
-    if (task.status !== "pending" && task.status !== "in_progress") return false
-    if (task.blockedBy.length === 0) return true
-    return task.blockedBy.every((bid) => byId.get(bid)?.status === "completed")
-  })
-  const taskList = incompleteTasks.map((task) => `- [${task.status}] ${task.subject} (${task.id})`).join("\n")
-  const prompt = `${CONTINUATION_PROMPT}
+  let prompt: string
+  if (isBootstrap) {
+    prompt = BOOTSTRAP_PROMPT
+  } else {
+    const byId = new Map(tasks.map((t) => [t.id, t]))
+    const incompleteTasks = tasks.filter((task) => {
+      if (task.status !== "pending" && task.status !== "in_progress") return false
+      if (task.blockedBy.length === 0) return true
+      return task.blockedBy.every((bid) => byId.get(bid)?.status === "completed")
+    })
+    const taskList = incompleteTasks.map((task) => `- [${task.status}] ${task.subject} (${task.id})`).join("\n")
+    prompt = `${CONTINUATION_PROMPT}
 
 [Status: ${total - freshIncompleteCount}/${total} completed, ${freshIncompleteCount} remaining]
 
 Remaining Matrixx tasks:
 ${taskList}`
+  }
 
   const injectionState = sessionStateStore.getExistingState(sessionID)
   if (injectionState) {

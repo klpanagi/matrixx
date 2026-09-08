@@ -86,32 +86,55 @@ export async function handleSessionIdle(args: {
 
   let incompleteCount = 0
   let total = 0
+  let isBootstrap = false
   try {
     const taskDir = getTaskDir({}, ctx.directory)
     if (!existsSync(taskDir)) {
-      log(`[${HOOK_NAME}] No task dir`, { sessionID, taskDir })
-      return
+      const hadBgTasks = backgroundManager ? backgroundManager.getTasksByParentSession(sessionID).length > 0 : false
+      if (hadBgTasks) {
+        log(`[${HOOK_NAME}] No task dir — bootstrap (hadBgTasks)`, { sessionID, taskDir })
+        isBootstrap = true
+        total = 0
+        incompleteCount = 1
+      } else {
+        log(`[${HOOK_NAME}] No task dir`, { sessionID, taskDir })
+        return
+      }
+    } else {
+      const files = readdirSync(taskDir).filter((f) => f.startsWith("T-") && f.endsWith(".json"))
+      const tasks: Task[] = []
+      for (const f of files) {
+        const parsed = readJsonSafe(`${taskDir}/${f}`, TaskObjectSchema)
+        if (parsed) tasks.push(parsed)
+      }
+      total = tasks.length
+      if (total === 0) {
+        const hadBgTasks = backgroundManager ? backgroundManager.getTasksByParentSession(sessionID).length > 0 : false
+        if (hadBgTasks) {
+          log(`[${HOOK_NAME}] No tasks — bootstrap (hadBgTasks)`, { sessionID })
+          isBootstrap = true
+          incompleteCount = 1
+        } else {
+          log(`[${HOOK_NAME}] No tasks`, { sessionID })
+          return
+        }
+      } else {
+        incompleteCount = getIncompleteTaskCount(tasks)
+      }
     }
-    const files = readdirSync(taskDir).filter((f) => f.startsWith("T-") && f.endsWith(".json"))
-    const tasks: Task[] = []
-    for (const f of files) {
-      const parsed = readJsonSafe(`${taskDir}/${f}`, TaskObjectSchema)
-      if (parsed) tasks.push(parsed)
-    }
-    total = tasks.length
-    if (total === 0) {
-      log(`[${HOOK_NAME}] No tasks`, { sessionID })
-      return
-    }
-    incompleteCount = getIncompleteTaskCount(tasks)
   } catch (error) {
     log(`[${HOOK_NAME}] Task fetch failed`, { sessionID, error: String(error) })
     return
   }
 
-  if (incompleteCount === 0) {
+  if (!isBootstrap && incompleteCount === 0) {
     log(`[${HOOK_NAME}] All tasks complete`, { sessionID, total })
     return
+  }
+
+  if (isBootstrap) {
+    const s = sessionStateStore.getState(sessionID) as unknown as Record<string, unknown>
+    s._bootstrap = true
   }
 
   if (state.inFlight) {

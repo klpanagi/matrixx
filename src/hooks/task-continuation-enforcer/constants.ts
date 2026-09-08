@@ -13,6 +13,15 @@ Incomplete Matrixx tasks remain. Continue working on the next pending task.
 - Respect blockedBy dependencies (skip blocked tasks)
 - Do not stop until all tasks are done`
 
+export const BOOTSTRAP_PROMPT = `${createSystemDirective(SystemDirectiveTypes.TASK_CONTINUATION)}
+
+No Matrixx tasks exist yet. You fired explorers but haven't created a plan.
+
+- Invoke the plan agent NOW: task(subagent_type="oracle", load_skills=[], prompt="<gathered context + user request>")
+- If explorers are still running, collect with background_output then proceed
+- Never stall waiting for explorers — use Promise.allSettled and proceed with partial context
+- After plan agent returns, execute its waves exactly`
+
 export const COUNTDOWN_SECONDS = 2
 export const TOAST_DURATION_MS = 900
 export const COUNTDOWN_GRACE_PERIOD_MS = 500
