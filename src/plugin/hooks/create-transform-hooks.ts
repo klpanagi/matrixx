@@ -11,10 +11,12 @@ import {
   createThinkingBlockValidatorHook,
   createToolPairValidatorHook,
 } from "../../hooks"
+import { createInputSecretGuardHook } from "../../hooks/input-secret-guard"
 import { safeCreateHook } from "../../shared/safe-create-hook"
 import type { PluginContext } from "../types"
 
 export type TransformHooks = {
+  inputSecretGuard: ReturnType<typeof createInputSecretGuardHook> | null
   keywordDetector: ReturnType<typeof createKeywordDetectorHook> | null
   contextInjectorMessagesTransform: ReturnType<typeof createContextInjectorMessagesTransformHook>
   envContextInjector: ReturnType<typeof createEnvContextInjectorHook> | null
@@ -29,8 +31,16 @@ export function createTransformHooks(args: {
   isHookEnabled: (hookName: string) => boolean
   safeHookEnabled?: boolean
 }): TransformHooks {
-  const { ctx, pluginConfig: _pluginConfig, isHookEnabled } = args
+  const { ctx, pluginConfig, isHookEnabled } = args
   const safeHookEnabled = args.safeHookEnabled ?? true
+
+  const inputSecretGuard = isHookEnabled("input-secret-guard")
+    ? safeCreateHook(
+        "input-secret-guard",
+        () => createInputSecretGuardHook(ctx, pluginConfig.security?.input_secret_guard),
+        { enabled: safeHookEnabled },
+      )
+    : null
 
   const keywordDetector = isHookEnabled("keyword-detector")
     ? safeCreateHook(
@@ -76,6 +86,7 @@ export function createTransformHooks(args: {
     : null
 
   return {
+    inputSecretGuard,
     keywordDetector,
     contextInjectorMessagesTransform,
     envContextInjector,
