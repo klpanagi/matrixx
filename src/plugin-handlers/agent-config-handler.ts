@@ -7,7 +7,6 @@ import {
 import { createMouseAgentWithOverrides } from "../agents/mouse";
 import type { MatrixxConfig } from "../config";
 import { log, migrateAgentConfig } from "../shared";
-import { AGENT_NAME_MAP } from "../shared/migration";
 import { isTaskSystemEnabled } from "../shared/task-system-gating";
 import { reorderAgentsByPriority } from "./agent-priority-order";
 import { buildOracleAgentConfig } from "./oracle-agent-config-builder";
@@ -66,11 +65,7 @@ export async function applyAgentConfig(params: {
   ctx: { directory: string; client?: unknown };
   pluginComponents: PluginComponents;
 }): Promise<Record<string, unknown>> {
-  const migratedDisabledAgents = (params.pluginConfig.disabled_agents ?? []).map(
-    (agent) => {
-      return AGENT_NAME_MAP[agent.toLowerCase()] ?? AGENT_NAME_MAP[agent] ?? agent;
-    },
-  ) as typeof params.pluginConfig.disabled_agents;
+  const migratedDisabledAgents = params.pluginConfig.disabled_agents;
 
   const allDiscoveredSkills: never[] = [];
 

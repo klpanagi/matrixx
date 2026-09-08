@@ -18,7 +18,6 @@ export * from "./git-worktree"
 export * from "./is-abort-error"
 export * from "./jsonc-parser"
 export * from "./logger"
-export * from "./migration"
 export * from "./model-availability"
 export * from "./model-requirements"
 export {
