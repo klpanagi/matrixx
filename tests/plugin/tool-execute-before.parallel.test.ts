@@ -38,7 +38,6 @@ const FAST_FAIL_HOOK_NAMES = [
   "qualityGate",
   "commentChecker",
   "directoryAgentsInjector",
-  "directoryReadmeInjector",
   "rulesInjector",
   // Wave 2: BLOCKING
   "secretLeakGuard",
@@ -49,7 +48,6 @@ const FAST_FAIL_HOOK_NAMES = [
   // Wave 3: MUTATOR
   "nonInteractiveEnv",
   "bashFileReadGuard",
-  "questionLabelTruncator",
   "mouseNotepad",
   "architectHook",
 ] as const
@@ -287,7 +285,6 @@ describe("tool.execute.before — T1.1 parallel safety", () => {
         "qualityGate",
         "commentChecker",
         "directoryAgentsInjector",
-        "directoryReadmeInjector",
         "rulesInjector",
         "secretLeakGuard",
         "envFileWriteGuard",
@@ -295,7 +292,6 @@ describe("tool.execute.before — T1.1 parallel safety", () => {
         "tasksTodowriteDisabler",
         "nonInteractiveEnv",
         "bashFileReadGuard",
-        "questionLabelTruncator",
         "mouseNotepad",
         "architectHook",
       ]

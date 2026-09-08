@@ -8,12 +8,10 @@ import {
   createEditErrorRecoveryHook,
   createInteractiveBashSessionHook,
   createMatrixLoopHook,
-  createMcpStartupNotificationHook,
   createMouseNotepadHook,
   createNonInteractiveEnvHook,
   createOracleMdOnlyHook,
   createPreemptiveCompactionHook,
-  createQuestionLabelTruncatorHook,
   createRtkBashRewriterHook,
   createRuntimeFallbackHook,
   createSessionNotification,
@@ -49,12 +47,10 @@ export type SessionHooks = {
   startWork: ReturnType<typeof createStartWorkHook> | null
   oracleMdOnly: ReturnType<typeof createOracleMdOnlyHook> | null
   mouseNotepad: ReturnType<typeof createMouseNotepadHook> | null
-  questionLabelTruncator: ReturnType<typeof createQuestionLabelTruncatorHook>
   taskResumeInfo: ReturnType<typeof createTaskResumeInfoHook>
   anthropicEffort: ReturnType<typeof createAnthropicEffortHook> | null
   runtimeFallback: ReturnType<typeof createRuntimeFallbackHook> | null
   rtkBashRewriter: ReturnType<typeof createRtkBashRewriterHook> | null
-  mcpStartupNotification: ReturnType<typeof createMcpStartupNotificationHook> | null
 }
 
 export function createSessionHooks(args: {
@@ -151,7 +147,6 @@ export function createSessionHooks(args: {
     ? safeHook("mouse-notepad", () => createMouseNotepadHook(ctx))
     : null
 
-  const questionLabelTruncator = createQuestionLabelTruncatorHook()
   const taskResumeInfo = createTaskResumeInfoHook()
 
   const anthropicEffort = isHookEnabled("anthropic-effort")
@@ -170,9 +165,6 @@ export function createSessionHooks(args: {
     ? safeHook("rtk-bash-rewriter", () => createRtkBashRewriterHook(ctx, pluginConfig))
     : null
 
-  const mcpStartupNotification = isHookEnabled("mcp-startup-notification")
-    ? safeHook("mcp-startup-notification", () => createMcpStartupNotificationHook(ctx))
-    : null
 
   return {
     contextWindowMonitor,
@@ -191,11 +183,9 @@ export function createSessionHooks(args: {
     startWork,
     oracleMdOnly,
     mouseNotepad,
-    questionLabelTruncator,
     taskResumeInfo,
     anthropicEffort,
     runtimeFallback,
     rtkBashRewriter,
-    mcpStartupNotification,
   }
 }

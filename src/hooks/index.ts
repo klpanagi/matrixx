@@ -14,7 +14,6 @@ export { createContextWindowMonitorHook } from "./context-window-monitor";
 export { createDelegateTaskRetryHook } from "./delegate-task-retry";
 export { createDesignIntentPreserverHook } from "./design-intent-preserver"
 export { createDirectoryAgentsInjectorHook } from "./directory-agents-injector";
-export { createDirectoryReadmeInjectorHook } from "./directory-readme-injector";
 export { createEditErrorRecoveryHook } from "./edit-error-recovery";
 export { createEmptyTaskResponseDetectorHook } from "./empty-task-response-detector";
 export { createEnvContextInjectorHook } from "./env-context-injector";
@@ -30,14 +29,12 @@ export { createInteractiveBashSessionHook } from "./interactive-bash-session";
 export { createJsonErrorRecoveryHook } from "./json-error-recovery"
 export { createKeywordDetectorHook } from "./keyword-detector";
 export { createMatrixLoopHook, type MatrixLoopHook } from "./matrix-loop";
-export { createMcpStartupNotificationHook } from "./mcp-startup-notification"
 export { createMouseNotepadHook } from "./mouse-notepad";
 export { createNonInteractiveEnvHook } from "./non-interactive-env";
 export { createOracleMdOnlyHook } from "./oracle-md-only";
 export { createPlanPersister } from "./plan-persister"
 export { createPreemptiveCompactionHook } from "./preemptive-compaction";
 export { createQualityGateHook } from "./quality-gate/hook"
-export { createQuestionLabelTruncatorHook } from "./question-label-truncator";
 export { createReadImageResizerHook } from "./read-image-resizer"
 export { createRtkBashRewriterHook } from "./rtk-bash-rewriter";
 export { createRulesInjectorHook } from "./rules-injector";

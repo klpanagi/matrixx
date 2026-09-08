@@ -535,7 +535,6 @@ Hooks intercept and modify behavior at key points in the agent lifecycle.
 | Hook | Event | Description |
 |------|-------|-------------|
 | **directory-agents-injector** | PostToolUse | Auto-injects AGENTS.md when reading files. Walks from file to project root, collecting all AGENTS.md files. **Deprecated for OpenCode 1.1.37+** - Auto-disabled when native AGENTS.md injection is available. |
-| **directory-readme-injector** | PostToolUse | Auto-injects README.md for directory context. |
 | **rules-injector** | PostToolUse | Injects rules from `.claude/rules/` when conditions match. Supports globs and alwaysApply. |
 | **compaction-context-injector** | Stop | Preserves critical context during session compaction. |
 
@@ -570,7 +569,6 @@ Hooks intercept and modify behavior at key points in the agent lifecycle.
 
 | Hook | Event | Description |
 |------|-------|-------------|
-| **grep-output-truncator** | PostToolUse | Dynamically truncates grep output based on context window. Keeps 50% headroom, caps at 50k tokens. |
 | **tool-output-truncator** | PostToolUse | Truncates output from Grep, Glob, LSP, AST-grep tools. |
 | **context-mode-enforcer** | PreToolUse (BLOCKING when `enforce:true`) | Blocks `read`/`grep`/`glob` for analysis — forces `ctx_*` sandbox (`ctx_search`, `ctx_batch_execute`). See [Context Management](./context-management.md). |
 | **rtk-bash-rewriter** | PreToolUse | Rewrites bash via `rtk <cmd>` for 60-90% token compression on git/npm/test outputs. |

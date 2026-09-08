@@ -22,7 +22,6 @@ hooks/
 ├── delegate-task-retry/          # Retries failed delegations (266 lines)
 ├── design-intent-preserver/      # Preserves design intent across edits
 ├── directory-agents-injector/    # Auto-injects AGENTS.md (195 lines)
-├── directory-readme-injector/    # Auto-injects README.md (190 lines)
 ├── edit-error-recovery/          # Recovers from edit failures (188 lines)
 ├── empty-task-response-detector.ts # Detects empty responses (27 lines)
 ├── interactive-bash-session/     # Tmux session management (695 lines)
@@ -32,7 +31,6 @@ hooks/
 ├── plan-persister/              # Persists plan state to disk on idle + compact (132 lines)
 ├── oracle-md-only/           # Planner read-only mode (955 lines)
 ├── quality-gate/                 # Post-task quality verification
-├── question-label-truncator/     # Truncates labels to 30 chars (199 lines)
 ├── matrix-loop/                   # Self-referential dev loop (1687 lines)
 ├── rules-injector/               # Conditional .morpheus/rules injection (1604 lines)
 ├── session-notification.ts       # OS idle notifications (108 lines)
@@ -81,8 +79,8 @@ hooks/
 ## EXECUTION ORDER
 
 **UserPromptSubmit**: keywordDetector → autoSlashCommand → startWork
-**PreToolUse**: subagentQuestionBlocker → questionLabelTruncator → nonInteractiveEnv → commentChecker → directoryAgentsInjector → directoryReadmeInjector → rulesInjector → oracleMdOnly → morpheusJuniorNotepad → writeExistingFileGuard → architectHook
-**PostToolUse**: toolOutputTruncator → contextWindowMonitor → commentChecker → directoryAgentsInjector → directoryReadmeInjector → rulesInjector → emptyTaskResponseDetector → agentUsageReminder → interactiveBashSession → editErrorRecovery → delegateTaskRetry → architectHook → taskResumeInfo → taskReminder
+**PreToolUse**: subagentQuestionBlocker → nonInteractiveEnv → commentChecker → directoryAgentsInjector → rulesInjector → oracleMdOnly → morpheusJuniorNotepad → writeExistingFileGuard → architectHook
+**PostToolUse**: toolOutputTruncator → contextWindowMonitor → commentChecker → directoryAgentsInjector → rulesInjector → emptyTaskResponseDetector → agentUsageReminder → interactiveBashSession → editErrorRecovery → delegateTaskRetry → architectHook → taskResumeInfo → taskReminder
 
 ## HOW TO ADD
 

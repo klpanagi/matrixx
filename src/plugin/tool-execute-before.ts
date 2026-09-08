@@ -42,7 +42,6 @@ export function createToolExecuteBeforeHandler(args: {
   const qualityGateHook = hooks.qualityGate?.["tool.execute.before"]
   const commentCheckerHook = hooks.commentChecker?.["tool.execute.before"]
   const directoryAgentsInjectorHook = hooks.directoryAgentsInjector?.["tool.execute.before"]
-  const directoryReadmeInjectorHook = hooks.directoryReadmeInjector?.["tool.execute.before"]
   const rulesInjectorHook = hooks.rulesInjector?.["tool.execute.before"]
   const secretLeakGuardHook = hooks.secretLeakGuard?.["tool.execute.before"]
   const envFileWriteGuardHook = hooks.envFileWriteGuard?.["tool.execute.before"]
@@ -52,7 +51,6 @@ export function createToolExecuteBeforeHandler(args: {
   const contextModeEnforcerHook = (hooks as Record<string, { "tool.execute.before"?: (input: unknown, output: unknown) => Promise<void> }>).contextModeEnforcer?.["tool.execute.before"]
   const nonInteractiveEnvHook = hooks.nonInteractiveEnv?.["tool.execute.before"]
   const bashFileReadGuardHook = hooks.bashFileReadGuard?.["tool.execute.before"]
-  const questionLabelTruncatorHook = hooks.questionLabelTruncator?.["tool.execute.before"]
   const mouseNotepadHook = hooks.mouseNotepad?.["tool.execute.before"]
   const architectHookHook = hooks.architectHook?.["tool.execute.before"]
 const rtkBashRewriterHook = hooks.rtkBashRewriter?.["tool.execute.before"]
@@ -75,7 +73,6 @@ const rtkBashRewriterHook = hooks.rtkBashRewriter?.["tool.execute.before"]
       qualityGateHook?.(input, output),
       commentCheckerHook?.(input, output),
       directoryAgentsInjectorHook?.(input, output),
-      directoryReadmeInjectorHook?.(input, output),
       rulesInjectorHook?.(input, output),
     ])
 
@@ -138,7 +135,6 @@ const rtkBashRewriterHook = hooks.rtkBashRewriter?.["tool.execute.before"]
     await rtkBashRewriterHook?.(input, output)
     await nonInteractiveEnvHook?.(input, output)
     await bashFileReadGuardHook?.(input, output)
-    await questionLabelTruncatorHook?.(input, output)
     await oracleMdOnlyHook?.(input, output)
     await mouseNotepadHook?.(input, output)
     await architectHookHook?.(input, output)

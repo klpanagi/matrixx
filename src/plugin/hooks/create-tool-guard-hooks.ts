@@ -4,7 +4,6 @@ import {
   createCommentCheckerHooks,
   createContextModeEnforcerHook,
   createDirectoryAgentsInjectorHook,
-  createDirectoryReadmeInjectorHook,
   createEmptyTaskResponseDetectorHook,
   createEnvFileWriteGuardHook,
   createEvolutionWatcherHook,
@@ -35,7 +34,6 @@ export type ToolGuardHooks = {
   commentChecker: ReturnType<typeof createCommentCheckerHooks> | null
   toolOutputTruncator: ReturnType<typeof createToolOutputTruncatorHook> | null
   directoryAgentsInjector: ReturnType<typeof createDirectoryAgentsInjectorHook> | null
-  directoryReadmeInjector: ReturnType<typeof createDirectoryReadmeInjectorHook> | null
   emptyTaskResponseDetector: ReturnType<typeof createEmptyTaskResponseDetectorHook> | null
   rulesInjector: ReturnType<typeof createRulesInjectorHook> | null
   tasksTodowriteDisabler: ReturnType<typeof createTasksTodowriteDisablerHook> | null
@@ -89,9 +87,6 @@ export function createToolGuardHooks(args: {
     }
   }
 
-  const directoryReadmeInjector = isHookEnabled("directory-readme-injector")
-    ? safeHook("directory-readme-injector", () => createDirectoryReadmeInjectorHook(ctx))
-    : null
 
   const emptyTaskResponseDetector = isHookEnabled("empty-task-response-detector")
     ? safeHook("empty-task-response-detector", () => createEmptyTaskResponseDetectorHook(ctx))
@@ -167,7 +162,6 @@ export function createToolGuardHooks(args: {
     commentChecker,
     toolOutputTruncator,
     directoryAgentsInjector,
-    directoryReadmeInjector,
     emptyTaskResponseDetector,
     rulesInjector,
     tasksTodowriteDisabler,

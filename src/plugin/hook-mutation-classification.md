@@ -1,10 +1,10 @@
 # Hook Mutation Classification (Task 0.5)
 
-> Classification of the 15 `tool.execute.before` hooks invoked sequentially in
+> Classification of the 13 `tool.execute.before` hooks invoked sequentially in
 > `src/plugin/tool-execute-before.ts:20-34`. Each row references the file:line
 > where the behavior was verified.
 >
-> **Goal**: enable Task T1.1 (parallelize the 15 sequential awaits) by
+> **Goal**: enable Task T1.1 (parallelize the 13 sequential awaits) by
 > categorizing each hook by mutation type and side-effect profile.
 
 ## Legend
@@ -28,11 +28,9 @@ relevant for parallelization decisions; **Secondary** lists everything else.
 | 3 | bashFileReadGuard | `MUTATOR` | — | `output.message` (REPLACE, line 38) | NO | None (pure regex) | `src/hooks/bash-file-read-guard.ts:21-44` |
 | 4 | writeExistingFileGuard | `BLOCKING` | `READ_ONLY` (when file absent) | — | YES (line 46, `throw new Error("File already exists. Use edit tool instead.")`) | `existsSync(resolvedPath)` (line 28) | `src/hooks/write-existing-file-guard/hook.ts:10-48` |
 | 5 | qualityGate | `READ_ONLY` | — | — | NO | None in `before`; only writes to module-level `pendingCalls` Map (line 89-93); heavy Biome work happens in `tool.execute.after` (line 113) | `src/hooks/quality-gate/hook.ts:74-94` (before-handler) |
-| 6 | questionLabelTruncator | `MUTATOR` | — | `output.args.questions[*].options[*].label` via `Object.assign(output.args, truncatedArgs)` (line 57) | NO | None (pure string slice) | `src/hooks/question-label-truncator/hook.ts:46-60` |
 | 7 | nonInteractiveEnv | `MUTATOR` | — | `output.message` (REPLACE, line 39); `output.args.command` (REPLACE, line 58) | NO | None (pure regex + `buildEnvPrefix`) | `src/hooks/non-interactive-env/non-interactive-env-hook.ts:24-64` |
 | 8 | commentChecker | `READ_ONLY` | — | — | NO | None in `before`; only calls `registerPendingCall` (in-memory Map, line 74-83); heavy CLI work happens in `tool.execute.after` (line 177) | `src/hooks/comment-checker/hook.ts:38-84` (before-handler) |
 | 9 | directoryAgentsInjector | `READ_ONLY` | — | — | NO | None — `tool.execute.before` is a NO-OP (`void input; void output;`, factory.ts:66-67); real work is in `tool.execute.after` | `src/hooks/directory-injector/factory.ts:62-68` |
-| 10 | directoryReadmeInjector | `READ_ONLY` | — | — | NO | None — same NO-OP factory as #9 | `src/hooks/directory-injector/factory.ts:62-68` |
 | 11 | rulesInjector | `READ_ONLY` | — | — | NO | None — `tool.execute.before` is a NO-OP (`void input; void output;`, hook.ts:59-60); real work is in `tool.execute.after` | `src/hooks/rules-injector/hook.ts:55-61` |
 | 12 | tasksTodowriteDisabler | `BLOCKING` | — | — | YES (line 29, `throw new Error(REPLACEMENT_MESSAGE)`) | None (pure array `.some()`) | `src/hooks/tasks-todowrite-disabler/hook.ts:15-31` |
 | 13 | oracleMdOnly | `BLOCKING` | `MUTATOR` + `NETWORK` | `output.args.prompt` (line 30); `output.message` (CONCAT, line 72) | YES (line 56, `throw new Error("[…] Oracle can only write/edit .md files…")`) | `getAgentFromSession()` → SDK HTTP call (`findNearestMessageWithFieldsFromSDK`) or filesystem fallback (`readFileSync`/`readdirSync` in `features/hook-message-injector/injector.ts:147,154,166,198,204`) | `src/hooks/oracle-md-only/hook.ts:14-81` |
@@ -43,8 +41,8 @@ relevant for parallelization decisions; **Secondary** lists everything else.
 
 | Class | Count | Hooks |
 |-------|-------|-------|
-| `READ_ONLY` | 6 | qualityGate, commentChecker, directoryAgentsInjector, directoryReadmeInjector, rulesInjector (×3 of which are pure no-ops) |
-| `MUTATOR` | 6 | bashFileReadGuard, questionLabelTruncator, nonInteractiveEnv, mouseNotepad, architectHook (+ oracleMdOnly when not blocking) |
+| `READ_ONLY` | 5 | qualityGate, commentChecker, directoryAgentsInjector, rulesInjector (×2 of which are pure no-ops) |
+| `MUTATOR` | 5 | bashFileReadGuard, nonInteractiveEnv, mouseNotepad, architectHook (+ oracleMdOnly when not blocking) |
 | `NETWORK` | 4 | oracleMdOnly, mouseNotepad, architectHook (+ secretLeakGuard as subprocess) |
 | `BLOCKING` | 5 | secretLeakGuard, envFileWriteGuard, writeExistingFileGuard, tasksTodowriteDisabler, oracleMdOnly |
 
@@ -59,11 +57,11 @@ relevant for parallelization decisions; **Secondary** lists everything else.
 
 ## Parallelization Safe Groups
 
-The 15 awaits at `src/plugin/tool-execute-before.ts:20-34` can be reorganized
+The 13 awaits at `src/plugin/tool-execute-before.ts:20-34` can be reorganized
 into the following **3 sequential waves** with **safe intra-wave parallelism**.
 Total expected speedup: **~3×** (from 15 serial awaits → 3 waves).
 
-### Wave 1 — `READ_ONLY` (5 hooks, parallel-safe, no I/O, no mutation)
+### Wave 1 — `READ_ONLY` (4 hooks, parallel-safe, no I/O, no mutation)
 
 These hooks either no-op in `tool.execute.before` or only write to their own
 private in-memory `Map`. They never throw and never mutate `output`.
@@ -73,7 +71,6 @@ await Promise.all([
   hooks.qualityGate?.["tool.execute.before"]?.(input, output),        // in-memory Map only
   hooks.commentChecker?.["tool.execute.before"]?.(input, output),     // in-memory Map only
   hooks.directoryAgentsInjector?.["tool.execute.before"]?.(input, output),  // no-op
-  hooks.directoryReadmeInjector?.["tool.execute.before"]?.(input, output),  // no-op
   hooks.rulesInjector?.["tool.execute.before"]?.(input, output),      // no-op
 ])
 ```
@@ -83,7 +80,7 @@ await Promise.all([
 | qualityGate | `pendingCalls.set(callID, …)` — keyed by callID, no contention |
 | commentChecker | `registerPendingCall(callID, …)` — same pattern, separate Map |
 | directoryAgentsInjector | `void input; void output` |
-| directoryReadmeInjector | `void input; void output` |
+| directoryAgentsInjector | `void input; void output` |
 | rulesInjector | `void input; void output` |
 
 ### Wave 2 — `BLOCKING` (5 hooks, parallel-safe, fail-fast)
@@ -118,7 +115,7 @@ await Promise.allSettled([
 > command string before scheduling into `Promise.all` (e.g. skip Wave 2
 > entirely when `input.tool !== "bash"`).
 
-### Wave 3 — `MUTATOR` (5 hooks, **sequential** to preserve mutation order)
+### Wave 3 — `MUTATOR` (4 hooks, **sequential** to preserve mutation order)
 
 These hooks mutate `output.args` and/or `output.message`. They must run
 sequentially **relative to each other** to preserve the intent of each
@@ -145,9 +142,6 @@ await hooks.nonInteractiveEnv?.["tool.execute.before"]?.(input, output)
 // 3b. bashFileReadGuard — replaces output.message with file-read warning
 await hooks.bashFileReadGuard?.["tool.execute.before"]?.(input, output)
 
-// 3c. questionLabelTruncator — only mutates output.args.questions
-await hooks.questionLabelTruncator?.["tool.execute.before"]?.(input, output)
-
 // 3d. oracleMdOnly — prepends Oracle warning to output.args.prompt
 await hooks.oracleMdOnly?.["tool.execute.before"]?.(input, output)
 
@@ -170,7 +164,7 @@ await hooks.architectHook?.["tool.execute.before"]?.(input, output)
 
 ### Projected Impact
 
-- Current: 15 sequential awaits → ~15 × `await-overhead` (≈ 0.0006 ms each on
+- Current: 13 sequential awaits → ~15 × `await-overhead` (≈ 0.0006 ms each on
   the bench's stub hooks, but real hooks have I/O)
 - After T1.1: 3 sequential awaits (`Wave 1.all` → `Wave 2.all` →
   `Wave 3.then-chain`) → ~3 × `await-overhead`
@@ -198,7 +192,7 @@ await hooks.architectHook?.["tool.execute.before"]?.(input, output)
    `@code-yeongyu/comment-checker` CLI). The before-handler only writes a
    pending-call record to an in-memory Map. T1.1 should treat these as
    safe-to-parallel for the before-handler cost only.
-4. **`directoryAgentsInjector` / `directoryReadmeInjector` / `rulesInjector`
+4. **`directoryAgentsInjector` / `rulesInjector`
    are PURE NO-OPS in `tool.execute.before`**. Their actual logic lives in
    `tool.execute.after` (and `event`). All three currently pay the
    `await` round-trip cost for nothing. Removing them from the
@@ -242,7 +236,6 @@ await Promise.all([
   hooks.qualityGate?.["tool.execute.before"]?.(input, output),
   hooks.commentChecker?.["tool.execute.before"]?.(input, output),
   hooks.directoryAgentsInjector?.["tool.execute.before"]?.(input, output),
-  hooks.directoryReadmeInjector?.["tool.execute.before"]?.(input, output),
   hooks.rulesInjector?.["tool.execute.before"]?.(input, output),
 ])
 
@@ -259,7 +252,6 @@ for (const r of settled) if (r.status === "rejected") throw r.reason
 // Bundle C — MUTATOR chain (preserve current order)
 await hooks.nonInteractiveEnv?.["tool.execute.before"]?.(input, output)
 await hooks.bashFileReadGuard?.["tool.execute.before"]?.(input, output)
-await hooks.questionLabelTruncator?.["tool.execute.before"]?.(input, output)
 await hooks.oracleMdOnly?.["tool.execute.before"]?.(input, output)
 await hooks.mouseNotepad?.["tool.execute.before"]?.(input, output)
 await hooks.architectHook?.["tool.execute.before"]?.(input, output)

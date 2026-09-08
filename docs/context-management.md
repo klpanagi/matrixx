@@ -507,7 +507,7 @@ Source: `src/hooks/anthropic-context-window-limit-recovery/` (~2232 LOC).
 | Behavior | Truncates whitelisted tools when output exceeds `DEFAULT_MAX_TOKENS` 50k tokens (~200k characters). `webfetch` is capped at 10k tokens. With `experimental.truncate_all_tool_outputs: true`, truncates all tool outputs instead of only the whitelist. Keeps a 50% safety margin so truncation leaves headroom. |
 | Whitelist | Grep, Glob, LSP, AST-grep, and similar high volume tools. `webfetch` has a lower cap. |
 | Config key | `experimental.truncate_all_tool_outputs` (boolean, optional) |
-| Aliases | HookName `grep-output-truncator` is kept for backward compatibility and maps to the same truncator |
+| Aliases | None — `grep-output-truncator` was removed in v3 (use `tool-output-truncator`) |
 | Disable | `"tool-output-truncator"` or `"grep-output-truncator"` in `disabled_hooks` |
 
 Source: `src/hooks/tool-output-truncator.ts`, HookNameSchema in `src/config/schema/hooks.ts`.
@@ -616,7 +616,7 @@ Unified `matrixx.jsonc` showing every context management key. All keys are optio
     // "compaction-todo-preserver",
     // "anthropic-context-window-limit-recovery",
     // "tool-output-truncator",
-    // "grep-output-truncator",  // alias of tool-output-truncator
+    // removed: grep-output-truncator was an alias, now deleted
     // "quality-gate",
     // "rtk-bash-rewriter"
   ]

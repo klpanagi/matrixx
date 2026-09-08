@@ -2,35 +2,33 @@
  * Task T1.1 benchmark for `tool.execute.before` handler.
  *
  * After the 3-wave parallelization refactor:
- *   Wave 1 (5 hooks, parallel via Promise.all):         qualityGate,
+ *   Wave 1 (4 hooks, parallel via Promise.all):         qualityGate,
  *                                                     commentChecker,
  *                                                     directoryAgentsInjector,
- *                                                     directoryReadmeInjector,
  *                                                     rulesInjector
  *   Wave 2 (5 hooks, parallel via Promise.allSettled): secretLeakGuard,
  *                                                     envFileWriteGuard,
  *                                                     writeExistingFileGuard,
  *                                                     tasksTodowriteDisabler,
  *                                                     oracleMdOnly (BLOCKING)
- *   Wave 3 (6 calls, sequential):                     nonInteractiveEnv,
+ *   Wave 3 (5 calls, sequential):                     nonInteractiveEnv,
  *                                                     bashFileReadGuard,
- *                                                     questionLabelTruncator,
  *                                                     oracleMdOnly (MUTATOR),
  *                                                     mouseNotepad,
  *                                                     architectHook
  *
- * Total: 16 calls per iteration (oracleMdOnly appears in both Wave 2 and
+ * Total: 14 calls per iteration (oracleMdOnly appears in both Wave 2 and
  * Wave 3; the handler calls `hooks.oracleMdOnly?.["tool.execute.before"]`
  * twice — once in Wave 2 and once in Wave 3 — so the bench must build a
  * SINGLE oracleMdOnly hook that records both invocations).
  *
  * Assertions:
- *   - All 16 hook invocations per iteration.
+ *   - All 14 hook invocations per iteration.
  *   - Wave ordering invariant: every Wave 2 call strictly after every Wave 1
  *     call; every Wave 3 call strictly after every Wave 2 call (because
  *     `await Promise.all`/`Promise.allSettled` does not return until the
  *     entire wave resolves).
- *   - Within Wave 3, the 6 calls occur in documented order (mutator order
+ *   - Within Wave 3, the 5 calls occur in documented order (mutator order
  *     matters: nonInteractiveEnv rewrites output.args.command and must
  *     precede other mutators; architectHook prepends outermost so must run last).
  *   - Waves 1 and 2 admit any internal order (parallel execution); we do
@@ -57,7 +55,6 @@ const WAVE_1: HookName[] = [
   "qualityGate",
   "commentChecker",
   "directoryAgentsInjector",
-  "directoryReadmeInjector",
   "rulesInjector",
 ]
 
@@ -72,7 +69,6 @@ const WAVE_2: HookName[] = [
 const WAVE_3: HookName[] = [
   "nonInteractiveEnv",
   "bashFileReadGuard",
-  "questionLabelTruncator",
   "oracleMdOnly",
   "mouseNotepad",
   "architectHook",
@@ -223,7 +219,7 @@ describe("tool.execute.before T1.1 (3-wave parallelized)", () => {
       for (let iter = 0; iter < ITERATIONS; iter++) {
         const start = iter * HOOKS_PER_CALL
 
-        // Wave 1: first 5 calls, any internal order
+        // Wave 1: first 4 calls, any internal order
         const w1Seen = new Set<number>()
         for (let k = start; k < start + WAVE_1.length; k++) {
           w1Seen.add(storage.nameIdx[k] ?? 0)
@@ -239,7 +235,7 @@ describe("tool.execute.before T1.1 (3-wave parallelized)", () => {
         expect(w2Seen.size).toBe(WAVE_2.length)
         for (const n of WAVE_2) expect(w2Seen.has(NAME_TO_IDX.get(n) ?? -1)).toBe(true)
 
-        // Wave 3: last 6 calls, in fixed mutator order
+        // Wave 3: last 5 calls, in fixed mutator order
         for (let k = 0; k < WAVE_3.length; k++) {
           const slot = start + WAVE_1.length + WAVE_2.length + k
           const expected = NAME_TO_IDX.get(WAVE_3[k] ?? "") ?? -1
