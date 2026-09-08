@@ -19,7 +19,7 @@ export { getGptUltraworkMessage, ULTRAWORK_GPT_MESSAGE } from "./gpt5.2"
 export { getMimoUltraworkMessage, ULTRAWORK_MIMO_MESSAGE } from "./mimo"
 export { getPlannerUltraworkMessage, ULTRAWORK_PLANNER_SECTION } from "./planner"
 export type { UltraworkSource } from "./source-detector"
-export { getUltraworkSource, isDeepseekModel, isGeminiModel, isGlmModel, isGptModel, isMimoModel, isNonMatrixxAgent, isPlannerAgent } from "./source-detector"
+export { getUltraworkSource, isDeepseekModel, isGeminiModel, isGlmModel, isGptModel, isMimoModel, isNonOmoAgent, isPlannerAgent } from "./source-detector"
 
 import { getDeepseekUltraworkMessage } from "./deepseek"
 import { getDefaultUltraworkMessage } from "./default"

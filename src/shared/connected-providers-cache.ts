@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { getMatrixxCacheDir } from "./data-path"
+import { getOmoOpenCodeCacheDir } from "./data-path"
 import { log } from "./logger"
 
 const CONNECTED_PROVIDERS_CACHE_FILE = "connected-providers.json"
@@ -26,11 +26,11 @@ interface ProviderModelsCache {
 }
 
 function getCacheFilePath(filename: string): string {
-	return join(getMatrixxCacheDir(), filename)
+	return join(getOmoOpenCodeCacheDir(), filename)
 }
 
 function ensureCacheDir(): void {
-	const cacheDir = getMatrixxCacheDir()
+	const cacheDir = getOmoOpenCodeCacheDir()
 	if (!existsSync(cacheDir)) {
 		mkdirSync(cacheDir, { recursive: true })
 	}

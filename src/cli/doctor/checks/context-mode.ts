@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { getMatrixxCacheDir } from "../../../shared/data-path"
+import { getOmoOpenCodeCacheDir } from "../../../shared/data-path"
 import { parseJsoncSafe } from "../../../shared/jsonc-parser"
 import { getOpenCodeConfigDir } from "../../../shared/opencode-config-dir"
 import type { CheckResult, DoctorCheck } from "../types"
@@ -58,7 +58,7 @@ export const contextModeCheck: DoctorCheck = {
       }
     }
     const hasPlugin = hasContextModePlugin()
-    const cacheDir = getMatrixxCacheDir()
+    const cacheDir = getOmoOpenCodeCacheDir()
     const hasCache = existsSync(cacheDir)
     if (!hasPlugin) {
       return {

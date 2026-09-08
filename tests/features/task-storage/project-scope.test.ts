@@ -32,7 +32,7 @@ describe("project-scoped storage", () => {
   test("getTaskDir with scope project and directory returns project path", () => {
     //#given
     const dir = "/tmp/projA"
-    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "project", claude_code_compat: false } as any } }
+    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "project" } as any } }
     //#when
     const result = getTaskDir(config, dir)
     //#then
@@ -42,7 +42,7 @@ describe("project-scoped storage", () => {
   test("getTaskDir with scope global returns legacy config dir", () => {
     //#given
     const dir = "/tmp/projA"
-    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "global", claude_code_compat: false } as any } }
+    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "global" } as any } }
     const configDir = getOpenCodeConfigDir({ binary: "opencode" })
     //#when
     const result = getTaskDir(config, dir)
@@ -52,7 +52,7 @@ describe("project-scoped storage", () => {
 
   test("getTaskDir no directory falls back to global", () => {
     //#given
-    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "project", claude_code_compat: false } as any } }
+    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "project" } as any } }
     const configDir = getOpenCodeConfigDir({ binary: "opencode" })
     //#when
     const result = getTaskDir(config)
@@ -63,7 +63,7 @@ describe("project-scoped storage", () => {
   test("storage_path absolute is returned as-is", () => {
     //#given
     const dir = "/tmp/projA"
-    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { storage_path: "/tmp/abs-custom", claude_code_compat: false } as any } }
+    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { storage_path: "/tmp/abs-custom" } as any } }
     //#when
     const result = getTaskDir(config, dir)
     //#then
@@ -73,7 +73,7 @@ describe("project-scoped storage", () => {
   test("storage_path relative resolves against directory", () => {
     //#given
     const dir = "/tmp/projA"
-    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { storage_path: "custom", claude_code_compat: false } as any } }
+    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { storage_path: "custom" } as any } }
     //#when
     const result = getTaskDir(config, dir)
     //#then
@@ -84,7 +84,7 @@ describe("project-scoped storage", () => {
     //#given
     const projA = tmpDir("projA-iso")
     const projB = tmpDir("projB-iso")
-    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "project", claude_code_compat: false } as any } }
+    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "project" } as any } }
     const task = { id: "T-iso-1", subject: "projA task", description: "", status: "pending" as const, blocks: [], blockedBy: [], threadID: "ses-test", projectRoot: projA }
     const parsed = TaskObjectSchema.parse(task)
     writeFileSync(join(projA, ".matrixx/tasks", "T-iso-1.json"), JSON.stringify(parsed), "utf-8")
@@ -104,7 +104,7 @@ describe("project-scoped storage", () => {
     const uid = `test-migrate-${Date.now()}`
     const saved = process.env.ULTRAWORK_TASK_LIST_ID
     process.env.ULTRAWORK_TASK_LIST_ID = uid
-    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "project", claude_code_compat: false } as any } }
+    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "project" } as any } }
     const legacyDir = join(getOpenCodeConfigDir({ binary: "opencode" }), "tasks", uid)
     const proj = tmpDir("proj-migrate")
     // ensure legacy has 2 files
@@ -132,7 +132,7 @@ describe("project-scoped storage", () => {
     const uid = `test-migrate-nooverwrite-${Date.now()}`
     const saved = process.env.ULTRAWORK_TASK_LIST_ID
     process.env.ULTRAWORK_TASK_LIST_ID = uid
-    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "project", claude_code_compat: false } as any } }
+    const config: Partial<MatrixxConfig> = { morpheus: { tasks: { scope: "project" } as any } }
     const legacyDir = join(getOpenCodeConfigDir({ binary: "opencode" }), "tasks", uid)
     const proj = tmpDir("proj-nooverwrite")
     mkdirSync(legacyDir, { recursive: true })

@@ -10,7 +10,7 @@ describe("updateConnectedProvidersCache", () => {
 	let cacheDirSpy: ReturnType<typeof spyOn>
 
 	beforeEach(() => {
-		cacheDirSpy = spyOn(dataPath, "getMatrixxCacheDir").mockReturnValue(TEST_CACHE_DIR)
+		cacheDirSpy = spyOn(dataPath, "getOmoOpenCodeCacheDir").mockReturnValue(TEST_CACHE_DIR)
 		if (existsSync(TEST_CACHE_DIR)) {
 			rmSync(TEST_CACHE_DIR, { recursive: true })
 		}
