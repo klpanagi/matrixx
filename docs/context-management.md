@@ -447,9 +447,9 @@ These hooks ship with Matrixx and need no external install. Each can be disabled
 | Property | Value |
 |----------|-------|
 | Event | `tool.execute.after` |
-| Threshold | 70% of Anthropic limit (200k, 1M with `ANTHROPIC_1M_CONTEXT=true`) |
+| Threshold | 70% of Anthropic limit (200k, 1M with `ANTHROPIC_1M_CONTEXT=true`) — configurable via `experimental.context_warning_threshold` (default 0.70) |
 | Behavior | Injects Context Status (`used% / remaining%`) once per session, Anthropic only. |
-| Config key | No dedicated key, always active unless disabled |
+| Config key | `experimental.context_warning_threshold` (number 0.1-0.95, default 0.70). Always active unless disabled |
 | Disable | `"context-window-monitor"` in `disabled_hooks` |
 
 Source: `src/hooks/context-window-monitor.ts`.
@@ -459,9 +459,9 @@ Source: `src/hooks/context-window-monitor.ts`.
 | Property | Value |
 |----------|-------|
 | Event | `tool.execute.after` (also listens to `message.updated` for token updates) |
-| Threshold | 78% of Anthropic actual limit |
+| Threshold | 78% of Anthropic actual limit — configurable via `experimental.preemptive_compaction_threshold` (default 0.78) |
 | Behavior | Triggers `session.summarize({ auto: true })` with 60s timeout and 60s cooldown, guards `compactionInProgress`, Anthropic only. |
-| Config key | `experimental.preemptive_compaction` (boolean, optional). Hook is active when provider is Anthropic and not disabled |
+| Config key | `experimental.preemptive_compaction` (boolean, optional) + `experimental.preemptive_compaction_threshold` (number 0.1-0.95, default 0.78). Hook is active when provider is Anthropic and not disabled |
 | Disable | `"preemptive-compaction"` in `disabled_hooks`, or set `experimental.preemptive_compaction: false` |
 
 Source: `src/hooks/preemptive-compaction.ts`.
@@ -488,16 +488,16 @@ Source: `src/hooks/compaction-context-injector/`.
 
 Source: `src/hooks/compaction-todo-preserver/`.
 
-### 3.5 anthropic-context-window-limit-recovery
+### 3.5 context-window-limit-recovery
 
 | Property | Value |
 |----------|-------|
 | Event | `event` (parses `context limit` / `token limit` errors on idle) plus `tool.execute.after` |
-| Behavior | When a token limit error is detected, executes compaction with three fallback strategies in order: 1) aggressive truncation, 2) summarize and retry, 3) target token truncation. Caps attempts at 3 to avoid recovery storms (P15). |
+| Behavior | When a token limit / context limit error is detected via keyword+pattern parsing (any provider), executes three fallback strategies in order: 1) aggressive truncation (target token ratio 0.5, cap 5), 2) summarize and retry (cap 2, exponential backoff 2s capped 30s), 3) target token truncation. Caps retried API calls, escalates via toast.
 | Config key | `experimental.aggressive_truncation` influences the first strategy |
-| Disable | `"anthropic-context-window-limit-recovery"` in `disabled_hooks` |
+| Disable | `"context-window-limit-recovery"` in `disabled_hooks` |
 
-Source: `src/hooks/anthropic-context-window-limit-recovery/` (~2232 LOC).
+Source: `src/hooks/context-window-limit-recovery/ (~1100 LOC).
 
 ### 3.6 tool-output-truncator and grep-output-truncator
 
@@ -605,7 +605,9 @@ Unified `matrixx.jsonc` showing every context management key. All keys are optio
   "experimental": {
     "aggressive_truncation": false,         // optional, used by anthropic recovery
     "truncate_all_tool_outputs": false,     // optional, when true truncates every tool output
-    "preemptive_compaction": true           // optional, controls 78% auto compaction
+    "preemptive_compaction": true,          // optional, controls 78% auto compaction
+    "context_warning_threshold": 0.70,      // optional, 0.1-0.95, monitor warn (default 0.70)
+    "preemptive_compaction_threshold": 0.78 // optional, 0.1-0.95, preemptive trigger (default 0.78, must exceed warning)
   },
 
   // Disable any hook by name
@@ -614,7 +616,7 @@ Unified `matrixx.jsonc` showing every context management key. All keys are optio
     // "preemptive-compaction",
     // "compaction-context-injector",
     // "compaction-todo-preserver",
-    // "anthropic-context-window-limit-recovery",
+    // "context-window-limit-recovery",
     // "tool-output-truncator",
     // removed: grep-output-truncator was an alias, now deleted
     // "quality-gate",

@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const HookNameSchema = z.enum([
+const HookNameEnum = z.enum([
   "task-continuation-enforcer",
   "todo-continuation-enforcer",
   "context-window-monitor",
@@ -11,7 +11,7 @@ export const HookNameSchema = z.enum([
   "directory-agents-injector",
   "empty-task-response-detector",
   "think-mode",
-  "anthropic-context-window-limit-recovery",
+  "context-window-limit-recovery",
   "preemptive-compaction",
   "rules-injector",
   "background-notification",
@@ -66,4 +66,11 @@ export const HookNameSchema = z.enum([
   "task-edit-guard",
 ])
 
+// Deprecated alias — remove in v2.7 (BREAKING: rename anthropic- → generic)
+export const HookNameSchema = z.union([
+  HookNameEnum,
+  z.literal("anthropic-context-window-limit-recovery").transform(() => 'context-window-limit-recovery' as const),
+])
+
 export type HookName = z.infer<typeof HookNameSchema>
+

@@ -1,14 +1,23 @@
+// Boundary: 70% warn (read-only) → preemptive-compaction 78% (proactive) → context-window-limit-recovery (reactive, error-parse only). Shared: context-limits.ts + token-cache.ts.
 import type { PluginInput } from "@opencode-ai/plugin"
+import type { MatrixxConfig } from "../config"
+import type { ExperimentalConfig } from "../config/schema/experimental"
+import {
+  ANTHROPIC_DISPLAY_LIMIT,
+  DEFAULT_ANTHROPIC_ACTUAL_LIMIT,
+  isAnthropicProvider,
+  resolvePreemptiveThreshold,
+  resolveWarningThreshold,
+} from "../shared/context-limits"
+import { log } from "../shared/logger"
 import { createSystemDirective, SystemDirectiveTypes } from "../shared/system-directive"
 import { clearTokenCache, updateTokenCache } from "../shared/token-cache"
 
-const ANTHROPIC_DISPLAY_LIMIT = 1_000_000
 const ANTHROPIC_ACTUAL_LIMIT =
   process.env.ANTHROPIC_1M_CONTEXT === "true" ||
   process.env.VERTEX_ANTHROPIC_1M_CONTEXT === "true"
-    ? 1_000_000
-    : 200_000
-const CONTEXT_WARNING_THRESHOLD = 0.70
+    ? ANTHROPIC_DISPLAY_LIMIT
+    : DEFAULT_ANTHROPIC_ACTUAL_LIMIT
 
 const CONTEXT_REMINDER = `${createSystemDirective(SystemDirectiveTypes.CONTEXT_WINDOW_MONITOR)}
 
@@ -28,11 +37,18 @@ interface CachedTokenState {
   tokens: TokenInfo
 }
 
-function isAnthropicProvider(providerID: string): boolean {
-  return providerID === "anthropic" || providerID === "google-vertex-anthropic"
-}
+let misorderWarned = false
 
-export function createContextWindowMonitorHook(_ctx: PluginInput) {
+export function createContextWindowMonitorHook(
+  _ctx: PluginInput,
+  pluginConfig?: MatrixxConfig | { experimental?: ExperimentalConfig },
+) {
+  const warningThreshold = resolveWarningThreshold(pluginConfig?.experimental)
+  const preemptiveThreshold = resolvePreemptiveThreshold(pluginConfig?.experimental)
+  if (!misorderWarned && warningThreshold >= preemptiveThreshold) {
+    misorderWarned = true
+    log("[context-limits] context_warning_threshold >= preemptive_compaction_threshold — monitor will warn at/after compaction")
+  }
   const remindedSessions = new Set<string>()
   const tokenCache = new Map<string, CachedTokenState>()
 
@@ -54,7 +70,7 @@ export function createContextWindowMonitorHook(_ctx: PluginInput) {
 
     const actualUsagePercentage = totalInputTokens / ANTHROPIC_ACTUAL_LIMIT
 
-    if (actualUsagePercentage < CONTEXT_WARNING_THRESHOLD) return
+    if (actualUsagePercentage < warningThreshold) return
 
     remindedSessions.add(sessionID)
 

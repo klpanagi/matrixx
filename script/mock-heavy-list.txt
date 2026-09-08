@@ -20,9 +20,8 @@ tests/hooks/preemptive-compaction.test.ts
 tests/tools/lsp/client.test.ts
 tests/tools/lsp/lsp-process.test.ts
 tests/tools/skill/tools.test.ts
-tests/hooks/anthropic-context-window-limit-recovery/empty-content-recovery-sdk.test.ts
-tests/hooks/anthropic-context-window-limit-recovery/recovery-hook.test.ts
-tests/hooks/anthropic-context-window-limit-recovery/storage.test.ts
+tests/hooks/context-window-limit-recovery/recovery-hook.test.ts
+tests/hooks/context-window-limit-recovery/storage.test.ts
 tests/agents/utils.test.ts
 tests/hooks/task-notepad/hook.test.ts
 tests/tools/bdd-parse-gherkin/tools.test.ts

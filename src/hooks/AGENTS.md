@@ -8,7 +8,7 @@
 ```
 hooks/
 ├── agent-usage-reminder/         # Specialized agent hints (109 lines)
-├── anthropic-context-window-limit-recovery/ # Auto-summarize on limit (2232 lines)
+├── context-window-limit-recovery/ # Provider-agnostic recovery (~1100 lines)
 ├── anthropic-effort/             # Effort=max for Opus max variant (56 lines)
 ├── architect/                        # Main orchestration hook (1976 lines)
 ├── auto-slash-command/           # Detects /command patterns (1134 lines)

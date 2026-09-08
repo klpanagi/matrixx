@@ -1,6 +1,19 @@
+import {
+  extractMessageIndex,
+  extractTokensFromMessage,
+  isTokenLimitError,
+} from "./parser-patterns"
 import type { ParsedTokenLimitError } from "./types"
 
-interface AnthropicErrorData {
+// Re-export pattern constants for external consumers (deprecated direct import shim).
+export {extractMessageIndex, extractTokensFromMessage, isThinkingBlockError, isTokenLimitError, 
+  MESSAGE_INDEX_PATTERN,
+  THINKING_BLOCK_ERROR_PATTERNS,
+  TOKEN_LIMIT_KEYWORDS,
+  TOKEN_LIMIT_PATTERNS
+} from "./parser-patterns"
+
+export interface GenericErrorData {
   type: "error"
   error: {
     type: string
@@ -9,79 +22,21 @@ interface AnthropicErrorData {
   request_id?: string
 }
 
-const TOKEN_LIMIT_PATTERNS = [
-  /(\d+)\s*tokens?\s*>\s*(\d+)\s*maximum/i,
-  /prompt.*?(\d+).*?tokens.*?exceeds.*?(\d+)/i,
-  /(\d+).*?tokens.*?limit.*?(\d+)/i,
-  /context.*?length.*?(\d+).*?maximum.*?(\d+)/i,
-  /max.*?context.*?(\d+).*?but.*?(\d+)/i,
-]
+/** @deprecated use GenericErrorData */
+export type AnthropicErrorData = GenericErrorData
 
-const TOKEN_LIMIT_KEYWORDS = [
-  "prompt is too long",
-  "is too long",
-  "context_length_exceeded",
-  "max_tokens",
-  "token limit",
-  "context length",
-  "too many tokens",
-  "non-empty content",
-]
-
-// Patterns that indicate thinking block structure errors (NOT token limit errors)
-// These should be handled by session-recovery hook, not compaction
-const THINKING_BLOCK_ERROR_PATTERNS = [
-  /thinking.*first block/i,
-  /first block.*thinking/i,
-  /must.*start.*thinking/i,
-  /thinking.*redacted_thinking/i,
-  /expected.*thinking.*found/i,
-  /thinking.*disabled.*cannot.*contain/i,
-]
-
-function isThinkingBlockError(text: string): boolean {
-  return THINKING_BLOCK_ERROR_PATTERNS.some((pattern) => pattern.test(text))
-}
-
-const MESSAGE_INDEX_PATTERN = /messages\.(\d+)/
-
-function extractTokensFromMessage(message: string): { current: number; max: number } | null {
-  for (const pattern of TOKEN_LIMIT_PATTERNS) {
-    const match = message.match(pattern)
-    if (match) {
-      const num1 = parseInt(match[1], 10)
-      const num2 = parseInt(match[2], 10)
-      return num1 > num2 ? { current: num1, max: num2 } : { current: num2, max: num1 }
-    }
-  }
-  return null
-}
-
-function extractMessageIndex(text: string): number | undefined {
-  const match = text.match(MESSAGE_INDEX_PATTERN)
-  if (match) {
-    return parseInt(match[1], 10)
-  }
-  return undefined
-}
-
-function isTokenLimitError(text: string): boolean {
-  if (isThinkingBlockError(text)) {
-    return false
-  }
-  const lower = text.toLowerCase()
-  return TOKEN_LIMIT_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()))
-}
-
-export function parseAnthropicTokenLimitError(err: unknown): ParsedTokenLimitError | null {
+export function parseTokenLimitError(err: unknown): ParsedTokenLimitError | null {
   try {
-    return parseAnthropicTokenLimitErrorUnsafe(err)
+    return parseTokenLimitErrorUnsafe(err)
   } catch {
     return null
   }
 }
 
-function parseAnthropicTokenLimitErrorUnsafe(err: unknown): ParsedTokenLimitError | null {
+/** @deprecated use parseTokenLimitError */
+export const parseAnthropicTokenLimitError = parseTokenLimitError
+
+function parseTokenLimitErrorUnsafe(err: unknown): ParsedTokenLimitError | null {
   if (typeof err === "string") {
     if (err.toLowerCase().includes("non-empty content")) {
       return {
@@ -128,10 +83,8 @@ function parseAnthropicTokenLimitErrorUnsafe(err: unknown): ParsedTokenLimitErro
   if (textSources.length === 0) {
     try {
       const jsonStr = JSON.stringify(errObj)
-      if (isTokenLimitError(jsonStr)) {
-        textSources.push(jsonStr)
-      }
-          } catch { /* JSON parse failed for this pattern — try next */ }
+      if (isTokenLimitError(jsonStr)) textSources.push(jsonStr)
+    } catch { /* JSON parse failed for this pattern — try next */ }
   }
 
   const combinedText = textSources.join(" ")
@@ -140,7 +93,6 @@ function parseAnthropicTokenLimitErrorUnsafe(err: unknown): ParsedTokenLimitErro
   if (typeof responseBody === "string") {
     try {
       const jsonPatterns = [
-        // Greedy match to last } for nested JSON
         /data:\s*(\{[\s\S]*\})\s*$/m,
         /(\{"type"\s*:\s*"error"[\s\S]*\})/,
         /(\{[\s\S]*"error"[\s\S]*\})/,
@@ -150,7 +102,7 @@ function parseAnthropicTokenLimitErrorUnsafe(err: unknown): ParsedTokenLimitErro
         const dataMatch = responseBody.match(pattern)
         if (dataMatch) {
           try {
-            const jsonData: AnthropicErrorData = JSON.parse(dataMatch[1])
+            const jsonData: GenericErrorData = JSON.parse(dataMatch[1])
             const message = jsonData.error?.message || ""
             const tokens = extractTokensFromMessage(message)
 
@@ -162,7 +114,7 @@ function parseAnthropicTokenLimitErrorUnsafe(err: unknown): ParsedTokenLimitErro
                 errorType: jsonData.error?.type || "token_limit_exceeded",
               }
             }
-    } catch { /* JSON.stringify failed on error object — continue with other sources */ }
+          } catch { /* JSON.stringify failed on error object — continue with other sources */ }
         }
       }
 
@@ -174,7 +126,7 @@ function parseAnthropicTokenLimitErrorUnsafe(err: unknown): ParsedTokenLimitErro
           errorType: "bedrock_input_too_long",
         }
       }
-          } catch { /* JSON parse failed for this pattern — try next */ }
+    } catch { /* JSON parse failed for this pattern — try next */ }
   }
 
   for (const text of textSources) {

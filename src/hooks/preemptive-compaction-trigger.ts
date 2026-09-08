@@ -1,9 +1,12 @@
+// Boundary: 70% warn (monitor) → 78% preemptive (proactive, here) → recovery (reactive, error-parse only).
 import type { MatrixxConfig } from "../config"
 import {
   type ContextLimitModelCacheState,
   resolveActualContextLimit,
-} from "../shared/context-limit-resolver"
-import { log } from "../shared/logger"
+  resolvePreemptiveThreshold,
+  resolveWarningThreshold,
+} from "../shared/context-limits"
+  import { log } from "../shared/logger"
 import type {
   CachedCompactionState,
   PreemptiveCompactionContext,
@@ -11,8 +14,9 @@ import type {
 import { resolveCompactionModel } from "./shared/compaction-model-resolver"
 
 const PREEMPTIVE_COMPACTION_TIMEOUT_MS = 60_000
-const PREEMPTIVE_COMPACTION_THRESHOLD = 0.78
 const PREEMPTIVE_COMPACTION_COOLDOWN_MS = 60_000
+
+let misorderWarned = false
 
 declare function setTimeout(handler: () => void, timeout?: number): unknown
 declare function clearTimeout(timeoutID: unknown): void
@@ -42,6 +46,13 @@ export async function runPreemptiveCompactionIfNeeded(args: {
 
   if (compactedSessions.has(sessionID) || compactionInProgress.has(sessionID)) return
 
+  const preemptiveThreshold = resolvePreemptiveThreshold(pluginConfig.experimental)
+  const warningThreshold = resolveWarningThreshold(pluginConfig.experimental)
+  if (!misorderWarned && warningThreshold >= preemptiveThreshold) {
+    misorderWarned = true
+    log("[context-limits] context_warning_threshold >= preemptive_compaction_threshold — monitor will warn at/after compaction")
+  }
+
   const lastTime = lastCompactionTime.get(sessionID)
   if (lastTime && Date.now() - lastTime < PREEMPTIVE_COMPACTION_COOLDOWN_MS) return
 
@@ -64,7 +75,7 @@ export async function runPreemptiveCompactionIfNeeded(args: {
 
   const totalInputTokens = (cached.tokens.input ?? 0) + (cached.tokens.cache?.read ?? 0)
   const usageRatio = totalInputTokens / actualLimit
-  if (usageRatio < PREEMPTIVE_COMPACTION_THRESHOLD || !cached.modelID) return
+  if (usageRatio < preemptiveThreshold || !cached.modelID) return
 
   compactionInProgress.add(sessionID)
   lastCompactionTime.set(sessionID, Date.now())
@@ -98,7 +109,7 @@ export async function runPreemptiveCompactionIfNeeded(args: {
     ctx.client.tui.showToast({
       body: {
         title: "Preemptive compaction failed",
-        message: `Context window is above ${Math.round(PREEMPTIVE_COMPACTION_THRESHOLD * 100)}% and auto-compaction could not run. The session may grow large. Error: ${String(error)}`,
+        message: `Context window is above ${Math.round(preemptiveThreshold * 100)}% and auto-compaction could not run. The session may grow large. Error: ${String(error)}`,
         variant: "warning",
         duration: 10000,
       },

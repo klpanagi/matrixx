@@ -562,7 +562,7 @@ Hooks intercept and modify behavior at key points in the agent lifecycle.
 | Hook | Event | Description |
 |------|-------|-------------|
 | **session-recovery** | Stop | Recovers from session errors - missing tool results, thinking block issues, empty messages. |
-| **anthropic-context-window-limit-recovery** | Stop | Handles Claude context window limits gracefully. |
+| **context-window-limit-recovery** | Stop | Handles context window limits (provider-agnostic, keyword+pattern) gracefully. |
 | **background-compaction** | Stop | Auto-compacts sessions hitting token limits. |
 
 #### Truncation & Context Management

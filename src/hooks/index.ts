@@ -1,5 +1,4 @@
 export { createAgentUsageReminderHook } from "./agent-usage-reminder";
-export { type AnthropicContextWindowLimitRecoveryOptions, createAnthropicContextWindowLimitRecoveryHook } from "./anthropic-context-window-limit-recovery";
 export { createArchitectHook } from "./architect";
 export { createAutoSlashCommandHook } from "./auto-slash-command";
 export { createAutoUpdateCheckerHook } from "./auto-update-checker";
@@ -10,6 +9,7 @@ export { createCommentCheckerHooks } from "./comment-checker";
 export { createCompactionContextInjector } from "./compaction-context-injector";
 export { createCompactionTodoPreserverHook } from "./compaction-todo-preserver";
 export { createContextModeEnforcerHook } from "./context-mode-enforcer";
+export { type ContextWindowLimitRecoveryOptions, type ContextWindowLimitRecoveryOptions as AnthropicContextWindowLimitRecoveryOptions, createContextWindowLimitRecoveryHook, createContextWindowLimitRecoveryHook as createAnthropicContextWindowLimitRecoveryHook } from "./context-window-limit-recovery";
 export { createContextWindowMonitorHook } from "./context-window-monitor";
 export { createDelegateTaskRetryHook } from "./delegate-task-retry";
 export { createDesignIntentPreserverHook } from "./design-intent-preserver"

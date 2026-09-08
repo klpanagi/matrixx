@@ -1,6 +1,6 @@
 /// <reference types="bun-types" />
 import { describe, expect, it } from "bun:test"
-import { parseAnthropicTokenLimitError } from "../../../src/hooks/anthropic-context-window-limit-recovery/parser"
+import { parseAnthropicTokenLimitError } from "../../../src/hooks/context-window-limit-recovery/parser"
 
 describe("parseAnthropicTokenLimitError", () => {
   it("#given a standard token limit error string #when parsing #then extracts tokens", () => {
