@@ -50,6 +50,31 @@ export const DELEGATE_TASK_ERROR_PATTERNS: DelegateTaskErrorPattern[] = [
       "Primary agents cannot be called via task. Use a subagent like 'explore', 'oracle', or 'librarian'",
   },
   {
+    pattern: "Operation timed out",
+    errorType: "timeout",
+    fixHint: "Increase timeout or retry with same args — transient provider timeout. Use withTimeout(30000) + Promise.allSettled around explorer batch.",
+  },
+  {
+    pattern: "MessageAbortedError",
+    errorType: "aborted",
+    fixHint: "Provider aborted — retry once. Ensure explorer prompts are not too large and provider fallback chain is configured.",
+  },
+  {
+    pattern: "AbortError",
+    errorType: "abort_error",
+    fixHint: "AbortError — retry. Check preemptive-compaction not triggering at same time.",
+  },
+  {
+    pattern: "failed to start within timeout",
+    errorType: "background_start_timeout",
+    fixHint: "Background task failed to start — retry task() call. Check BackgroundManager concurrency and stale timeout.",
+  },
+  {
+    pattern: "timed out",
+    errorType: "generic_timeout",
+    fixHint: "Generic timeout — retry with backoff. Wrap explorer batch in Promise.allSettled with per-task withTimeout.",
+  },
+  {
     pattern: "Skills not found",
     errorType: "unknown_skills",
     fixHint: "Use valid skill names from the Available list in the error message",
@@ -62,7 +87,8 @@ export interface DetectedError {
 }
 
 export function detectDelegateTaskError(output: string): DetectedError | null {
-  if (!output.includes("[ERROR]") && !output.includes("Invalid arguments")) return null
+  const isTimeoutOrAbort = output.includes("timed out") || output.includes("MessageAbortedError") || output.includes("AbortError") || output.includes("failed to start within timeout")
+  if (!output.includes("[ERROR]") && !output.includes("Invalid arguments") && !isTimeoutOrAbort) return null
 
   for (const errorPattern of DELEGATE_TASK_ERROR_PATTERNS) {
     if (output.includes(errorPattern.pattern)) {
