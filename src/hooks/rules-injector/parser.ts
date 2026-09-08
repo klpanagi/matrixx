@@ -15,6 +15,7 @@ interface RuleFrontmatterResult {
  *     - "**\/*.py"
  *     - "src/**\/*.ts"
  * - Comma-separated: globs: "**\/*.py, src/**\/*.ts"
+ * - Claude Code 'paths' field (alias for globs)
  */
 export function parseRuleFrontmatter(content: string): RuleFrontmatterResult {
   const frontmatterRegex = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
@@ -59,9 +60,14 @@ function parseYamlContent(yamlContent: string): RuleMetadata {
       metadata.description = parseStringValue(rawValue);
     } else if (key === "alwaysApply") {
       metadata.alwaysApply = rawValue === "true";
-    } else if (key === "globs" || key === "applyTo") {
+    } else if (key === "globs" || key === "paths" || key === "applyTo") {
       const { value, consumed } = parseArrayOrStringValue(rawValue, lines, i);
-      metadata.globs = mergeGlobs(metadata.globs, value);
+      // Merge paths into globs (Claude Code compatibility)
+      if (key === "paths") {
+        metadata.globs = mergeGlobs(metadata.globs, value);
+      } else {
+        metadata.globs = mergeGlobs(metadata.globs, value);
+      }
       i += consumed;
       continue;
     }
@@ -190,7 +196,7 @@ function parseInlineArray(value: string): string[] {
 }
 
 /**
- * Merge two globs values
+ * Merge two globs values (for combining paths and globs)
  */
 function mergeGlobs(
   existing: string | string[] | undefined,

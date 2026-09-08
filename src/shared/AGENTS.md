@@ -30,6 +30,7 @@ shared/
 ├── agent-display-names.ts     # Agent display name mapping
 ├── first-message-variant.ts   # First message variant types
 ├── opencode-config-dir.ts     # ~/.config/opencode resolution (138 lines)
+├── claude-config-dir.ts       # ~/.claude resolution
 ├── data-path.ts               # XDG-compliant storage (47 lines) — 11 imports
 ├── jsonc-parser.ts            # JSONC with comment support (66 lines)
 ├── frontmatter.ts             # YAML frontmatter extraction (31 lines) — 10 imports

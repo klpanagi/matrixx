@@ -3,23 +3,27 @@ import { dirname, join } from "node:path";
 import {
   PROJECT_RULE_FILES,
   PROJECT_RULE_SUBDIRS,
+  USER_RULE_DIR,
 } from "./constants";
 import { findRuleFilesRecursive, safeRealpathSync } from "./rule-file-scanner";
 import type { RuleFileCandidate } from "./types";
 
 /**
  * Find all rule files for a given context.
- * Searches from currentFile upward to projectRoot for rule directories.
+ * Searches from currentFile upward to projectRoot for rule directories,
+ * then user-level directory (~/.claude/rules).
  *
  * IMPORTANT: This searches EVERY directory from file to project root.
  * Not just the project root itself.
  *
  * @param projectRoot - Project root path (or null if outside any project)
+ * @param homeDir - User home directory
  * @param currentFile - Current file being edited (for distance calculation)
  * @returns Array of rule file candidates sorted by distance
  */
 export function findRuleFiles(
   projectRoot: string | null,
+  homeDir: string,
   currentFile: string,
 ): RuleFileCandidate[] {
   const candidates: RuleFileCandidate[] = [];
@@ -85,6 +89,23 @@ export function findRuleFiles(
     }
   }
 
+  // Search user-level rule directory (~/.claude/rules)
+  const userRuleDir = join(homeDir, USER_RULE_DIR);
+  const userFiles: string[] = [];
+  findRuleFilesRecursive(userRuleDir, userFiles);
+
+  for (const filePath of userFiles) {
+    const realPath = safeRealpathSync(filePath);
+    if (seenRealPaths.has(realPath)) continue;
+    seenRealPaths.add(realPath);
+
+    candidates.push({
+      path: filePath,
+      realPath,
+      isGlobal: true,
+      distance: 9999, // Global rules always have max distance
+    });
+  }
 
   // Sort by distance (closest first, then global rules last)
   candidates.sort((a, b) => {

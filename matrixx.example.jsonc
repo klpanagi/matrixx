@@ -114,6 +114,7 @@
   //     "scope": "project",                 // "project" → .matrixx/tasks per project (default) | "global" → ~/.config/opencode/tasks/{listId}
   //     "storage_path": ".matrixx/tasks",   // absolute or relative path override
   //     "task_list_id": "my-list",          // force task list ID (alt to ULTRAWORK_TASK_LIST_ID env)
+  //     "claude_code_compat": false         // Claude Code path compatibility mode
   //   }
   // },
 

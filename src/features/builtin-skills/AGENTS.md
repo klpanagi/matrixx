@@ -9,6 +9,8 @@
 | **Built-in (this dir)** | 45 | `src/features/builtin-skills/skills/*.ts` |
 | Opencode-project (`.opencode/skills/`) | varies | per-project |
 | Opencode-user (`~/.config/opencode/skills/`) | varies | per-user |
+| Claude Code compat (`.claude/skills/`) | varies | per-project |
+| Claude Code user (`~/.claude/skills/`) | varies | per-user |
 
 ## STRUCTURE
 

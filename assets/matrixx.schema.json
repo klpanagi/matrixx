@@ -4897,6 +4897,10 @@
             "task_list_id": {
               "type": "string"
             },
+            "claude_code_compat": {
+              "default": false,
+              "type": "boolean"
+            },
             "scope": {
               "description": "Task storage scope: project → .matrixx/tasks per project (default), global → ~/.config/opencode/tasks/{listId}",
               "default": "project",
@@ -4907,6 +4911,9 @@
               ]
             }
           },
+          "required": [
+            "claude_code_compat"
+          ],
           "additionalProperties": false
         }
       },

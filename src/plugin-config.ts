@@ -177,6 +177,7 @@ export function mergeConfigs(
     disabled_hooks: [...disabledHooksSet],
     disabled_commands: [...disabledCommandsSet],
     disabled_skills: [...disabledSkillsSet],
+  // claude_code merging removed during CC compat removal
   }
 
   disabledSetsCache.set(merged, {
@@ -257,6 +258,7 @@ export async function loadPluginConfig(
     disabled_agents: config.disabled_agents,
     disabled_mcps: config.disabled_mcps,
     disabled_hooks: config.disabled_hooks,
+    // claude_code removed during CC compat removal
   });
   return config;
 }

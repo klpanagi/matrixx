@@ -33,7 +33,7 @@ function discoverCommandsFromDir(commandsDir: string, scope: CommandScope): Comm
         name: commandName,
         description: data.description || "",
         argumentHint: data["argument-hint"],
-        model: sanitizeModelField(data.model, isOpencodeSource ? "opencode" : "other"),
+        model: sanitizeModelField(data.model, isOpencodeSource ? "opencode" : "claude-code"),
         agent: data.agent,
         subtask: Boolean(data.subtask),
       }
