@@ -39,11 +39,21 @@ task(subagent_type="oracle", load_skills=[], prompt="Review my approach to [TASK
 
 **IF BLOCKED:** Consult specialists, ask user, explore alternatives — never give up or deliver compromised version.
 
+
+THE USER'S ORIGINAL REQUEST IS SACRED — deliver exactly X, no subset, no demo.
+
+SURVEY THE SKILLS — enumerate every skill, read descriptions, pick every relevant one, state choices with one-line reasons before acting.
+
+## ACCEPTANCE CRITERIA (BINDING, before code)
+1. Criterion: binary pass/fail observable — specify command + expected output
+2. Minimum 3 criteria (correctness, no regression, typecheck/lint)
+3. QA Protocol: run all verification commands, report ✅/❌ per criterion, fix and re-run ALL if any fail — NO EVIDENCE = NOT DONE
+
 ---
 
 YOU MUST LEVERAGE ALL AGENTS / CATEGORY + SKILLS.
 
-**SURVEY SKILLS FIRST:** Enumerate every skill, read descriptions, pick every genuinely relevant one, use them rather than working raw. State chosen skills with one-line reasons before acting.
+**SURVEY THE SKILLS FIRST:** Enumerate every skill, read descriptions, pick every genuinely relevant one, use them rather than working raw. State chosen skills with one-line reasons before acting.
 
 ## MANDATORY: PLAN AGENT INVOCATION
 
