@@ -16,7 +16,6 @@ config/
 │   ├── commands.ts            # BuiltinCommandNameSchema
 │   ├── experimental.ts        # ExperimentalConfigSchema
 │   ├── background-task.ts     # BackgroundTaskConfigSchema
-│   ├── claude-code.ts         # ClaudeCodeConfigSchema
 │   ├── comment-checker.ts     # CommentCheckerConfigSchema
 │   ├── notification.ts        # NotificationConfigSchema
 │   ├── matrix-loop.ts          # MatrixLoopConfigSchema

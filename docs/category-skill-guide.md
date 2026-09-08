@@ -106,7 +106,7 @@ task(
 
 ### Skill Customization (SKILL.md)
 
-You can add custom skills directly to `.opencode/skills/` in your project root or `~/.claude/skills/` in your home directory.
+You can add custom skills directly to `.opencode/skills/` in your project root.
 
 **Example: `.opencode/skills/my-skill/SKILL.md`**
 
