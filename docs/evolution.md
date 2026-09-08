@@ -2,6 +2,8 @@
 
 > Deterministic runtime + async evolutionary loop — every session makes the next smarter, with human-in-loop governance.
 
+_Registration gating_: all 3 hooks register only when `evolution.enabled:true` (default `false` = zero overhead; handlers keep defense-in-depth `if (!config?.enabled) return`).
+
 Inspired by [Hermes Agent](https://github.com/hermes-agent/hermes): a deterministic runtime that self-corrects from compiler errors, plus an async evolutionary loop that compresses messy trial-and-error trajectories via DSPy/GEPA into reusable skills. Matrixx reuses its existing plumbing (`tool.execute.after` choke point, `experimental.session.compacting`, skill loader) and adds a pluggable compressor — LLM MVP today, DSPy/GEPA adapter later.
 
 ## Overview
@@ -26,7 +28,7 @@ flowchart TB
 | 1 Watcher | `evolution-watcher` (`tool.execute.after`) | Every tool call | `TraceRecord` JSONL |
 | 2 Compressor | `evolution-compressor` (`compacting` + `idle`/`error`) | Context ~78%, idle >5 traces, error | `DistilledKnowledge` |
 | 3 Writer | `EvolutionWriter` | Distilled knowledge | `pending/<slug>.md` + `skills/<slug>/SKILL.md` |
-| 4 Governance | `evolution-quality-gate` + `evolution-hitl` + `/evolution` | Confidence / approval | Promotion to `.opencode/skills/` |
+| 4 Governance | `evolution-hitl` + `passesQualityGate()` (pure function, `src/hooks/evolution-quality-gate`) + `/evolution` | Confidence / approval | Promotion to `.opencode/skills/` |
 
 `TraceRecord` (`src/features/evolution/types.ts`): `{ id, sessionID, callID, timestamp, agent, tool, args (truncated), output (truncated), durationMs, success, errorType?, model? }`
 
@@ -121,7 +123,7 @@ Compressor pipeline (`src/features/evolution/pipeline.ts`): `getRecent(100)` fil
 
 ## Quality Gate
 
-Runs inline in the pipeline before `writer.stage` (`passesQualityGate` in `src/hooks/evolution-quality-gate`, invoked by `src/features/evolution/pipeline.ts`):
+Runs inline in the pipeline before `writer.stage` (`passesQualityGate` in `src/hooks/evolution-quality-gate`, invoked by `src/features/evolution/pipeline.ts`) (pure function — not a HookName enum entry; phantom 'evolution-quality-gate' HookName was removed 61→60):
 
 - `confidence >= governance.minConfidence` (default 0.7) — otherwise discarded, logged as low-confidence
 - `skillDraft` non-empty

@@ -60,7 +60,6 @@ const HookNameEnum = z.enum([
   "rtk-bash-rewriter",
   "evolution-watcher",
   "evolution-compressor",
-  "evolution-quality-gate",
   "evolution-hitl",
   "context-mode-enforcer",
   "task-edit-guard",

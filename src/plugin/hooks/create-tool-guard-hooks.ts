@@ -60,6 +60,7 @@ export function createToolGuardHooks(args: {
   safeHookEnabled: boolean
 }): ToolGuardHooks {
   const { ctx, pluginConfig, isHookEnabled, safeHookEnabled } = args
+  const evolutionEnabled = pluginConfig.evolution?.enabled === true
   const safeHook = <T>(hookName: HookName, factory: () => T): T | null =>
     safeCreateHook(hookName, factory, { enabled: safeHookEnabled })
 
@@ -154,7 +155,7 @@ export function createToolGuardHooks(args: {
     ? safeHook("task-edit-guard", () => createTaskEditGuardHook(ctx))
     : null
 
-  const evolutionWatcher = isHookEnabled("evolution-watcher")
+  const evolutionWatcher = evolutionEnabled && isHookEnabled("evolution-watcher")
     ? safeHook("evolution-watcher", () => createEvolutionWatcherHook(ctx, pluginConfig.evolution))
     : null
 
