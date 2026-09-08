@@ -25,6 +25,7 @@ export { passesQualityGate } from "./evolution-quality-gate";
 export { createEvolutionWatcherHook } from "./evolution-watcher";
 export { createHashlineEditDiffEnhancerHook } from "./hashline-edit-diff-enhancer"
 export { createHashlineReadEnhancerHook } from "./hashline-read-enhancer";
+export { createInputSecretGuardHook } from "./input-secret-guard";
 export { createInteractiveBashSessionHook } from "./interactive-bash-session";
 export { createJsonErrorRecoveryHook } from "./json-error-recovery"
 export { createKeywordDetectorHook } from "./keyword-detector";

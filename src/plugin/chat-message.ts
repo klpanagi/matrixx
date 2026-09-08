@@ -76,6 +76,7 @@ export function createChatMessageHandler(args: {
       }
     }
 
+    await hooks.inputSecretGuard?.["chat.message"]?.(input, output)
     await hooks.stopContinuationGuard?.["chat.message"]?.(input)
     await hooks.keywordDetector?.["chat.message"]?.(input, output)
     await hooks.autoSlashCommand?.["chat.message"]?.(input, output)

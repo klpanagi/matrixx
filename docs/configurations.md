@@ -996,7 +996,7 @@ Disable specific built-in hooks via `disabled_hooks` in `~/.config/opencode/matr
 }
 ```
 
-Available hooks (65 — see `src/config/schema/hooks.ts`): `agent-usage-reminder`, `anthropic-context-window-limit-recovery`, `anthropic-effort`, `architect`, `auto-slash-command`, `auto-update-checker`, `background-notification`, `bash-file-read-guard`, `category-skill-reminder`, `comment-checker`, `compaction-context-injector`, `compaction-todo-preserver`, `construct-notepad`, `context-mode-enforcer`, `context-window-monitor`, `delegate-task-retry`, `design-intent-preserver`, `directory-agents-injector`, `directory-readme-injector`, `edit-error-recovery`, `empty-task-response-detector`, `env-context-injector`, `env-file-write-guard`, `evolution-compressor`, `evolution-hitl`, `evolution-quality-gate`, `evolution-watcher`, `grep-output-truncator`, `hashline-edit-diff-enhancer`, `hashline-read-enhancer`, `interactive-bash-session`, `json-error-recovery`, `keyword-detector`, `matrix-loop`, `mcp-startup-notification`, `mouse-notepad`, `non-interactive-env`, `oracle-md-only`, `plan-persister`, `preemptive-compaction`, `question-label-truncator`, `read-image-resizer`, `rtk-bash-rewriter`, `rules-injector`, `runtime-fallback`, `secret-leak-guard`, `session-notification`, `session-recovery`, `start-work`, `startup-toast`, `stop-continuation-guard`, `task-continuation-enforcer`, `task-edit-guard`, `task-notepad`, `task-resume-info`, `tasks-todowrite-disabler`, `think-mode`, `thinking-block-validator`, `todo-continuation-enforcer`, `tool-output-truncator`, `tool-pair-validator`, `unstable-agent-babysitter`, `webfetch-redirect-guard`, `write-existing-file-guard`
+Available hooks (65 — see `src/config/schema/hooks.ts`): `agent-usage-reminder`, `anthropic-context-window-limit-recovery`, `anthropic-effort`, `architect`, `auto-slash-command`, `auto-update-checker`, `background-notification`, `bash-file-read-guard`, `category-skill-reminder`, `comment-checker`, `compaction-context-injector`, `compaction-todo-preserver`, `construct-notepad`, `context-mode-enforcer`, `context-window-monitor`, `delegate-task-retry`, `design-intent-preserver`, `directory-agents-injector`, `directory-readme-injector`, `edit-error-recovery`, `empty-task-response-detector`, `env-context-injector`, `env-file-write-guard`, `input-secret-guard`, `evolution-compressor`, `evolution-hitl`, `evolution-quality-gate`, `evolution-watcher`, `grep-output-truncator`, `hashline-edit-diff-enhancer`, `hashline-read-enhancer`, `interactive-bash-session`, `json-error-recovery`, `keyword-detector`, `matrix-loop`, `mcp-startup-notification`, `mouse-notepad`, `non-interactive-env`, `oracle-md-only`, `plan-persister`, `preemptive-compaction`, `question-label-truncator`, `read-image-resizer`, `rtk-bash-rewriter`, `rules-injector`, `runtime-fallback`, `secret-leak-guard`, `session-notification`, `session-recovery`, `start-work`, `startup-toast`, `stop-continuation-guard`, `task-continuation-enforcer`, `task-edit-guard`, `task-notepad`, `task-resume-info`, `tasks-todowrite-disabler`, `think-mode`, `thinking-block-validator`, `todo-continuation-enforcer`, `tool-output-truncator`, `tool-pair-validator`, `unstable-agent-babysitter`, `webfetch-redirect-guard`, `write-existing-file-guard`
 **Note on `directory-agents-injector`**: This hook is **automatically disabled** when running on OpenCode 1.1.37+ because OpenCode now has native support for dynamically resolving AGENTS.md files from subdirectories (PR #10678). This prevents duplicate AGENTS.md injection. For older OpenCode versions, the hook remains active to provide the same functionality.
 
 **Note on `auto-update-checker` and `startup-toast`**: The `startup-toast` hook is a sub-feature of `auto-update-checker`. To disable only the startup toast notification while keeping update checking enabled, add `"startup-toast"` to `disabled_hooks`. To disable all update checking features (including the toast), add `"auto-update-checker"` to `disabled_hooks`.
@@ -1311,7 +1311,15 @@ Three-tier security: reactive hooks + policies + Sentinel agent. Hooks run first
   "security": {
     "secret_scanning": { "enabled": true, "tool": "gitleaks", "block_on_detection": true },
     "env_file_guard": { "enabled": true },
-    "dependency_audit": { "enabled": false }
+    "dependency_audit": { "enabled": false },
+    "input_secret_guard": {
+      "enabled": true,
+      "mode": "prompt",
+      "blocklist_mode": "prompt",
+      "warnlist_mode": "prompt",
+      "allowlist_patterns": ["sk-test-.*"],
+      "detection": { "entropy_threshold": 4.5, "max_scan_bytes": 65536 }
+    }
   }
 }
 ```
@@ -1323,8 +1331,44 @@ Three-tier security: reactive hooks + policies + Sentinel agent. Hooks run first
 | `secret_scanning.block_on_detection` | `boolean` | `true` | Block commit/push when secrets found. |
 | `env_file_guard.enabled` | `boolean` | `true` | Block agent writes to `.env`/`*.pem`/`*.key`/`credentials.json`/`id_rsa` (+14 patterns). |
 | `dependency_audit.enabled` | `boolean` | `false` | Enable CVE/SBOM dependency audit (Sentinel). |
+| `input_secret_guard.enabled` | `boolean` | `true` | Detect secrets in `chat.message` before LLM send (local-only, RE2). Secure-by-default. |
+| `input_secret_guard.mode` | `"prompt" \| "block" \| "off"` | `"prompt"` | Global behaviour: `prompt`=require_approval (default, secure), `block`=hard block (no Allow Once), `off`=always continue (warn only, opt-in). |
+| `input_secret_guard.blocklist_mode` | `"prompt" \| "block"` | `"prompt"` | Action for deterministic blocklist (30 gitleaks rules: `sk-proj-`, `ghp_`, `AKIA`, PEM, JWT). Never `off`. |
+| `input_secret_guard.warnlist_mode` | `"prompt" \| "off"` | `"prompt"` | Action for heuristic warnlist (keyword proximity + entropy>4.5). |
+| `input_secret_guard.allowlist_patterns` | `string[]` | — | RE2 patterns suppressing detection for that span (e.g. `"sk-test-.*"`). |
+| `input_secret_guard.detection.entropy_threshold` | `number` | `4.5` | Shannon entropy gate (0-8) for high-entropy token heuristic. |
+| `input_secret_guard.detection.max_scan_bytes` | `number` | `65536` | Cap scan slice (1024-262144, default 64KB). |
 
-> Schema: `src/config/schema/security.ts`. Auditor: Sentinel agent (`security-*` skills). Hook: `secret-leak-guard` + `env-file-write-guard`.
+> Schema: `src/config/schema/security.ts`. Auditor: Sentinel agent (`security-*` skills). Hook: `secret-leak-guard` + `env-file-write-guard` + `input-secret-guard` (`chat.message`, local-only).
+
+### Input Secret Guard (`chat.message`)
+
+Guards **accidental paste** of API keys / passwords / private keys before they reach the LLM provider (irreversible sink, CWE-359). Like GitHub push protection: `Found 1 secret (openai-api-key: sk-proj…XXXX). Remove or confirm to send.`
+
+* **Hook**: `input-secret-guard` — runs **first** in `chat.message` chain, before `keyword-detector`. Throw blocks delivery to LLM.
+* **Detection** (local-only, <50 ms, RE2, zero network): tiered blocklist (~30 vendored gitleaks rules, near-zero FP) + warnlist (`local_heuristic`: keyword proximity `api_key|secret|password\s*[:=]` + Shannon entropy>4.5). `llm_judgement` is **rejected** (circular disclosure) — `local_heuristic` is the safe replacement.
+* **Redaction**: Toast / log / chat injection show `AKIA…XXXX` (4-char prefix/suffix, PEM replaced), never raw secret. `hashFinding` keys cache, never raw value. No persistence to tasks/handoff/logs.
+* **Allow flows**: `Allow Once` (one-shot `sessionID:hash`), `Allow Session` (session-scoped `Map`), `Block & Redact` (recommended). User replies `allow once` / `allow session` after block; confirmed via `session-allow-cache.ts` (in-memory `Map`, no disk, cleared on restart).
+* **Ordering**: `inputSecretGuard` → `stopContinuationGuard` → `keywordDetector` → `autoSlashCommand` → `startWork`.
+
+| `mode` | Behaviour | Warnlist |
+|--------|-----------|----------|
+| `prompt` (default) |  Block + redacted toast; require `allow once`/`allow session` or redact | Respects `warnlist_mode` |
+| `block` | Hard block, no Allow Once (only redact & resend) | Blocklist `block` only |
+| `off` | **Always continue** — detect but do not interrupt. ⚠️ **Warning**: disables protection; opt-in only, shows toast warning in docs. Not default. | `warnlist_mode: off` silences heuristic |
+
+> ⚠️ `mode: "off"` disables prompting for warnlist findings and should only be used if you accept the risk and rely on external review. Blocklist findings still prompt unless `enabled: false` (global kill-switch). Rotate any key that was sent without approval — the guard mitigates *future* disclosure, not past.
+
+To opt out per hook:
+
+```jsonc
+{
+  "disabled_hooks": ["input-secret-guard"]
+}
+```
+
+Redacted preview example: `openai-api-key: sk-proj…XXXX`, `aws-access-key: AKIA…XXXX`, `private-key-generic: -----BEGIN PRIVATE KEY----- …[REDACTED]`. Logs: `{sessionID, findingCount, redactedPreview, elapsedMs}` — no raw secret.
+
 
 ## Evolution (Self-Evolution)
 

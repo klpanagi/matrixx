@@ -28,7 +28,7 @@
   // "disabled_mcps": ["websearch", "context7", "grep_app"],
   // "disabled_agents": ["oracle", "construct"],
   // "disabled_skills": ["playwright"],
-  // "disabled_hooks": ["comment-checker", "agent-usage-reminder"],
+  // "disabled_hooks": ["comment-checker", "agent-usage-reminder", "input-secret-guard"],
   // "disabled_commands": ["init-deep", "start-work"],
   // "disabled_tools": ["todowrite", "todoread"],
 
@@ -427,7 +427,23 @@
   //   "dependency_audit": {
   //     "enabled": false,                   // enable dependency vulnerability auditing (default: false)
   //     "on_package_change": true           // auto-audit when package.json/bun.lockb changes (default: true)
+  //   },
+  //   "input_secret_guard": {
+  //     "enabled": true,                    // enable inbound secret scanning on chat.message (default: true)
+  //     "mode": "prompt",                   // "prompt" | "block" | "off" — prompt=require_approval, off=warn only
+  //     "blocklist_mode": "prompt",         // "prompt" | "block" — never "off" (deterministic secrets)
+  //     "warnlist_mode": "prompt",          // "prompt" | "off" — local_heuristic entropy+keyword
+  //     "allowlist_patterns": [             // optional RE2 allowlist for test fixtures / known safe values
+  //       "sk-test-.*",
+  //       "example-.*-key"
+  //     ]
+  //     // "detection": {                   // optional tuning (defaults shown)
+  //     //   "entropy_threshold": 4.5,      // 0-8, Shannon entropy gate for high-entropy tokens (default: 4.5)
+  //     //   "max_scan_bytes": 65536        // 1024-262144, cap scan slice (default: 65536 = 64KB)
+  //     // }
   //   }
+  //   // WARNING: mode "off" disables protection — secrets are sent to LLM without prompt
+  //   // Disable entirely via: "disabled_hooks": ["input-secret-guard"]
   // },
 
   // ─────────────────────────────────────────────────────────────────────────
