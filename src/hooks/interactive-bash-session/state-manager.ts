@@ -15,7 +15,7 @@ export function getOrCreateState(sessionID: string, sessionStates: Map<string, I
   return sessionStates.get(sessionID) as InteractiveBashSessionState;
 }
 
-export function isOmoSession(sessionName: string | null): boolean {
+export function isMatrixxSession(sessionName: string | null): boolean {
   return Boolean(sessionName?.startsWith(MATRIXX_SESSION_PREFIX));
 }
 

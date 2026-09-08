@@ -333,22 +333,22 @@ The cost tiers (free → cheap → normal → expensive) ensure agents are used 
 
 ## 9. Comparison with Competing Plugins
 
-| Feature | **Matrixx** | **oh-my-openagent** | **oh-my-opencode-slim** | **DevSquad** | **opencode-orchestrator** | **opencode-superpowers** |
-|---|---|---|---|---|---|---|
-| **Stars** | ~100 | ~500 | 6,089 ⭐ | 29 | 186 | 3 |
-| **Agent Count** | **14** | 11 | 7+1 | 9 | 4 | 0 (skills only) |
-| **Hook Count** | **65** | 54+ (61 w/ Team Mode) | Unknown | Similar to oh-my | Unknown | Unknown |
-| **Built-in Skills** | **37** | Shared library | LazySkills TUI | Limited | None | 14 |
-| **TDD Enforcement** | ✅ Mandatory (opt-in) | ❌ | ❌ | ❌ | ❌ | ✅ test-driven skill |
-| **Quality Gate** | ✅ 4-step checklist | ❌ | ❌ | ❌ | ❌ | ✅ verification skill |
-| **Security Auditing** | ✅ Sentinel + 9 skills | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Code Review** | ✅ 5-agent parallel | ❌ | ❌ | ❌ | ❌ | ✅ code-review skill |
-| **Parallel Agents** | ✅ Background tasks | ✅ Team Mode (up to 8) | ✅ Background agents | ✅ Parallel | ❌ Sequential | N/A |
-| **Self-Loop** | Matrix Loop + todo continuation | Ralph Loop | Deepwork workflow | upup-loop | Mission Loop | N/A |
-| **Config System** | Zod v4 + JSONC | Zod + JSONC | Presets | Zod + JSONC | JSON | None |
-| **MCP Servers** | 4 (websearch, context7, grep_app, document-reader) | 5 (+codegraph, git_bash) | 5 | 5 | Unknown | None |
-| **Platform Packages** | 7 + 4 baseline | Multiple editions | ❌ | ❌ | ❌ | ❌ |
-| **Test Coverage** | 262 files (~144k LOC) | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Feature | **Matrixx** | **oh-my-openagent** | **DevSquad** | **opencode-orchestrator** | **opencode-superpowers** |
+|---|---|---|---|---|---|
+| **Stars** | ~100 | ~500 | 29 | 186 | 3 |
+| **Agent Count** | **14** | 11 | 9 | 4 | 0 (skills only) |
+| **Hook Count** | **65** | 54+ (61 w/ Team Mode) | Similar to oh-my | Unknown | Unknown |
+| **Built-in Skills** | **37** | Shared library | Limited | None | 14 |
+| **TDD Enforcement** | ✅ Mandatory (opt-in) | ❌ | ❌ | ❌ | ✅ test-driven skill |
+| **Quality Gate** | ✅ 4-step checklist | ❌ | ❌ | ❌ | ✅ verification skill |
+| **Security Auditing** | ✅ Sentinel + 9 skills | ❌ | ❌ | ❌ | ❌ |
+| **Code Review** | ✅ 5-agent parallel | ❌ | ❌ | ❌ | ✅ code-review skill |
+| **Parallel Agents** | ✅ Background tasks | ✅ Team Mode (up to 8) | ✅ Parallel | ❌ Sequential | N/A |
+| **Self-Loop** | Matrix Loop + todo continuation | Ralph Loop | upup-loop | Mission Loop | N/A |
+| **Config System** | Zod v4 + JSONC | Zod + JSONC | Zod + JSONC | JSON | None |
+| **MCP Servers** | 4 (websearch, context7, grep_app, document-reader) | 5 (+codegraph, git_bash) | 5 | Unknown | None |
+| **Platform Packages** | 7 + 4 baseline | Multiple editions | ❌ | ❌ | ❌ |
+| **Test Coverage** | 262 files (~144k LOC) | Unknown | Unknown | Unknown | Unknown |
 
 ### Matrixx Unique Advantages
 
@@ -363,9 +363,9 @@ The cost tiers (free → cheap → normal → expensive) ensure agents are used 
 
 ### Matrixx Weaknesses vs Competitors
 
-- **Fewer stars** (100 vs 6,089 for oh-my-opencode-slim)
-- **No floating UI companion** (slim has Companion desktop UI)
-- **No multi-LLM assembly** (slim has Council for cross-model verification)
+- **Fewer stars** than established competitors
+- **No floating UI companion** desktop app
+- **No multi-LLM assembly** for cross-model verification
 - **No external memory system** (orchestrator has Ebbinghaus memory with fading notes)
 - **Fewer MCP servers** (4 vs 5 in most competitors — missing codegraph, git_bash)
 - **No Team Mode equivalent** (oh-my-openagent has lead + 8 parallel workers)
