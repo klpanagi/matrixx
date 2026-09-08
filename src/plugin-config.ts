@@ -9,7 +9,6 @@ import {
   fetchAvailableModels,
   getOpenCodeConfigDir,
   log,
-  migrateConfigFile,
   parseJsonc,
   readConnectedProvidersCache,
 } from "./shared";
@@ -60,7 +59,6 @@ function loadConfigFromPath(
       const content = fs.readFileSync(configPath, "utf-8");
       const rawConfig = parseJsonc<Record<string, unknown>>(content);
 
-      migrateConfigFile(configPath, rawConfig);
 
       const result = MatrixxConfigSchema.safeParse(rawConfig);
 
