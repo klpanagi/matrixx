@@ -350,11 +350,9 @@ In addition to the 15 built-in commands above, Matrixx loads custom commands fro
 |:---:|----------|
 | 1 | `.opencode/commands/` (project) |
 | 2 | `.config/opencode/commands/` (user global) |
-| 3 | `.claude/commands/` (project, legacy) |
-| 4 | `~/.claude/commands/` (user global, legacy) |
-| 5 | `commands` entries in `.mcp.json` |
+| 3 | `commands` entries in `.mcp.json` |
 
-Custom commands can define a `name`, `description`, `template`, optional `agent` override, and `argumentHint`. They are loaded by the Claude Code command loader and merged into Matrixx's command list.
+Custom commands can define a `name`, `description`, `template`, optional `agent` override, and `argumentHint`. They are loaded by Matrixx's command discovery and merged into the command list.
 
 ---
 

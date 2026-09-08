@@ -51,7 +51,6 @@ Meet the main agent: **Morpheus** (Claude Opus 4.6). Everything below is customi
 - 22 Tool Directories (40 registrations) — LSP, AST-Grep, search, delegation, skills, task system (`task_create`/`task_update`/`task_list`/`task_get`/`task_cleanup` via `.matrixx/tasks`), and more
 - Task Continuation Enforcer — file-backed `.matrixx/tasks` keep the agent on mission (survives `/clear`; see [Task System](./task-system.md))
 
-- Claude Code Compatibility — commands, agents, skills, MCPs, hooks
 - Curated MCPs: Exa (web search), Context7 (official docs), Grep.app (GitHub code search), Document Reader
 - Interactive terminal via Tmux integration
 - Async background agents

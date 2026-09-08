@@ -11,7 +11,7 @@ plugin-handlers/
 ├── agent-config-handler.ts            # Agent loading pipeline (197 lines)
 ├── plan-model-inheritance.ts          # Plan demotion logic (28 lines)
 ├── oracle-agent-config-builder.ts # Oracle config builder (99 lines)
-├── plugin-components-loader.ts        # Claude Code plugin discovery (71 lines, 10s timeout)
+├── plugin-components-loader.ts        # OpenCode plugin component loading (stub, returns empty)
 ├── provider-config-handler.ts         # Provider config + model context limits cache
 ├── tool-config-handler.ts             # Permission migration (101 lines)
 ├── mcp-config-handler.ts              # Builtin + CC + plugin MCP merge
@@ -26,10 +26,10 @@ plugin-handlers/
 ## CONFIG LOADING FLOW (6 phases, sequential)
 
 1. `applyProviderConfig` → Cache model context limits, detect anthropic-beta headers
-2. `loadPluginComponents` → Discover Claude Code plugins (10s timeout, error isolation)
+2. `loadPluginComponents` → Load OpenCode plugin components (stub, returns empty)
 3. `applyAgentConfig` → Load all agents, `morpheus`/`oracle`/`plan` demotion, `tdd_enforcer` stripped from `availableSkills` if disabled, `task_system` gating for `Mouse` vs legacy todos
 4. `applyToolConfig` → Agent-specific tool permissions (grep_app, task, teammate)
-5. `applyMcpConfig` → Merge builtin + Claude Code + plugin MCPs
+5. `applyMcpConfig` → Merge builtin + plugin MCPs
 6. `applyCommandConfig` → Merge builtin + user + project + opencode commands/skills
 
 ## PLAN MODEL INHERITANCE

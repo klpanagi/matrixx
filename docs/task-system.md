@@ -29,7 +29,7 @@ The Task System replaces OpenCode's ephemeral session-memory todos with **file-b
 ```
 matrixx.jsonc
   experimental.task_system (default true ── isTaskSystemEnabled)
-  morpheus.tasks { storage_path?, task_list_id?, scope?, claude_code_compat? }
+  morpheus.tasks { storage_path?, task_list_id?, scope? }
             │
             ├─── Tool Registry (src/plugin/tool-registry.ts)
             │     if enabled → register 5 tools:
@@ -93,8 +93,7 @@ matrixx.jsonc
     "tasks": {
       "storage_path": "/custom/path",   // absolute or relative override
       "task_list_id": "my-project",     // override env/default
-      "scope": "project",               // "project" | "global"
-      "claude_code_compat": false
+      "scope": "project"               // "project" | "global"
     }
   }
 }
@@ -105,9 +104,8 @@ matrixx.jsonc
 | `storage_path` | `string` | — | Absolute path used verbatim; relative path `join(cwd, storage_path)`. When set, bypasses `scope`/`listId` resolution. |
 | `task_list_id` | `string` | — | Explicit list ID. Alternative to `ULTRAWORK_TASK_LIST_ID` env. Sanitized to `[a-zA-Z0-9_-]`. |
 | `scope` | `"project" \| "global"` | `"project"` | `project` → `.matrixx/tasks` in the project root. `global` → `~/.config/opencode/tasks/{listId}` via `getOpenCodeConfigDir()`. |
-| `claude_code_compat` | `boolean` | `false` | Claude Code path compatibility flag (reserved). |
 
-**Schema:** `MorpheusTasksConfigSchema` in `src/config/schema/morpheus.ts` (`storage_path?: string`, `task_list_id?: string`, `scope?: enum`, `claude_code_compat?: boolean`).
+**Schema:** `MorpheusTasksConfigSchema` in `src/config/schema/morpheus.ts` (`storage_path?: string`, `task_list_id?: string`, `scope?: enum`).
 
 ### 3.3 Directory Resolution
 
@@ -116,9 +114,8 @@ Implemented in `src/features/task-storage/storage.ts: getTaskDir()` + `resolveTa
 **Priority for `listId`:**
 
 1. `ULTRAWORK_TASK_LIST_ID` env
-2. `CLAUDE_CODE_TASK_LIST_ID` env
-3. `config.morpheus.tasks.task_list_id`
-4. `basename(process.cwd())` sanitized
+2. `config.morpheus.tasks.task_list_id`
+3. `basename(process.cwd())` sanitized
 
 Sanitization: `sanitizePathSegment()` — `[^a-zA-Z0-9_-]` replaced with `-`.
 
@@ -617,7 +614,7 @@ Used by: `create-continuation-hooks`, `create-tool-guard-hooks`, `tasks-todowrit
 
 ### 11.2 Compatibility Notes
 
-- **Claude Code alignment:** Field names (`subject`, `blockedBy`, `blocks`) follow Claude Code's Task tool signatures. Anthropic has not published official docs for these tools — Matrixx's `TaskObject` is a superset (adds `activeForm`, `repoURL`, `parentID`, atomic storage, additive deps, metadata merge, `task_cleanup`).
+- **Field naming:** `subject`, `blockedBy`, `blocks` follow Task tool conventions. Matrixx's `TaskObject` is a superset (adds `activeForm`, `repoURL`, `parentID`, atomic storage, additive deps, metadata merge, `task_cleanup`).
 - **No `morpheus.tasks.enabled`:** Despite legacy docs mention, `MorpheusTasksConfigSchema` has no `enabled` field. The toggle is `experimental.task_system` only. Do not add `enabled` under `morpheus.tasks`.
 - **Pre-existing `todo-sync.ts` removed:** Bulk sync `syncAllTasksToTodos` / `syncTaskTodoUpdate` existed in `src/tools/task/todo-sync.ts` (205 lines) for Todo API mirroring (`d004d84`–`0798df4`). Removed in `928440c`/`d8ca206` when enforcers decoupled. Do not reintroduce dual-write without revisiting the decouple rationale (debounce, direct DB fallback, host-blessed `SessionTodo.Service` writer).
 
@@ -654,7 +651,7 @@ Used by: `create-continuation-hooks`, `create-tool-guard-hooks`, `tasks-todowrit
 | `src/tools/delegate-task/background-task.ts` | `delegate_task` background path | — |
 | `src/tools/delegate-task/sync-task-deps.ts` | Bidirectional dep sync | — |
 | `src/config/schema/experimental.ts` | `task_system?: boolean = true` | — |
-| `src/config/schema/morpheus.ts` | `morpheus.tasks.{storage_path, task_list_id, scope, claude_code_compat}` | — |
+| `src/config/schema/morpheus.ts` | `morpheus.tasks.{storage_path, task_list_id, scope}` | — |
 | `src/config/schema/hooks.ts` | `HookNameSchema` (includes `task-continuation-enforcer`, `tasks-todowrite-disabler`, `task-edit-guard`, etc.) | — |
 | `src/plugin/tool-registry.ts` | Conditional registration of 5 task tools | — |
 | `src/plugin/hooks/create-continuation-hooks.ts` | Gates `taskContinuationEnforcer` | — |

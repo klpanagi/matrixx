@@ -1,7 +1,6 @@
 /**
- * Rule file metadata (Claude Code style frontmatter)
- * Supports both Claude Code format (globs, paths) and GitHub Copilot format (applyTo)
- * @see https://docs.anthropic.com/en/docs/claude-code/settings#rule-files
+ * Rule file metadata (frontmatter)
+ * Supports globs format and GitHub Copilot format (applyTo)
  * @see https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot
  */
 export interface RuleMetadata {

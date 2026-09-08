@@ -1,7 +1,7 @@
-type CommandSource = "claude-code" | "opencode"
+type CommandSource = "other" | "opencode"
 
-export function sanitizeModelField(model: unknown, source: CommandSource = "claude-code"): string | undefined {
-  if (source === "claude-code") {
+export function sanitizeModelField(model: unknown, source: CommandSource = "other"): string | undefined {
+  if (source === "other") {
     return undefined
   }
   

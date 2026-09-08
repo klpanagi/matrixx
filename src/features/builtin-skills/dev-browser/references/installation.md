@@ -165,18 +165,6 @@ cd "$env:USERPROFILE\.config\opencode\skills\dev-browser"
 3. Look for `Extension connected` message in console
 4. Try reloading the extension in `chrome://extensions`
 
-## Permissions
-
-To skip permission prompts in Claude Code, add to `~/.claude/settings.json`:
-
-```json
-{
-  "permissions": {
-    "allow": ["Skill(dev-browser:dev-browser)", "Bash(npx tsx:*)"]
-  }
-}
-```
-
 ## Updating
 
 ```bash
