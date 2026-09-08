@@ -14,7 +14,6 @@ tests/features/background-agent/manager.test.ts
 tests/hooks/comment-checker/cli.test.ts
 tests/hooks/comment-checker/hook.apply-patch.test.ts
 tests/hooks/directory-agents-injector/injector.test.ts
-tests/hooks/directory-readme-injector/injector.test.ts
 tests/hooks/rules-injector/injector.test.ts
 tests/hooks/compaction-todo-preserver/index.test.ts
 tests/hooks/preemptive-compaction.test.ts
@@ -39,7 +38,6 @@ tests/hooks/auto-update-checker/checker/pinned-version-updater.test.ts
 tests/tools/pdf-extract-figures/tools.test.ts
 tests/cli/doctor/checks.test.ts
 tests/cli/install/index.test.ts
-tests/hooks/mcp-startup-notification/index.test.ts
 tests/tools/dcp-switch-profile/tools.test.ts
 tests/shared/agent-config-handler.test.ts
 tests/shared/opencode-message-dir.test.ts

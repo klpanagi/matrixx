@@ -48,7 +48,7 @@ describe("Wave 3 hook ordering", () => {
     expect(output.args.command).toBe("CI=true GIT_EDITOR=: rtk git status")
   })
 
-  test("Wave 3 executes all 7 hooks in correct order", async () => {
+  test("Wave 3 executes all 6 hooks in correct order", async () => {
     //#given
     const callOrder: string[] = []
     
@@ -56,7 +56,6 @@ describe("Wave 3 hook ordering", () => {
       rtkBashRewriter: { "tool.execute.before": async () => { callOrder.push("rtkBashRewriter") } },
       nonInteractiveEnv: { "tool.execute.before": async () => { callOrder.push("nonInteractiveEnv") } },
       bashFileReadGuard: { "tool.execute.before": async () => { callOrder.push("bashFileReadGuard") } },
-      questionLabelTruncator: { "tool.execute.before": async () => { callOrder.push("questionLabelTruncator") } },
       oracleMdOnly: { "tool.execute.before": async () => { callOrder.push("oracleMdOnly") } },
       mouseNotepad: { "tool.execute.before": async () => { callOrder.push("mouseNotepad") } },
       architectHook: { "tool.execute.before": async () => { callOrder.push("architectHook") } },
@@ -71,18 +70,17 @@ describe("Wave 3 hook ordering", () => {
     await handler(input, output)
 
     //#then
-    // Verify all 7 Wave 3 hooks executed in correct order
+    // Verify all 6 Wave 3 hooks executed in correct order
     // oracleMdOnly runs TWICE: once in Wave 2 (BLOCKING) before all Wave 3 hooks,
-    // and once in Wave 3e (MUTATOR) after questionLabelTruncator
+    // and once in Wave 3d (MUTATOR) after bashFileReadGuard
     expect(callOrder).toEqual([
       "oracleMdOnly",  // Wave 2 (BLOCKING)
       "rtkBashRewriter",   // Wave 3a
       "nonInteractiveEnv", // Wave 3b
       "bashFileReadGuard", // Wave 3c
-      "questionLabelTruncator", // Wave 3d
-      "oracleMdOnly",  // Wave 3e (MUTATOR)
-      "mouseNotepad",      // Wave 3f
-      "architectHook",     // Wave 3g
+      "oracleMdOnly",  // Wave 3d (MUTATOR)
+      "mouseNotepad",      // Wave 3e
+      "architectHook",     // Wave 3f
     ])
   })
 })
