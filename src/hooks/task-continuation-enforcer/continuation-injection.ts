@@ -14,9 +14,9 @@ import { log } from "../../shared/logger"
 import { isSqliteBackend } from "../../shared/opencode-storage-detection"
 import { TaskObjectSchema } from "../../tools/task/types"
 import {
+  BOOTSTRAP_PROMPT,
   CONTINUATION_PROMPT,
   DEFAULT_SKIP_AGENTS,
-  BOOTSTRAP_PROMPT,
   HOOK_NAME,
 } from "./constants"
 import { getMessageDir } from "./message-directory"
@@ -104,9 +104,9 @@ export async function injectContinuation(args: {
   }
 
   const stateForBootstrap = sessionStateStore.getExistingState(sessionID) as unknown as Record<string, unknown> | undefined
-  if (stateForBootstrap?.["_bootstrap"]) {
+  if (stateForBootstrap?._bootstrap) {
     isBootstrap = true
-    stateForBootstrap["_bootstrap"] = undefined
+    stateForBootstrap._bootstrap = undefined
   }
 
   const freshIncompleteCount = isBootstrap ? 1 : getIncompleteTaskCount(tasks)

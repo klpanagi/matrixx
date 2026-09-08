@@ -9,8 +9,8 @@ export function createToolDefinitionHandler(args: {
   const { hooks } = args
 
   return async (
-    input: { toolID: string },
-    output: { description: string; parameters: unknown },
+    _input: { toolID: string },
+    _output: { description: string; parameters: unknown },
   ): Promise<void> => {
   }
 }

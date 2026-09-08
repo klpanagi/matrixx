@@ -18,7 +18,7 @@ describe("executeSetup --yes --dry-run", () => {
 
   test("creates matrixx.jsonc with --yes", async () => {
     const dir = mkdtempSync(join(tmpdir(), "setup-real-"));
-    const orig = process.env.XDG_CONFIG_HOME;
+    const _orig = process.env.XDG_CONFIG_HOME;
     process.env.XDG_CONFIG_HOME = dir;
     const out = await executeSetup({ dryRun: false, yes: true });
     expect(out).toContain("Setup Complete");
