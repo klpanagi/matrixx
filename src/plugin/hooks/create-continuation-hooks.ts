@@ -56,6 +56,8 @@ export function createContinuationHooks(args: {
   const safeHook = <T>(hookName: HookName, factory: () => T): T | null =>
     safeCreateHook(hookName, factory, { enabled: safeHookEnabled })
 
+  const evolutionEnabled = pluginConfig.evolution?.enabled === true
+
   const stopContinuationGuard = isHookEnabled("stop-continuation-guard")
     ? safeHook("stop-continuation-guard", () => createStopContinuationGuardHook(ctx, { backgroundManager }))
     : null
@@ -138,11 +140,11 @@ export function createContinuationHooks(args: {
         createPlanPersister(ctx, { directory: ctx.directory }))
     : null
 
-  const evolutionCompressor = isHookEnabled("evolution-compressor")
+  const evolutionCompressor = evolutionEnabled && isHookEnabled("evolution-compressor")
     ? safeHook("evolution-compressor", () => createEvolutionCompressorHook(ctx, pluginConfig.evolution))
     : null
 
-  const evolutionHitl = isHookEnabled("evolution-hitl")
+  const evolutionHitl = evolutionEnabled && isHookEnabled("evolution-hitl")
     ? safeHook("evolution-hitl", () => createEvolutionHitlHook(ctx, pluginConfig.evolution))
     : null
 
