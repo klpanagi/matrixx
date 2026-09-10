@@ -14,6 +14,7 @@ import { ContextModeConfigSchema } from "./context-mode"
 import { DcpConfigSchema } from "./dcp"
 import { EvolutionConfigSchema } from "./evolution"
 import { ExperimentalConfigSchema } from "./experimental"
+import { FailureCounterConfigSchema } from "./failure-counter"
 import { HeadroomConfigSchema } from "./headroom"
 import { HookNameSchema } from "./hooks"
 import { MatrixLoopConfigSchema } from "./matrix-loop"
@@ -57,6 +58,7 @@ export const MatrixxConfigSchema = z.object({
   auto_update: z.boolean().optional(),
   skills: SkillsConfigSchema.optional(),
   matrix_loop: MatrixLoopConfigSchema.optional(),
+  failure_counter: FailureCounterConfigSchema.optional(),
   background_task: BackgroundTaskConfigSchema.optional(),
   notification: NotificationConfigSchema.optional(),
   babysitting: BabysittingConfigSchema.optional(),

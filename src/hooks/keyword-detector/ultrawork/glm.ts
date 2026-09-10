@@ -61,7 +61,8 @@ The requested outcome is the contract.
 |---|---|
 | Missing context | Explore with tools or delegate exploration. |
 | Unknown library behavior | Use operator/docs or inspect examples. |
-| Architecture uncertainty | Consult oracle after forming concrete options. |
+| Hard debugging after 2+ failures | Consult Merovingian (read-only) with failure context. |
+| Architecture/replanning | Consult Oracle after forming concrete options. |
 | Implementation obstacle | Try a different route and verify again. |
 | True user-only blocker | Ask one precise question and stop. |
 
@@ -77,7 +78,8 @@ Use the fastest path that increases certainty.
 | Moderate, one domain, clear local tests | Do it yourself. |
 | Broad codebase search | Delegate trinity in background, then keep working on non-overlapping tasks. |
 | External docs or API uncertainty | Delegate operator or query docs. |
-| Hard architecture/debugging after 2 attempts | Ask oracle with evidence and options. |
+| Hard debugging after 2+ failures | Ask Merovingian (read-only) with evidence and options. |
+| Architecture/replanning after 2+ failures | Ask Oracle with evidence and options. |
 | 5+ dependent steps or unclear sequencing | Use a plan agent before implementation. |
 
 Delegation is not a substitute for ownership. You remain responsible for synthesis, edits, and verification.
@@ -90,7 +92,8 @@ Survey applicable skills before working raw. Use only resources that fit the tas
 |---|---|---|
 | trinity agent | Repo patterns, ownership, hidden call sites | File paths, conventions, risks |
 | operator agent | Official docs, external examples, APIs | Current guidance with source names |
-| oracle agent | Conflicting evidence or hard design choice | Recommendation with tradeoffs |
+| merovingian agent | Hard debugging after 2+ failures | Read-only diagnosis, no writes |
+| oracle agent | Architecture/replanning, hard design choice | Recommendation with tradeoffs |
 | plan agent | Large dependent work | Ordered waves and verification plan |
 | category + skill | Domain work exists | Specialized execution with criteria |
 

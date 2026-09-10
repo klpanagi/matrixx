@@ -36,7 +36,7 @@ Do NOT start implementation until 100% certain.
 
 When uncertain:
 1. Fire trinity (codebase search) + operator (external research) in parallel background
-2. Consult oracle for architecture/debugging after 2+ attempts
+2. Hard debugging after 2+ failures → consult Merovingian (read-only); architecture/replanning → consult Oracle
 3. Ask user only as last resort
 
 Not ready: making assumptions, unsure which files, plan has "maybe", can't explain steps.
@@ -51,7 +51,7 @@ Not ready: making assumptions, unsure which files, plan has "maybe", can't expla
 | "Due to limitations..." | Use agents, tools, whatever it takes |
 | "I made assumptions..." | Should have asked FIRST |
 
-Blocker? Consult oracle (conventional) or matrix-bend (non-conventional). Never compromise.
+Blocker? Hard debugging after 2+ failures → Merovingian (read-only); architecture/replanning → Oracle (conventional) or matrix-bend (non-conventional). Never compromise.
 
 **Delegation Framework**
 
@@ -60,7 +60,8 @@ Blocker? Consult oracle (conventional) or matrix-bend (non-conventional). Never 
 | Codebase exploration | task(subagent_type="trinity", run_in_background=true) |
 | Documentation/research | task(subagent_type="operator", run_in_background=true) |
 | Planning (2+ steps) | task(subagent_type="plan") |
-| Hard problem | task(subagent_type="oracle") |
+| Hard debugging after 2+ failures | task(subagent_type="merovingian", load_skills=[]) | Read-only consult, no writes |
+| Architecture/replanning | task(subagent_type="oracle") | Scope/strategy |
 | Non-conventional | task(category="matrix-bend") |
 | Implementation | task(category="...", load_skills=[...]) |
 

@@ -72,7 +72,8 @@ Before acting, survey the skills available in this system: scan their descriptio
 |----------|-------------|------------|
 | trinity agent | Need codebase patterns you don't have | \`task(subagent_type="trinity", load_skills=[], run_in_background=true, ...)\` |
 | operator agent | External library docs, OSS examples | \`task(subagent_type="operator", load_skills=[], run_in_background=true, ...)\` |
-| oracle agent | Stuck on architecture/debugging after 2+ attempts | \`task(subagent_type="oracle", load_skills=[], run_in_background=false, ...)\` |
+| merovingian agent | Hard debugging after 2+ failures | \`task(subagent_type="merovingian", load_skills=[], run_in_background=false, ...)\` — read-only consult, no writes |
+| oracle agent | Architecture/replanning after 2+ failures | \`task(subagent_type="oracle", load_skills=[], run_in_background=false, ...)\` — scope/strategy |
 | plan agent | Discovery leaves unresolved design uncertainty | \`task(subagent_type="plan", load_skills=[], run_in_background=false, ...)\` |
 | task category | Specialized work matching a category | \`task(category="...", load_skills=[...], run_in_background=true)\` |
 

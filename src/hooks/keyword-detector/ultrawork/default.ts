@@ -16,7 +16,7 @@ export const ULTRAWORK_DEFAULT_MESSAGE = `<ultrawork-mode>
 ### MANDATORY CERTAINTY PROTOCOL
 1. **THINK DEEPLY** - What is user's TRUE intent?
 2. **EXPLORE THOROUGHLY** - Fire trinity/operator agents (see below)
-3. **CONSULT SPECIALISTS** - Oracle (conventional), Matrix-bend (non-conventional)
+3. **CONSULT SPECIALISTS** - Hard debugging after 2+ failures → Merovingian (read-only); architecture/replanning → Oracle (conventional), Matrix-bend (non-conventional)
 4. **ASK USER** - Only if ambiguity remains after exploration
 
 **NOT READY if:** assuming requirements, unsure files, "probably"/"maybe" in plan, can't explain exact steps.
@@ -87,7 +87,8 @@ task(subagent_type="oracle", load_skills=[], prompt="<gathered context + user re
 | Codebase exploration | task(subagent_type="trinity", run_in_background=true) | Parallel, context-efficient |
 | Docs lookup | task(subagent_type="operator", run_in_background=true) | Specialized knowledge |
 | Planning | task(subagent_type="oracle") | Parallel task graph |
-| Hard problem | task(subagent_type="oracle" or category="matrix-bend") | Architecture/debugging |
+| Hard debugging after 2+ failures | task(subagent_type="merovingian", load_skills=[], run_in_background=false) | Read-only consult, no writes |
+| Architecture/replanning | task(subagent_type="oracle" or category="matrix-bend") | Complex architecture, scope change |
 | Implementation | task(category="...", load_skills=[...]) | Domain-optimized |
 
 **DELEGATE BY DEFAULT. DO IT YOURSELF only if <10 lines, single file, obvious pattern, full context loaded.**

@@ -228,7 +228,7 @@ export const CATEGORY_PROMPT_APPENDS: Record<string, string> = {
 }
 
 export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  "construct": "Frontend, UI/UX, design, styling, animation. For dedicated frontend tasks, invoke 'sati' agent directly via `@sati/`, `task(subagent_type=\"sati\")`, or `delegate_agent(subagent_type=\"sati\")`.",
+  "construct": "Frontend, UI/UX, design, styling, animation. Executed via Mouse (leaf) for task(category=\"construct\"). For dedicated frontend specialist work, invoke Sati directly via `task(subagent_type=\"sati\")` or `@sati` — construct does NOT auto-spawn Sati.",
   "source": "Use ONLY for genuinely hard, logic-heavy tasks. Give clear goals only, not step-by-step instructions.",
   "deep-jack": "Goal-oriented autonomous problem-solving. Thorough research before action. For hairy problems requiring deep understanding.",
   "matrix-bend": "Complex problem-solving with unconventional, creative approaches - beyond standard patterns",

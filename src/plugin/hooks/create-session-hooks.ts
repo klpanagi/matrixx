@@ -6,6 +6,7 @@ import {
   createContextWindowMonitorHook,
   createDelegateTaskRetryHook,
   createEditErrorRecoveryHook,
+  createFailureCounterHook,
   createInteractiveBashSessionHook,
   createMatrixLoopHook,
   createMouseNotepadHook,
@@ -44,6 +45,7 @@ export type SessionHooks = {
   matrixLoop: ReturnType<typeof createMatrixLoopHook> | null
   editErrorRecovery: ReturnType<typeof createEditErrorRecoveryHook> | null
   delegateTaskRetry: ReturnType<typeof createDelegateTaskRetryHook> | null
+  failureCounter: ReturnType<typeof createFailureCounterHook> | null
   startWork: ReturnType<typeof createStartWorkHook> | null
   oracleMdOnly: ReturnType<typeof createOracleMdOnlyHook> | null
   mouseNotepad: ReturnType<typeof createMouseNotepadHook> | null
@@ -135,6 +137,11 @@ export function createSessionHooks(args: {
     ? safeHook("delegate-task-retry", () => createDelegateTaskRetryHook(ctx))
     : null
 
+  const failureCounterEnabled = pluginConfig.failure_counter?.enabled !== false
+  const failureCounter = isHookEnabled("failure-counter") && failureCounterEnabled
+    ? safeHook("failure-counter", () => createFailureCounterHook(ctx))
+    : null
+
   const startWork = isHookEnabled("start-work")
     ? safeHook("start-work", () => createStartWorkHook(ctx))
     : null
@@ -180,6 +187,7 @@ export function createSessionHooks(args: {
     matrixLoop,
     editErrorRecovery,
     delegateTaskRetry,
+    failureCounter,
     startWork,
     oracleMdOnly,
     mouseNotepad,

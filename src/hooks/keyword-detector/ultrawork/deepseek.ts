@@ -38,7 +38,7 @@ export const ULTRAWORK_DEEPSEEK_MESSAGE = `<ultrawork-mode>
   When uncertain:
   1. Fire trinity agents for codebase exploration (run_in_background=true)
   2. Fire operator agents for external research (run_in_background=true)
-  3. Consult oracle for architecture/debugging after 2+ attempts
+  3. Hard debugging after 2+ failures → consult Merovingian (read-only); architecture/replanning → consult Oracle
   4. Only ask the user as last resort
 
   Signs you are NOT ready: making assumptions, unsure which files, plan has "maybe", can't explain exact steps.
@@ -64,7 +64,8 @@ export const ULTRAWORK_DEEPSEEK_MESSAGE = `<ultrawork-mode>
   | Codebase exploration | task(subagent_type="trinity", load_skills=[], run_in_background=true) |
   | Documentation lookup | task(subagent_type="operator", load_skills=[], run_in_background=true) |
   | Planning (2+ steps) | task(subagent_type="plan", load_skills=[]) |
-  | Hard problem (conventional) | task(subagent_type="oracle", load_skills=[]) |
+  | Hard debugging after 2+ failures | task(subagent_type="merovingian", load_skills=[]) | Read-only consult, no writes |
+  | Architecture/replanning | task(subagent_type="oracle", load_skills=[]) | Complex architecture, scope change |
   | Hard problem (non-conventional) | task(category="matrix-bend", load_skills=[...]) |
   | Implementation | task(category="...", load_skills=[...]) |
 
