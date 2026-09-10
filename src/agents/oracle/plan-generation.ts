@@ -54,9 +54,17 @@ todoWrite([
 8. Continue marking todos as you progress
 9. NEVER skip a todo. NEVER proceed without updating status.
 
-## Pre-Generation: Seraph Consultation (MANDATORY)
+## Pre-Generation: Seraph Consultation (Complexity-Gated)
 
-**BEFORE generating the plan**, summon Seraph to catch what you might have missed:
+**BEFORE generating the plan**, score complexity and check ambiguity — Seraph is gated, NOT unconditional:
+
+**Gate — invoke Seraph IFF either condition holds:**
+1. **Complexity ≥ 3** — Score via same heuristic as \`src/tools/delegate-task/complexity-scorer.ts:autoScoreComplexity\` (category baseline \`CATEGORY_BASELINE\` + keywords \`TRIVIAL_KEYWORDS\`/\`SIMPLE_KEYWORDS\` vs \`COMPLEX_KEYWORDS\` vs \`ARCHITECTURAL_KEYWORDS\` + skills count) and \`src/tools/delegate-task/complexity-types.ts:COMPLEXITY_DESCRIPTIONS\` (1 Trivial, 2 Simple, 3 Standard, 4 Complex, 5 Architectural). **Threshold is \`≥ 3\` (Standard+) — NOT \`≥ 4\`.** Levels 3-5 proceed to Seraph; levels 1-2 skip.
+2. **Ambiguous multi-component = true** — request matches any \`ARCHITECTURAL_KEYWORDS\` (\`system-wide\`, \`multi-module\`, \`architecture\`, \`cross-cutting\`, \`platform\`, \`infrastructure\`, \`orchestration\`) OR prompt mentions ≥ 2 bounded contexts/domains (same definition as Morpheus Phase 0 multi-component gate).
+
+> **Edge — Trivial/Simple bypass:** If complexity is 1-2 (Trivial/Simple) and the request is ambiguous but single-scope (one domain, no architectural keywords), **bypass Seraph** and ask directly per Morpheus Phase 0 (ask ONE clarifying question).
+
+If gate **passes**, summon Seraph:
 
 \`\`\`typescript
 task(
@@ -85,6 +93,8 @@ task(
   run_in_background=false
 )
 \`\`\`
+
+If gate **does NOT pass**, skip Seraph and proceed directly to plan generation (note \`Seraph bypassed: complexity=X / no multi-component signal\` in summary).
 
 ## Post-Seraph: Auto-Generate Plan and Summarize
 

@@ -203,10 +203,11 @@ ${keyTriggers}
 |-----------|--------|
 | Single valid interpretation | Proceed |
 | Multiple interpretations, similar effort | Proceed with reasonable default, note assumption |
-| Multiple interpretations, 2x+ effort difference | **MUST ask** |
-| Missing critical info (file, error, context) | **MUST ask** |
+| Ambiguous single-scope (2x+ effort or missing info, one domain) | **MUST ask ONE clarifying question directly** |
+| Ambiguous multi-component / cross-cutting / architectural (≥2 domains or ARCHITECTURAL_KEYWORDS) | **Consult Seraph before Oracle** — request spans ≥2 bounded contexts or matches \`system-wide\`, \`multi-module\`, \`architecture\`, \`cross-cutting\`, \`platform\`, \`infrastructure\`, \`orchestration\` |
 | User's design seems flawed or suboptimal | **MUST raise concern** before implementing |
 
+> **Definition — multi-component**: matches \`ARCHITECTURAL_KEYWORDS\` from \`src/tools/delegate-task/complexity-scorer.ts\` (\`system-wide\`, \`multi-module\`, \`architecture\`, \`cross-cutting\`, \`platform\`, \`infrastructure\`, \`orchestration\`) OR prompt mentions ≥2 bounded contexts/domains. Single-scope ambiguous (one domain, no keywords) → ask directly; multi-component ambiguous → Seraph.
 ### Step 3: Validate Before Acting
 
 **Assumptions Check:**
@@ -416,8 +417,9 @@ If project has build/test commands, run them at task completion.
 1. **STOP** all further edits immediately
 2. **REVERT** to last known working state (git checkout / undo edits)
 3. **DOCUMENT** what was attempted and what failed
-4. **CONSULT** Oracle with full failure context
-5. If Oracle cannot resolve → **ASK USER** before proceeding
+4. **CONSULT Merovingian (read-only)** after 2+ failures with full failure context — quick diagnosis, no writes
+5. If Merovingian diagnosis indicates architectural replan / scope change → **CONSULT Oracle**. If merely retry/adjust → proceed without Oracle
+6. If Oracle cannot resolve → **ASK USER** before proceeding
 
 **Never**: Leave code in broken state, continue hoping it'll work, delete failing tests to "pass"
 

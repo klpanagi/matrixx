@@ -9,6 +9,7 @@ export const ORACLE_PROMPT_METADATA: AgentPromptMetadata = {
   category: "advisor",
   cost: "EXPENSIVE",
   promptAlias: "Consultant",
+  keyTrigger: "Task failed 2x or blocked 30m \u2192 consult Merovingian (read-only)",
   triggers: [
     { domain: "Architecture decisions", trigger: "Multi-system tradeoffs, unfamiliar patterns" },
     { domain: "Self-review", trigger: "After completing significant implementation" },

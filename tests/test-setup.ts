@@ -1,5 +1,5 @@
 import { beforeEach } from "bun:test"
-import { _resetForTesting } from "../src/features/session-state/state"
+import { _resetFailureCountersForTesting, _resetForTesting } from "../src/features/session-state/state"
 import { _resetAssemblyStateForTesting } from "../src/features/assembly-state/manager"
 import { _resetPruneThrottleForTesting } from "../src/features/background-agent/manager"
 import { _resetMessageDirCacheForTesting } from "../src/features/background-agent/message-dir"
@@ -13,6 +13,7 @@ import { _resetMessagesTransformCacheForTesting } from "../src/plugin/messages-t
 
 beforeEach(() => {
   _resetForTesting()
+  _resetFailureCountersForTesting()
   _resetAssemblyStateForTesting()
   _resetPruneThrottleForTesting()
   _resetMessageDirCacheForTesting()

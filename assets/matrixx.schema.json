@@ -167,7 +167,8 @@
               "evolution-compressor",
               "evolution-hitl",
               "context-mode-enforcer",
-              "task-edit-guard"
+              "task-edit-guard",
+              "failure-counter"
             ]
           },
           {}
@@ -4719,6 +4720,31 @@
       "required": [
         "enabled",
         "default_max_iterations"
+      ],
+      "additionalProperties": false
+    },
+    "failure_counter": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "type": "boolean"
+        },
+        "threshold": {
+          "default": 2,
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "resetOnSuccess": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled",
+        "threshold",
+        "resetOnSuccess"
       ],
       "additionalProperties": false
     },

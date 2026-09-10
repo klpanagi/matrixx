@@ -22,6 +22,7 @@ export { createEvolutionCompressorHook } from "./evolution-compressor";
 export { createEvolutionHitlHook } from "./evolution-hitl";
 export { passesQualityGate } from "./evolution-quality-gate";
 export { createEvolutionWatcherHook } from "./evolution-watcher";
+export { createFailureCounterHook } from "./failure-counter";
 export { createHashlineEditDiffEnhancerHook } from "./hashline-edit-diff-enhancer"
 export { createHashlineReadEnhancerHook } from "./hashline-read-enhancer";
 export { createInputSecretGuardHook } from "./input-secret-guard";
