@@ -427,6 +427,9 @@ ${search}
 }
 
 function fallbackCompactDiscipline(hasGrepGlob: boolean): string {
+  const analysis = hasGrepGlob
+    ? "| Analysis / Aggregation / Counting | ctx_batch_execute / ctx_execute(_file) — NEVER raw read/grep for analysis |"
+    : "| Analysis / Aggregation / Counting | ctx_batch_execute / ctx_execute(_file) — NEVER raw read for analysis |"
   const search = hasGrepGlob
     ? "| Search | ctx_search FIRST (indexed KB) → grep/glob fallback (raw FS) |"
     : "| Search | ctx_search FIRST (indexed KB) → LSP/ast_grep fallback |"
@@ -437,7 +440,7 @@ function fallbackCompactDiscipline(hasGrepGlob: boolean): string {
 
 | Scenario | Tool |
 |----------|------|
-| Analysis / Aggregation / Counting | ctx_batch_execute / ctx_execute(_file) — NEVER raw read/grep for analysis |
+${analysis}
 ${search}
 | Docs / Web | ctx_fetch_and_index -> ctx_search |
 | Compression | compress when ctx_stats > 40% or 10+ tool calls |
