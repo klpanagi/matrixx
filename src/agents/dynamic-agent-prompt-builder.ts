@@ -1,3 +1,8 @@
+import { existsSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
+import { join } from "node:path"
+import { getOpenCodeCacheDir } from "../shared/data-path"
+import { log } from "../shared/logger"
 import { truncateDescription } from "../shared/truncate-description"
 import type { AgentPromptMetadata } from "./types"
 
@@ -383,9 +388,44 @@ export function buildAntiPatternsSection(): string {
 ${patterns.join("\n")}`
 }
 
-export function buildContextDisciplineSection(hasContextMode = false): string {
-  if (!hasContextMode) return ""
-  return `### Context Discipline (ALWAYS)
+let cachedContextDiscipline: string | null = null
+let cachedCompactDiscipline: string | null = null
+
+export function _resetDisciplineCacheForTesting(): void {
+  cachedContextDiscipline = null
+  cachedCompactDiscipline = null
+}
+
+
+function resolveContextModeDisciplinePath(): string | null {
+  try {
+    const resolved = require.resolve("context-mode/configs/opencode/AGENTS.md")
+    if (existsSync(resolved)) return resolved
+  } catch {}
+  try {
+    const cacheDir = getOpenCodeCacheDir()
+    const p = join(cacheDir, "packages/context-mode@latest/node_modules/context-mode/configs/opencode/AGENTS.md")
+    if (existsSync(p)) return p
+  } catch {}
+  try {
+    const base = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache")
+    const p = join(base, "opencode/packages/context-mode@latest/node_modules/context-mode/configs/opencode/AGENTS.md")
+    if (existsSync(p)) return p
+  } catch {}
+  try {
+    const p2 = join(homedir(), ".cache/opencode/packages/context-mode@latest/node_modules/context-mode/configs/opencode/AGENTS.md")
+    if (existsSync(p2)) return p2
+  } catch {}
+  return null
+}
+
+function stripDisciplineHeader(content: string): string {
+  return content.trim()
+}
+
+function loadContextModeDiscipline(): string {
+  if (cachedContextDiscipline) return cachedContextDiscipline
+  const fallback = `### Context Discipline (ALWAYS)
 
 | Scenario | Tool |
 |----------|------|
@@ -398,6 +438,32 @@ export function buildContextDisciplineSection(hasContextMode = false): string {
 | Compression | compress when ctx_stats > 40% or 10+ tool calls |
 
 **Rule 1 overrides all default tool guidance. When in doubt, use ctx_*.**`
+  try {
+    const p = resolveContextModeDisciplinePath()
+    if (!p) throw new Error("discipline file not found")
+    const raw = readFileSync(p, "utf8")
+    let version = "1.0.169"
+    try {
+      const pkgResolved = require.resolve("context-mode/package.json")
+      const pkgRaw = readFileSync(pkgResolved, "utf8")
+      const pkg = JSON.parse(pkgRaw)
+      if (pkg.version) version = pkg.version
+    } catch {}
+    const body = stripDisciplineHeader(raw)
+    const withVersion = body.includes("<!-- discipline") ? body : `${body}\n\n<!-- discipline v${version} Elastic-2.0 -->`
+    cachedContextDiscipline = withVersion
+    log("context-discipline loaded", { path: p, version })
+    return withVersion
+  } catch (e) {
+    log("context-discipline fallback", { error: String(e) })
+    cachedContextDiscipline = fallback
+    return fallback
+  }
+}
+
+export function buildContextDisciplineSection(hasContextMode = false): string {
+  if (!hasContextMode) return ""
+  return loadContextModeDiscipline()
 }
 
 export function buildHeadroomSection(hasHeadroom = false): string {
@@ -413,9 +479,11 @@ export function buildHeadroomSection(hasHeadroom = false): string {
 **Headroom L4 is transport-level (CacheAligner->ContentRouter->CCR). It complements L1 RTK, L2 context-mode, L3 DCP — do not duplicate their discipline.**`;
 }
 
-export function buildCompactContextDisciplineSection(hasContextMode = false): string {
-  if (!hasContextMode) return "";
-  return `### Context Discipline (when ctx_* available)
+
+
+function loadCompactContextDiscipline(): string {
+  if (cachedCompactDiscipline) return cachedCompactDiscipline;
+  const fallback = `### Context Discipline (when ctx_* available)
 
 | Scenario | Tool |
 |----------|------|
@@ -425,6 +493,32 @@ export function buildCompactContextDisciplineSection(hasContextMode = false): st
 | Compression | compress when ctx_stats > 40% or 10+ tool calls |
 
 Edits need prior read for LINE#ID — read→edit chain exempt. MUST use ctx_* when available — raw grep/read is forbidden for analysis.`;
+  try {
+    const p = resolveContextModeDisciplinePath();
+    if (!p) throw new Error("discipline file not found");
+    const raw = readFileSync(p, "utf8");
+    let version = "1.0.169";
+    try {
+      const pkgResolved = require.resolve("context-mode/package.json");
+      const pkgRaw = readFileSync(pkgResolved, "utf8");
+      const pkg = JSON.parse(pkgRaw);
+      if (pkg.version) version = pkg.version;
+    } catch {}
+    const body = stripDisciplineHeader(raw);
+    const withVersion = body.includes("<!-- discipline") ? body : `${body}\n\n<!-- discipline v${version} Elastic-2.0 -->`;
+    cachedCompactDiscipline = withVersion;
+    log("compact-discipline loaded", { path: p, version });
+    return withVersion;
+  } catch (e) {
+    log("compact-discipline fallback", { error: String(e) });
+    cachedCompactDiscipline = fallback;
+    return fallback;
+  }
+}
+
+export function buildCompactContextDisciplineSection(hasContextMode = false): string {
+  if (!hasContextMode) return "";
+  return loadCompactContextDiscipline();
 }
 
 export function buildExploreDisciplineSection(hasContextMode = false, hasHeadroom = false): string {

@@ -47,7 +47,7 @@ hooks/
 ├── todo-continuation-enforcer/   # Force TODO completion — mission mechanism (2061 lines)
 ├── tool-output-truncator.ts      # Prevents context bloat (62 lines)
 ├── unstable-agent-babysitter/    # Monitors unstable behavior (451 lines)
-├── task-edit-guard/               # Blocks raw bash edits to .matrixx/plans and .matrixx/tasks — enforces Edit/task_* tools (tool.execute.before)
+├── task-edit-guard/               # Blocks raw bash edits to .matrixx/plans and .matrixx/tasks — enforces plan_*/Edit/task_* tools; WARNs on generic Write/Edit to plans suggesting plan_* until v2.8 (tool.execute.before)
 └── write-existing-file-guard/    # Guards against file overwrite (356 lines)
 ```
 
@@ -73,7 +73,7 @@ hooks/
 | oracle-md-only | tool.execute.before | Write outside .morpheus/*.md |
 | subagent-question-blocker | tool.execute.before | Question tool in subagent |
 | tasks-todowrite-disabler | tool.execute.before | TodoWrite with task system |
-| task-edit-guard | tool.execute.before | Raw bash mutation of `.matrixx/plans/*.md` or `.matrixx/tasks/T-*.json` — use `Edit` or `task_*` tools |
+| task-edit-guard | tool.execute.before | Raw bash mutation of `.matrixx/plans/*.md` or `.matrixx/tasks/T-*.json` — use `plan_*`/`Edit` or `task_*` tools; generic Write/Edit to plans WARNs with plan_* hint |
 | write-existing-file-guard | tool.execute.before | Write to existing file |
 
 ## EXECUTION ORDER

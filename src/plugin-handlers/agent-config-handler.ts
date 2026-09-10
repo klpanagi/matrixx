@@ -33,7 +33,7 @@ export function injectContextDiscipline(
   for (const [name, cfg] of Object.entries(agents)) {
     if (name === "morpheus" || name === "keymaker") continue;
     if (!cfg || typeof cfg.prompt !== "string") continue;
-    if (cfg.prompt.includes("Context Discipline")) continue;
+    if (cfg.prompt.includes("Context Discipline") || cfg.prompt.includes("context-mode — MANDATORY routing rules")) continue;
     const normalized = name.toLowerCase();
     let discipline = "";
     if (exploreAgents.has(normalized) || normalized === "oracle") {

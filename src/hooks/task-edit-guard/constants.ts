@@ -15,3 +15,6 @@ export const BLOCKED_PATTERNS: RegExp[] = [
   /printf\s+.*\.matrixx\/plans/,
   /printf\s+.*\.matrixx\/tasks/,
 ]
+
+export const PLAN_WRITE_WARN =
+  "[task-edit-guard] WARN: Use plan_* tools (plan_create/read/update/list/delete) for .matrixx/plans/*.md — generic Write/Edit will be blocked in v2.8. Prefer plan_* for atomic, hashline-validated plan edits."
