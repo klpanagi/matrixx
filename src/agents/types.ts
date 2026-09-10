@@ -73,6 +73,7 @@ function extractModelName(model: string): string {
 const GPT_MODEL_PREFIXES = ["gpt-", "gpt4", "o1", "o3", "o4"]
 
 export function isGptModel(model: string): boolean {
+  if (!model || typeof model !== "string") return false;
   if (model.startsWith("openai/") || model.startsWith("github-copilot/gpt-"))
     return true
 
@@ -84,9 +85,10 @@ const ANTHROPIC_INDICATORS = ["anthropic", "claude"]
 
 /**
  * Detect Anthropic/Claude models by provider or model name.
- * Matches: "anthropic/claude-*", "google-vertex-anthropic/claude-*", etc.
+ * Matches: "<provider>/<model>" e.g., provider/model strings containing relevant indicators — replace with live model from provider.list
  */
 export function isAnthropicModel(model: string): boolean {
+  if (!model || typeof model !== "string") return false;
   const lowered = model.toLowerCase()
   return ANTHROPIC_INDICATORS.some((indicator) => lowered.includes(indicator))
 }
@@ -94,6 +96,7 @@ export function isAnthropicModel(model: string): boolean {
 const QWEN_INDICATORS = ["qwen"]
 
 export function isQwenModel(model: string): boolean {
+  if (!model || typeof model !== "string") return false;
   const modelName = extractModelName(model).toLowerCase()
   return QWEN_INDICATORS.some((indicator) => modelName.startsWith(indicator))
 }
@@ -101,6 +104,7 @@ export function isQwenModel(model: string): boolean {
 const MIMO_INDICATORS = ["mimo"]
 
 export function isMimoModel(model: string): boolean {
+  if (!model || typeof model !== "string") return false;
   const modelName = extractModelName(model).toLowerCase()
   return MIMO_INDICATORS.some((indicator) => modelName.startsWith(indicator))
 }
@@ -108,6 +112,7 @@ export function isMimoModel(model: string): boolean {
 const DEEPSEEK_INDICATORS = ["deepseek"]
 
 export function isDeepSeekModel(model: string): boolean {
+  if (!model || typeof model !== "string") return false;
   const modelName = extractModelName(model).toLowerCase()
   return DEEPSEEK_INDICATORS.some((indicator) => modelName.startsWith(indicator))
 }

@@ -1,5 +1,6 @@
 import { fuzzyMatchModel } from "../../shared/model-availability"
 import type { FallbackEntry } from "../../shared/model-requirements"
+import { parseModelString } from "./model-string-parser"
 
 function normalizeModel(model?: string): string | undefined {
   const trimmed = model?.trim()
@@ -24,8 +25,8 @@ export function resolveModelForDelegateTask(input: {
       return { model: categoryDefault }
     }
 
-    const parts = categoryDefault.split("/")
-    const providerHint = parts.length >= 2 ? [parts[0]] : undefined
+    const parsed = parseModelString(categoryDefault)
+    const providerHint = parsed ? [parsed.providerID] : undefined
     const match = fuzzyMatchModel(categoryDefault, input.availableModels, providerHint)
     if (match) {
       return { model: match }

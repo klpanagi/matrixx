@@ -1,6 +1,6 @@
 import type { AgentConfig } from "@opencode-ai/sdk"
 import type { CategoriesConfig, CategoryConfig } from "../../config/schema"
-import { AGENT_MODEL_REQUIREMENTS } from "../../shared"
+import { getAgentModelRequirements } from "../../shared/model-requirements"
 import { createArchitectAgent } from "../architect"
 import type { AvailableAgent, AvailableSkill } from "../dynamic-agent-prompt-builder"
 import type { AgentOverrides } from "../types"
@@ -39,7 +39,8 @@ export function maybeCreateArchitectConfig(input: {
   if (disabledAgents.includes("architect")) return undefined
 
   const orchestratorOverride = agentOverrides.architect
-  const architectRequirement = AGENT_MODEL_REQUIREMENTS.architect
+  const agentRequirements = getAgentModelRequirements()
+  const architectRequirement = agentRequirements.architect
 
   const architectResolution = applyModelResolution({
     globalOverrideModel,

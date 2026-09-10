@@ -1,19 +1,17 @@
+import { parseModelString as parseBaseModelString } from "../../tools/delegate-task/model-string-parser"
+
 export function parseModelString(model: string): { providerID: string; modelID: string; variant?: string } | undefined {
   const variantMatch = model.match(/^(.+)\(([^)]+)\)$/)
   if (variantMatch) {
     const base = variantMatch[1]
     const variant = variantMatch[2]
-    const parts = base.split("/")
-    if (parts.length >= 2) {
-      return { providerID: parts[0], modelID: parts.slice(1).join("/"), variant }
-    }
+    const parsed = parseBaseModelString(base)
+    if (parsed) return { ...parsed, variant }
     return undefined
   }
 
-  const parts = model.split("/")
-  if (parts.length >= 2) {
-    return { providerID: parts[0], modelID: parts.slice(1).join("/") }
-  }
+  const parsed = parseBaseModelString(model)
+  if (parsed) return { ...parsed }
   return undefined
 }
 

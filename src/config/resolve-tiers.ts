@@ -28,8 +28,8 @@ export function resolveTiersInConfig(
 ): MatrixxConfig {
   const defaultTier = (config as { default_tier?: string }).default_tier
 
-  const agents = walkAgentOverrides(config.agents, defaultTier, ctx)
-  const categories = walkCategoryOverrides(config.categories, defaultTier, ctx)
+  const agents = walkAgentOverrides(config.agents, defaultTier, ctx, config)
+  const categories = walkCategoryOverrides(config.categories, defaultTier, ctx, config)
 
   const { default_tier: _drop, ...rest } = config as MatrixxConfig & { default_tier?: string }
   void _drop
@@ -48,11 +48,12 @@ export function resolveTiersInConfig(
 export function resolveTiersInCategoryRegistry(
   registry: Record<string, WithTier | undefined>,
   ctx: TierResolverContext,
+  config?: MatrixxConfig,
 ): Record<string, WithTier> {
   const result: Record<string, WithTier> = {}
   for (const [name, entry] of Object.entries(registry)) {
     if (!entry) continue
-    result[name] = resolveEntry(entry, undefined, ctx)
+    result[name] = resolveEntry(entry, undefined, ctx, config)
   }
   return result
 }
@@ -61,6 +62,7 @@ function walkAgentOverrides(
   agents: MatrixxConfig["agents"],
   defaultTier: string | undefined,
   ctx: TierResolverContext,
+  config?: MatrixxConfig,
 ): MatrixxConfig["agents"] {
   if (!agents) return agents
   const result: Record<string, ReturnType<typeof resolveEntry>> = {}
@@ -69,7 +71,7 @@ function walkAgentOverrides(
       result[name] = entry
       continue
     }
-    result[name] = resolveEntry(entry as WithTier, defaultTier, ctx)
+    result[name] = resolveEntry(entry as WithTier, defaultTier, ctx, config)
   }
   return result as MatrixxConfig["agents"]
 }
@@ -78,7 +80,8 @@ function walkCategoryOverrides(
   categories: MatrixxConfig["categories"],
   defaultTier: string | undefined,
   ctx: TierResolverContext,
-): MatrixxConfig["categories"] {
+  config?: MatrixxConfig,
+  ): MatrixxConfig["categories"] {
   if (!categories) return categories
   const result: Record<string, ReturnType<typeof resolveEntry>> = {}
   for (const [name, entry] of Object.entries(categories)) {
@@ -86,7 +89,7 @@ function walkCategoryOverrides(
       result[name] = entry
       continue
     }
-    result[name] = resolveEntry(entry as WithTier, defaultTier, ctx)
+    result[name] = resolveEntry(entry as WithTier, defaultTier, ctx, config)
   }
   return result as MatrixxConfig["categories"]
 }
@@ -95,7 +98,8 @@ function resolveEntry(
   entry: WithTier,
   defaultTier: string | undefined,
   ctx: TierResolverContext,
-): WithTier {
+  config?: MatrixxConfig,
+  ): WithTier {
   if (entry.model) {
     const { tier: _t, ...rest } = entry
     void _t
@@ -105,12 +109,11 @@ function resolveEntry(
   const tier = entry.tier ?? defaultTier
   if (!tier) return entry
 
-  const resolved = resolveTier(tier as never, ctx)
+  const resolved = resolveTier(tier as never, ctx, config)
   if (!resolved) {
     log("[resolveTiersInConfig] tier could not be resolved", { tier })
     return entry
   }
-
   const { tier: _t, ...rest } = entry
   void _t
   return { ...rest, model: resolved.model }

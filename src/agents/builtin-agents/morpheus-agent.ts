@@ -1,6 +1,6 @@
 import type { AgentConfig } from "@opencode-ai/sdk"
 import type { CategoriesConfig, CategoryConfig } from "../../config/schema"
-import { AGENT_MODEL_REQUIREMENTS, isAnyFallbackModelAvailable } from "../../shared"
+import { getAgentModelRequirements, isAnyFallbackModelAvailable } from "../../shared"
 import type { AvailableAgent, AvailableCategory, AvailableSkill } from "../dynamic-agent-prompt-builder"
 import { createMorpheusAgent } from "../morpheus"
 import type { AgentOverrides } from "../types"
@@ -41,7 +41,8 @@ export function maybeCreateMorpheusConfig(input: {
   } = input
 
   const morpheusOverride = agentOverrides.morpheus
-  const morpheusRequirement = AGENT_MODEL_REQUIREMENTS.morpheus
+  const agentRequirements = getAgentModelRequirements()
+  const morpheusRequirement = agentRequirements.morpheus
   const hasMorpheusExplicitConfig = morpheusOverride !== undefined
   const meetsMorpheusAnyModelRequirement =
     !morpheusRequirement?.requiresAnyModel ||
@@ -61,7 +62,8 @@ export function maybeCreateMorpheusConfig(input: {
   })
 
   if (isFirstRunNoCache && !morpheusOverride?.model && !uiSelectedModel) {
-    morpheusResolution = getFirstFallbackModel(morpheusRequirement)
+    const firstFallback = getFirstFallbackModel(morpheusRequirement)
+    if (firstFallback) morpheusResolution = firstFallback
   }
 
   if (!morpheusResolution) return undefined

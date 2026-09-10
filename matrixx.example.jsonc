@@ -5,10 +5,10 @@
 
   // ─────────────────────────────────────────────────────────────────────────
   // Global model override — applies to ALL agents and categories.
-  // Example: "anthropic/claude-sonnet-4-6", "openai/gpt-5.2", "opencode-go/muse-spark-1.2-contributor"
+  // Example: "<provider>/<model>" e.g., "openai/gpt-5.2" or tier: "fast" — replace with your live model from provider.list
   // When set, every agent/category uses this model regardless of individual config.
   // ─────────────────────────────────────────────────────────────────────────
-  // "global_model": "anthropic/claude-sonnet-4-6",
+  // "global_model": "<provider>/<model>", // replace with live model from provider.list or tier: "fast"
 
   // ─────────────────────────────────────────────────────────────────────────
   // Default tier — applied to agents/categories without explicit model/tier.
@@ -50,17 +50,17 @@
   // ─────────────────────────────────────────────────────────────────────────
   // "agents": {
   //   "morpheus": {
-  //     "model": "anthropic/claude-opus-4-6",
+  //     "model": "<provider>/<model>", // replace with live model from provider.list
   //     "temperature": 0.1,
   //     "thinking": { "type": "enabled", "budgetTokens": 32000 },
-  //     "fallbackChain": [{ "providers": ["anthropic"], "model": "claude-sonnet-4-6" }]
+  //     "fallbackChain": [{ "providers": ["<provider>"], "model": "<model>" }] // replace with live model from provider.list
   //   },
   //   "oracle": {
-  //     "model": "anthropic/claude-sonnet-4-6",
+  //     "model": "<provider>/<model>", // replace with live model from provider.list
   //     "temperature": 0.1
   //   },
   //   "trinity": {
-  //     "model": "anthropic/claude-haiku-4-5",
+  //     "model": "<provider>/<model>", // replace with live model from provider.list
   //     "temperature": 0.1,
   //     "permission": { "bash": "ask", "edit": "deny" }
   //   },
@@ -80,17 +80,17 @@
   // bullet-time, blue-pill, red-pill, broadcast
   // ─────────────────────────────────────────────────────────────────────────
   // "categories": {
-  //   "source": { "model": "anthropic/claude-opus-4-6", "temperature": 0.1 },
-  //   "deep-jack": { "model": "anthropic/claude-sonnet-4-6", "variant": "medium" },
-  //   "matrix-bend": { "model": "anthropic/claude-sonnet-4-6" },
-  //   "construct": { "model": "anthropic/claude-sonnet-4-6" },
-  //   "red-pill": { "model": "anthropic/claude-opus-4-6", "variant": "max" },
-  //   "blue-pill": { "model": "anthropic/claude-sonnet-4-6" },
-  //   "broadcast": { "model": "anthropic/claude-sonnet-4-6", "temperature": 0.5 },
-  //   "bullet-time": { "model": "anthropic/claude-haiku-4-5" },
+  //   "source": { "model": "<provider>/<model>", "temperature": 0.1 }, // replace with live model
+  //   "deep-jack": { "model": "<provider>/<model>", "variant": "medium" }, // replace with live model
+  //   "matrix-bend": { "model": "<provider>/<model>" }, // replace with live model
+  //   "construct": { "model": "<provider>/<model>" }, // replace with live model
+  //   "red-pill": { "model": "<provider>/<model>", "variant": "max" }, // replace with live model
+  //   "blue-pill": { "model": "<provider>/<model>" }, // replace with live model
+  //   "broadcast": { "model": "<provider>/<model>", "temperature": 0.5 }, // replace with live model
+  //   "bullet-time": { "model": "<provider>/<model>" }, // replace with live model
   //   "my-custom-category": {
   //     "description": "Data science / ML pipelines",
-  //     "model": "anthropic/claude-sonnet-4-6",
+  //     "model": "<provider>/<model>", // replace with live model from provider.list
   //     "temperature": 0.2,
   //     "prompt_append": "Focus on data analysis, ML pipelines, and statistical methods."
   //   }
@@ -332,8 +332,8 @@
   //     "google": 10
   //   },
   //   "modelConcurrency": {                 // per-model caps (overrides provider)
-  //     "anthropic/claude-opus-4-6": 2,
-  //     "anthropic/claude-haiku-4-5": 10
+  //     "<provider>/<model>": 2, // replace with live model from provider.list
+  //     "<provider>/<model>": 10 // replace with live model from provider.list
   //   },
   //   "staleTimeoutMs": 180000,             // interrupt tasks with no activity (default: 180000 = 3min, min: 60000)
   //   "messageStalenessTimeoutMs": 120000,  // timeout for tasks that never received progress (default: 600000 = 10min, min: 60000)
@@ -397,7 +397,7 @@
   // "assembly": {
   //   "enabled": false,                     // default: false (available in every session when true)
   //   "providers": [                        // provider-model pairs for auto-selection
-  //     { "providerID": "anthropic", "modelID": "claude-sonnet-4-6" },
+  //     { "providerID": "<provider>", "modelID": "<model>" }, // replace with live model from provider.list
   //     { "providerID": "openai", "modelID": "gpt-5.2" }
   //   ],
   //   "default_voters": 3,                  // 2-5 (default: 3)
@@ -483,7 +483,7 @@
   //   },
   //   "compressor": {
   //     "provider": "llm",                  // "llm" | "dspy-gepa" (default: "llm")
-  //     "model": "anthropic/claude-sonnet-4-6", // model override for compressor LLM
+  //     "model": "<provider>/<model>", // model override for compressor LLM — replace with live model
   //     "minTraces": 5,                     // min traces before compression (default: 5)
   //     "maxInputTokens": 32000,            // max input tokens for compressor prompt (default: 32000)
   //     "trigger": "both"                   // "compacting" | "idle" | "both" (default: "both")

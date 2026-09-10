@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { type MatrixxConfig, MatrixxConfigSchema } from "./config";
+import { migrateMatrixxConfig } from "./config/migrations/model-migration";
 import { resolveTiersInCategoryRegistry, resolveTiersInConfig } from "./config/resolve-tiers";
 import {
   addConfigLoadError,
@@ -64,7 +65,7 @@ function loadConfigFromPath(
 
       if (result.success) {
         log(`Config loaded from ${configPath}`, { agents: result.data.agents });
-        return result.data;
+        return migrateMatrixxConfig(result.data);
       }
 
       const errorMsg = result.error.issues
@@ -79,7 +80,7 @@ function loadConfigFromPath(
       const partialResult = parseConfigPartially(rawConfig);
       if (partialResult) {
         log(`Partial config loaded from ${configPath}`, { agents: partialResult.agents });
-        return partialResult;
+        return migrateMatrixxConfig(partialResult);
       }
 
       return null;
@@ -226,6 +227,9 @@ export async function loadPluginConfig(
     config = mergeConfigs(config, projectConfig);
   }
 
+  // Migrate prefixed models (in-memory only, with deprecation warning).
+  config = migrateMatrixxConfig(config);
+
   // Resolve any `tier: "..."` aliases against the live provider list.
   // Tiers that cannot be resolved (cold cache, no matching provider) are left
   // as `tier` fields — downstream code will fall through to category defaults.
@@ -244,6 +248,7 @@ export async function loadPluginConfig(
   const resolvedDefaults = resolveTiersInCategoryRegistry(
     DEFAULT_CATEGORIES as unknown as Record<string, { model?: string; tier?: string }>,
     tierCtx,
+    config,
   )
   config = {
     ...config,

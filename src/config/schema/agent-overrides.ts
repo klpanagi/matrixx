@@ -44,7 +44,7 @@ export const AgentOverrideConfigSchema = z.object({
   textVerbosity: z.enum(["low", "medium", "high"]).optional(),
   /** Provider-specific options. Passed directly to OpenCode SDK. */
   providerOptions: z.record(z.string(), z.unknown()).optional(),
-  /** Custom fallback chain. Overrides the default AGENT_MODEL_REQUIREMENTS fallback chain for this agent. */
+  /** Custom fallback chain. Overrides the default fallback chain for this agent. */
   fallbackChain: z.array(
     z.object({
       providers: z.array(z.string()),

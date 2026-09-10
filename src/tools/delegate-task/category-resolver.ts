@@ -2,7 +2,7 @@ import type { ModelFallbackInfo } from "../../features/task-toast-manager/types"
 import { readConnectedProvidersCache } from "../../shared/connected-providers-cache"
 import { log } from "../../shared/logger"
 import { mergeCategories } from "../../shared/merge-categories"
-import { CATEGORY_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
+import { getCategoryModelRequirements } from "../../shared/model-requirements"
 import { getAvailableModelsForDelegateTask } from "./available-models"
 import { resolveCategoryConfig } from "./categories"
 import { resolveComplexityModel } from "./complexity-constants"
@@ -36,7 +36,8 @@ export async function resolveCategoryExecution(
   inheritedModel: string | undefined,
   systemDefaultModel: string | undefined
 ): Promise<CategoryResolutionResult> {
-  const { client, userCategories, mouseModel, globalModel } = executorCtx
+  const { client, userCategories, mouseModel, globalModel, modelRequirements, complexityDowngrades, tiers } = executorCtx
+  const categoryRequirements = getCategoryModelRequirements(modelRequirements ? { modelRequirements } : undefined)
 
   const availableModels = await getAvailableModelsForDelegateTask(client)
   const connectedProviders = readConnectedProvidersCache()
@@ -51,10 +52,11 @@ export async function resolveCategoryExecution(
     systemDefaultModel,
     availableModels,
     tierContext: { availableModels, connectedProviders },
+    modelRequirements,
   })
 
   if (!resolved) {
-    const requirement = CATEGORY_MODEL_REQUIREMENTS[categoryName]
+    const requirement = categoryRequirements[categoryName]
     const allCategoryNames = Object.keys(enabledCategories).join(", ")
 
     if (categoryExists && requirement?.requiresModel) {
@@ -86,7 +88,7 @@ Available categories: ${allCategoryNames}`,
     }
   }
 
-  const requirement = CATEGORY_MODEL_REQUIREMENTS[args.category as string]
+  const requirement = categoryRequirements[args.category as string]
   let actualModel: string | undefined
   let modelInfo: ModelFallbackInfo | undefined
   let categoryModel: { providerID: string; modelID: string; variant?: string; temperature?: number } | undefined
@@ -126,7 +128,7 @@ Available categories: ${allCategoryNames}`,
           modelInfo: undefined,
           actualModel: undefined,
           isUnstableAgent: false,
-          error: `Invalid model format "${actualModel}". Expected "provider/model" format (e.g., "anthropic/claude-sonnet-4-5").`,
+          error: `Invalid model format "${actualModel}". Expected "provider/model" format (e.g., "<provider>/<model>").`,
         }
       }
 
@@ -183,7 +185,9 @@ Available categories: ${allCategoryNames}`,
 
   if (actualModel && (complexityLevel === 1 || complexityLevel === 2)) {
     const userDowngrades = userCategories?.[args.category as string]?.complexity_downgrades
-    const resolvedDowngrade = resolveComplexityModel(args.category as string, complexityLevel, actualModel, userDowngrades)
+    const holder = complexityDowngrades || tiers ? { complexityDowngrades, tiers } : undefined
+    const tierCtx = { availableModels, connectedProviders }
+    const resolvedDowngrade = resolveComplexityModel(args.category as string, complexityLevel, actualModel, userDowngrades, holder, tierCtx)
 
     if (resolvedDowngrade.downgraded) {
       complexityDowngraded = true

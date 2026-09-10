@@ -1,33 +1,30 @@
+import type { Tiers } from "../../config/schema"
+import type { TierConfigHolder } from "../../shared/model-tiers"
+import { resolveTier, type TierResolverContext } from "../../shared/tier-resolver"
 import type { ComplexityLevel } from "./complexity-types"
 import { isDowngradable } from "./complexity-types"
 
-/**
- * Built-in complexity-to-model downgrade targets per category.
- * Key: category name, Value: map of complexity level → model string.
- * Only levels 1-2 are downgradable; levels 3+ use the category's resolved model.
- */
-export const BUILTIN_COMPLEXITY_DOWNGRADES: Record<string, Partial<Record<ComplexityLevel, string>>> = {
-  "source": { 1: "anthropic/claude-haiku-4-5", 2: "anthropic/claude-sonnet-4-6" },
-  "deep-jack": { 1: "anthropic/claude-haiku-4-5", 2: "anthropic/claude-sonnet-4-6" },
-  "red-pill": { 1: "anthropic/claude-haiku-4-5", 2: "anthropic/claude-sonnet-4-6" },
-  "construct": { 1: "anthropic/claude-haiku-4-5" },
-  "matrix-bend": { 1: "anthropic/claude-haiku-4-5" },
-  "blue-pill": { 1: "anthropic/claude-haiku-4-5" },
-  "broadcast": { 1: "anthropic/claude-haiku-4-5" },
-  // bullet-time already uses haiku — no downgrade needed
+export type ComplexityDowngradesConfig = Record<string, Record<string, string>>
+
+export type ComplexityConfigHolder = {
+  complexityDowngrades?: ComplexityDowngradesConfig
+  tiers?: Tiers
 }
 
 /**
  * Resolve the model for a given category and complexity level.
  *
- * Returns the original model unchanged if:
- * - Complexity is 3+ (not eligible for downgrade)
- * - No downgrade target exists for this category/level combination
+ * Config-driven: no built-in literals. Downgrade map is resolved as:
+ *   userDowngrades ?? config.complexityDowngrades?.[category] ?? {}
+ * If no entry for this complexity, returns original (no downgrade).
+ * If value starts with "tier:", resolves via live tier resolver.
  *
  * @param category - The task category name
  * @param complexity - The complexity level (1-5)
  * @param originalModel - The currently resolved model string
- * @param userDowngrades - Optional per-category user override from CategoryConfig
+ * @param userDowngrades - Optional per-category user override from CategoryConfig.complexity_downgrades
+ * @param config - Optional holder with global complexityDowngrades and tiers
+ * @param tierContext - Optional live provider context for tier: resolution
  * @returns The model to use and whether a downgrade was applied
  */
 export function resolveComplexityModel(
@@ -35,18 +32,51 @@ export function resolveComplexityModel(
   complexity: ComplexityLevel,
   originalModel: string,
   userDowngrades?: Record<string, string>,
+  config?: ComplexityConfigHolder | ComplexityDowngradesConfig,
+  tierContext?: TierResolverContext,
 ): { model: string; downgraded: boolean } {
-  // Only levels 1-2 are eligible for downgrade
   if (!isDowngradable(complexity)) {
     return { model: originalModel, downgraded: false }
   }
 
-  const downgrades = userDowngrades ?? BUILTIN_COMPLEXITY_DOWNGRADES[category] ?? {}
-  const downgradeModel = downgrades[complexity]
+  let complexityDowngrades: ComplexityDowngradesConfig | undefined
+  let tiersConfig: TierConfigHolder | undefined
 
-  if (!downgradeModel) {
+  if (config) {
+    const maybe = config as Record<string, unknown>
+    const hasHolderKeys = "complexityDowngrades" in maybe || "tiers" in maybe
+    if (hasHolderKeys) {
+      const holder = config as ComplexityConfigHolder
+      complexityDowngrades = holder.complexityDowngrades
+      if (holder.tiers) {
+        tiersConfig = holder as TierConfigHolder
+      }
+    } else {
+      complexityDowngrades = config as ComplexityDowngradesConfig
+    }
+  }
+
+  const downgrades = userDowngrades ?? complexityDowngrades?.[category] ?? {}
+  const rawDowngrade = downgrades[String(complexity)]
+
+  if (!rawDowngrade) {
     return { model: originalModel, downgraded: false }
   }
 
-  return { model: downgradeModel, downgraded: true }
+  if (rawDowngrade.startsWith("tier:")) {
+    const tierName = rawDowngrade.slice(5).trim()
+    if (!tierName) {
+      return { model: originalModel, downgraded: false }
+    }
+    if (!tierContext || !tiersConfig) {
+      return { model: originalModel, downgraded: false }
+    }
+    const resolved = resolveTier(tierName, tierContext, tiersConfig)
+    if (!resolved) {
+      return { model: originalModel, downgraded: false }
+    }
+    return { model: resolved.model, downgraded: true }
+  }
+
+  return { model: rawDowngrade, downgraded: true }
 }
