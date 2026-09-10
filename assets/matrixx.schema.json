@@ -5549,6 +5549,196 @@
       "items": {
         "type": "string"
       }
+    },
+    "tiers": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "providerPriority": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "modelPattern": {
+            "type": "string"
+          },
+          "fallbackTier": {
+            "type": "string"
+          },
+          "fallback": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "providers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "model": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "variant": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "providers",
+                "model"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "providerPriority",
+          "modelPattern"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "modelRequirements": {
+      "type": "object",
+      "properties": {
+        "agents": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "fallbackChain": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "model": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "variant": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "providers",
+                    "model"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "requiresModel": {
+                "type": "string"
+              },
+              "requiresAnyModel": {
+                "type": "boolean"
+              },
+              "requiresProvider": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "variant": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "fallbackChain"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "categories": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "fallbackChain": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "model": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "variant": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "providers",
+                    "model"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "requiresModel": {
+                "type": "string"
+              },
+              "requiresAnyModel": {
+                "type": "boolean"
+              },
+              "requiresProvider": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "variant": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "fallbackChain"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "complexityDowngrades": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "type": "string"
+        }
+      }
     }
   },
   "additionalProperties": false

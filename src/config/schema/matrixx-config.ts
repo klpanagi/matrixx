@@ -19,6 +19,7 @@ import { HeadroomConfigSchema } from "./headroom"
 import { HookNameSchema } from "./hooks"
 import { MatrixLoopConfigSchema } from "./matrix-loop"
 import { MatrixxSelfConfigSkillConfigSchema } from "./matrixx-self-config"
+import { ComplexityDowngradesSchema, ModelRequirementsSchema, TiersSchema } from "./model-config"
 import { MorpheusConfigSchema } from "./morpheus"
 import { MorpheusAgentConfigSchema } from "./morpheus-agent"
 import { NotificationConfigSchema } from "./notification"
@@ -32,7 +33,7 @@ import { WebsearchConfigSchema } from "./websearch"
 
 export const MatrixxConfigSchema = z.object({
   $schema: z.string().optional(),
-  /** Global provider/model override for ALL agents and categories (e.g., "anthropic/claude-sonnet-4-6").
+  /** Global provider/model override for ALL agents and categories (e.g., "<provider>/<model>").
    * When set, this model is used for every agent and category regardless of their individual config. */
   global_model: z.string().optional(),
   /** Default tier applied to every agent and category that has no explicit `model` or `tier`. */
@@ -88,6 +89,12 @@ export const MatrixxConfigSchema = z.object({
   evolution: EvolutionConfigSchema.optional(),
   /** Migration history to prevent re-applying migrations (e.g., model version upgrades) */
   _migrations: z.array(z.string()).optional(),
+  /** Config-driven tier definitions — keys are tier names, values are TierSpec */
+  tiers: TiersSchema.optional(),
+  /** Config-driven agent/category model requirements */
+  modelRequirements: ModelRequirementsSchema.optional(),
+  /** Config-driven complexity downgrade targets per category */
+  complexityDowngrades: ComplexityDowngradesSchema.optional(),
 })
 
 export type MatrixxConfig = z.infer<typeof MatrixxConfigSchema>
