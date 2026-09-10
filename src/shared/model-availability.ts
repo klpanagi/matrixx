@@ -8,9 +8,9 @@ import { normalizeSDKResponse } from "./normalize-sdk-response"
 /**
  * Fuzzy match a target model name against available models
  * 
- * @param target - The model name or substring to search for (e.g., "gpt-5.2", "claude-opus")
- * @param available - Set of available model names in format "provider/model-name"
- * @param providers - Optional array of provider names to filter by (e.g., ["openai", "anthropic"])
+ * @param target - The model name or substring to search for (e.g., "gpt-5.2", "<model-substring>")
+ * @param available - Set of available model names in format "<provider>/<model>"
+ * @param providers - Optional array of provider names to filter by (e.g., ["openai", "<provider>"])
  * @returns The matched model name or null if no match found
  * 
  * Matching priority:
@@ -21,14 +21,14 @@ import { normalizeSDKResponse } from "./normalize-sdk-response"
  * If providers array is given, only models starting with "provider/" are considered.
  * 
  * @example
- * const available = new Set(["openai/gpt-5.2", "openai/gpt-5.3-codex", "anthropic/claude-opus-4-6"])
+ * const available = new Set(["<provider>/<model>", "<provider>/<model>", "openai/gpt-5.2"])
  * fuzzyMatchModel("gpt-5.2", available) // → "openai/gpt-5.2"
- * fuzzyMatchModel("claude", available, ["openai"]) // → null (provider filter excludes anthropic)
+ * fuzzyMatchModel("<model>", available, ["openai"]) // → null (provider filter excludes other provider)
  */
 function normalizeModelName(name: string): string {
 	return name
 		.toLowerCase()
-		.replace(/claude-(opus|sonnet|haiku)-(\d+)[.-](\d+)/g, "claude-$1-$2.$3")
+		.replace(/(opus|sonnet|haiku)-(\d+)[.-](\d+)/g, "$1-$2.$3")
 }
 
 export function fuzzyMatchModel(
