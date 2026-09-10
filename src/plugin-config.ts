@@ -248,6 +248,7 @@ export async function loadPluginConfig(
   const resolvedDefaults = resolveTiersInCategoryRegistry(
     DEFAULT_CATEGORIES as unknown as Record<string, { model?: string; tier?: string }>,
     tierCtx,
+    config,
   )
   config = {
     ...config,

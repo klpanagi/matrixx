@@ -92,8 +92,8 @@ describe("complexity integration", () => {
 		providerModelsSpy?.mockRestore()
 	})
 
-	test("complexity: 1 downgrades source model to haiku", async () => {
-		//#given
+	test("complexity: 1 downgrades source model via synthetic config", async () => {
+		//#given — synthetic downgrade via global complexityDowngrades
 		const args = {
 			category: "source",
 			prompt: "test prompt",
@@ -104,28 +104,24 @@ describe("complexity integration", () => {
 			enableSkillTools: false,
 			complexity: 1,
 		}
-		const executorCtx = createMockExecutorContext()
+		const executorCtx = createMockExecutorContext({
+			complexityDowngrades: { source: { "1": "provider-a/model-fast", "2": "provider-a/model-cheap" } },
+		})
 		const inheritedModel = undefined
-		const systemDefaultModel = "anthropic/claude-sonnet-4-5"
+		const systemDefaultModel = "provider-x/model-orig"
 
 		//#when
 		const result = await resolveCategoryExecution(args, executorCtx, inheritedModel, systemDefaultModel)
 
 		//#then
 		expect(result.error).toBeUndefined()
-		expect(result.actualModel).toBe("anthropic/claude-haiku-4-5")
+		expect(result.actualModel).toBe("provider-a/model-fast")
 		expect(result.complexityDowngraded).toBe(true)
 		expect(result.complexityApplied).toBe(1)
 	})
 
 	test("complexity: 3 on source category keeps original model", async () => {
-		//#given — level 3 is not downgradable; source tier "premium" resolves to opus
-		connectedProvidersSpy?.mockReturnValue(["anthropic"])
-		providerModelsSpy?.mockReturnValue({
-			models: { anthropic: ["claude-opus-4-6"] },
-			connected: ["anthropic"],
-			updatedAt: new Date().toISOString(),
-		})
+		//#given — level 3 is not downgradable
 		const args = {
 			category: "source",
 			prompt: "test prompt",
@@ -136,22 +132,24 @@ describe("complexity integration", () => {
 			enableSkillTools: false,
 			complexity: 3,
 		}
-		const executorCtx = createMockExecutorContext()
+		const executorCtx = createMockExecutorContext({
+			complexityDowngrades: { source: { "1": "provider-a/model-fast" } },
+		})
 		const inheritedModel = undefined
-		const systemDefaultModel = "anthropic/claude-sonnet-4-5"
+		const systemDefaultModel = "provider-x/model-orig"
 
 		//#when
 		const result = await resolveCategoryExecution(args, executorCtx, inheritedModel, systemDefaultModel)
 
 		//#then
 		expect(result.error).toBeUndefined()
-		expect(result.actualModel).toBe("anthropic/claude-opus-4-6")
+		expect(result.actualModel).toBe("provider-x/model-orig")
 		expect(result.complexityDowngraded).toBe(false)
 		expect(result.complexityApplied).toBe(3)
 	})
 
-	test("complexity: auto with trivial prompt downgrades model", async () => {
-		//#given — "fix typo" triggers trivial auto-score → level 1 → haiku
+	test("complexity: auto with trivial prompt downgrades via synthetic config", async () => {
+		//#given — "fix typo" triggers trivial auto-score → level 1 → synthetic fast
 		const args = {
 			category: "source",
 			prompt: "test prompt",
@@ -162,21 +160,23 @@ describe("complexity integration", () => {
 			enableSkillTools: false,
 			complexity: "auto",
 		}
-		const executorCtx = createMockExecutorContext()
+		const executorCtx = createMockExecutorContext({
+			complexityDowngrades: { source: { "1": "provider-a/model-fast" } },
+		})
 		const inheritedModel = undefined
-		const systemDefaultModel = "anthropic/claude-sonnet-4-5"
+		const systemDefaultModel = "provider-x/model-orig"
 
 		//#when
 		const result = await resolveCategoryExecution(args, executorCtx, inheritedModel, systemDefaultModel)
 
 		//#then
 		expect(result.error).toBeUndefined()
-		expect(result.actualModel).toBe("anthropic/claude-haiku-4-5")
+		expect(result.actualModel).toBe("provider-a/model-fast")
 		expect(result.complexityDowngraded).toBe(true)
 	})
 
-	test("complexity omitted on bullet-time does not downgrade", async () => {
-		//#given — bullet-time already uses haiku, no cheaper model
+	test("complexity omitted on bullet-time does not downgrade without config", async () => {
+		//#given — bullet-time has no downgrade entry, empty config → no downgrade
 		const args = {
 			category: "bullet-time",
 			prompt: "test prompt",
@@ -189,24 +189,25 @@ describe("complexity integration", () => {
 		}
 		const executorCtx = createMockExecutorContext()
 		const inheritedModel = undefined
-		const systemDefaultModel = "anthropic/claude-sonnet-4-5"
+		const systemDefaultModel = "provider-x/model-orig"
 
 		//#when
 		const result = await resolveCategoryExecution(args, executorCtx, inheritedModel, systemDefaultModel)
 
-		//#then — bullet-time uses haiku and auto-score gives level 1 (baseline), but no downgrade available
+		//#then
 		expect(result.error).toBeUndefined()
 		expect(result.complexityDowngraded).toBe(false)
 	})
 
-	test("user complexity_downgrades override wins over built-in", async () => {
-		//#given — user provides custom downgrade for level 1 on source category
+	test("user complexity_downgrades override wins over global config", async () => {
+		//#given — user provides custom downgrade for level 1, should win over global
 		const executorCtx = createMockExecutorContext({
 			userCategories: {
 				"source": {
-					complexity_downgrades: { "1": "openai/gpt-4o-mini" },
+					complexity_downgrades: { "1": "provider-b/model-user" },
 				},
 			},
+			complexityDowngrades: { source: { "1": "provider-a/model-global" } },
 		})
 		const args = {
 			category: "source",
@@ -219,14 +220,48 @@ describe("complexity integration", () => {
 			complexity: 1,
 		}
 		const inheritedModel = undefined
-		const systemDefaultModel = "anthropic/claude-sonnet-4-5"
+		const systemDefaultModel = "provider-x/model-orig"
 
 		//#when
 		const result = await resolveCategoryExecution(args, executorCtx, inheritedModel, systemDefaultModel)
 
-		//#then — user override wins over BUILTIN_COMPLEXITY_DOWNGRADES
+		//#then — user override wins
 		expect(result.error).toBeUndefined()
-		expect(result.actualModel).toBe("openai/gpt-4o-mini")
+		expect(result.actualModel).toBe("provider-b/model-user")
+		expect(result.complexityDowngraded).toBe(true)
+	})
+
+	test("tier: downgrade resolved via live tier", async () => {
+		//#given — downgrade is tier:fast, resolved via live list
+		connectedProvidersSpy?.mockReturnValue(["provider-a"])
+		providerModelsSpy?.mockReturnValue({
+			models: { "provider-a": ["model-fast"] },
+			connected: ["provider-a"],
+			updatedAt: new Date().toISOString(),
+		})
+		const args = {
+			category: "source",
+			prompt: "test prompt",
+			description: "Test task",
+			run_in_background: false,
+			load_skills: [],
+			blockedBy: undefined,
+			enableSkillTools: false,
+			complexity: 1,
+		}
+		const executorCtx = createMockExecutorContext({
+			complexityDowngrades: { source: { "1": "tier:fast" } },
+			tiers: { fast: { providerPriority: ["provider-a"], modelPattern: "model-fast" } },
+		})
+		const inheritedModel = undefined
+		const systemDefaultModel = "provider-x/model-orig"
+
+		//#when
+		const result = await resolveCategoryExecution(args, executorCtx, inheritedModel, systemDefaultModel)
+
+		//#then
+		expect(result.error).toBeUndefined()
+		expect(result.actualModel).toBe("provider-a/model-fast")
 		expect(result.complexityDowngraded).toBe(true)
 	})
 })

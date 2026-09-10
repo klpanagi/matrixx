@@ -14,6 +14,7 @@ interface ResolveCategoryConfigOptions {
   availableModels?: Set<string>
   tierContext?: TierResolverContext
   modelRequirements?: ModelRequirements
+  tiers?: Record<string, { providerPriority: string[]; modelPattern: string; fallbackTier?: string; fallback?: { providers: string[]; model: string; variant?: string }[] }>
 }
 
 interface ResolveCategoryConfigResult {
@@ -36,7 +37,7 @@ export function resolveCategoryConfig(
   categoryName: string,
   options: ResolveCategoryConfigOptions
 ): ResolveCategoryConfigResult | null {
-  const { userCategories, inheritedModel: _inheritedModel, systemDefaultModel, availableModels, tierContext, modelRequirements } = options
+  const { userCategories, inheritedModel: _inheritedModel, systemDefaultModel, availableModels, tierContext, modelRequirements, tiers } = options
 
   const defaultConfig = DEFAULT_CATEGORIES[categoryName]
   const userConfig = userCategories?.[categoryName]
@@ -61,8 +62,9 @@ export function resolveCategoryConfig(
   }
 
   // Resolve tiers: user tier wins over default tier; both resolve to model strings.
-  const effectiveUserModel = resolveTierOnEntry(userConfig, tierContext)
-  const effectiveDefaultModel = resolveTierOnEntry(defaultConfig, tierContext)
+  const tierConfig = tiers ? { tiers } : undefined
+  const effectiveUserModel = resolveTierOnEntry(userConfig, tierContext, tierConfig)
+  const effectiveDefaultModel = resolveTierOnEntry(defaultConfig, tierContext, tierConfig)
 
   // Model priority for categories: user override > category default > system default
   // Categories have explicit models - no inheritance from parent session
@@ -91,8 +93,9 @@ export function resolveCategoryConfig(
 function resolveTierOnEntry(
   entry: { model?: string; tier?: string } | undefined,
   ctx: TierResolverContext | undefined,
+  tiersConfig?: { tiers?: Record<string, { providerPriority: string[]; modelPattern: string; fallbackTier?: string; fallback?: { providers: string[]; model: string; variant?: string }[] }> } | null,
 ): string | undefined {
   if (!entry || entry.model || !entry.tier || !ctx) return undefined
-  const resolved = resolveTier(entry.tier as never, ctx)
+  const resolved = resolveTier(entry.tier as never, ctx, tiersConfig)
   return resolved?.model
 }

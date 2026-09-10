@@ -1309,8 +1309,8 @@ grep -c "ProviderModelNotFoundError" /tmp/matrixx.log || echo 0  # Expected: 0
 ### Wave 2 (After Wave 1 Completes — 4 tasks parallel)
 
 - [x] Task 3: Refactor `src/shared/model-requirements.ts` — factory from config, no literals
-- [ ] Task 4: Refactor `src/shared/model-tiers.ts` — factory from config, no `staticFallback` literals
-- [ ] Task 5: Delete `BUILTIN_COMPLEXITY_DOWNGRADES` literals (`src/tools/delegate-task/complexity-constants.ts`)
+- [x] Task 4: Refactor `src/shared/model-tiers.ts` — factory from config, no `staticFallback` literals
+- [x] Task 5: Delete `BUILTIN_COMPLEXITY_DOWNGRADES` literals (`src/tools/delegate-task/complexity-constants.ts`)
 - [ ] Task 6: Audit `model-availability.ts` + unify `parseModelString` duplicates
 
 ### Wave 3 (After Wave 2 Completes — 3 tasks, 2 parallel)

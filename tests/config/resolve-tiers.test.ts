@@ -18,6 +18,47 @@ function buildContext(
   }
 }
 
+function tierConfig(): MatrixxConfig["tiers"] {
+  return {
+    free: {
+      providerPriority: ["opencode", "xai", "opencode-go", "zai-coding-plan"],
+      modelPattern: "-free$|kimi-k2\\.5-free|minimax-m2\\.5-free|grok-code-fast",
+      fallback: [
+        { providers: ["opencode"], model: "kimi-k2.5-free" },
+        { providers: ["xai"], model: "grok-code-fast-1" },
+      ],
+    },
+    fast: {
+      providerPriority: ["anthropic", "openai", "google", "opencode-go"],
+      modelPattern: "claude-haiku|gpt-5-nano|gemini-2\\.5-flash|deepseek-v4-flash",
+      fallback: [{ providers: ["anthropic"], model: "claude-haiku-4-5" }],
+      fallbackTier: "free",
+    },
+    standard: {
+      providerPriority: ["anthropic", "openai", "google", "opencode-go"],
+      modelPattern: "claude-sonnet|gpt-5\\.2|gemini-2\\.5-pro",
+      fallback: [{ providers: ["anthropic"], model: "claude-sonnet-4-6" }],
+      fallbackTier: "fast",
+    },
+    premium: {
+      providerPriority: ["anthropic", "openai", "google", "opencode-go"],
+      modelPattern: "claude-opus|gpt-5\\.3-codex|gemini-3-pro",
+      fallback: [{ providers: ["anthropic"], model: "claude-opus-4-6" }],
+      fallbackTier: "standard",
+    },
+    frontier: {
+      providerPriority: ["anthropic", "openai", "google", "opencode-go"],
+      modelPattern: "claude-opus|gpt-5\\.3-codex|gemini-3\\.1-pro",
+      fallback: [{ providers: ["anthropic"], model: "claude-opus-4-6" }],
+      fallbackTier: "premium",
+    },
+  } as unknown as MatrixxConfig["tiers"]
+}
+
+function withTiers(config: MatrixxConfig): MatrixxConfig {
+  return { ...config, tiers: tierConfig() } as MatrixxConfig
+}
+
 describe("resolveTiersInConfig", () => {
   it("#given agent with tier='premium' #when resolved #then agent.model is set and agent.tier is cleared", () => {
     //#given
@@ -27,7 +68,7 @@ describe("resolveTiersInConfig", () => {
 
     //#when
     const result = resolveTiersInConfig(
-      config,
+      withTiers(config),
       buildContext(["anthropic/claude-opus-4-6"], ["anthropic"]),
     )
 
@@ -46,7 +87,7 @@ describe("resolveTiersInConfig", () => {
 
     //#when
     const result = resolveTiersInConfig(
-      config,
+      withTiers(config),
       buildContext(["anthropic/claude-opus-4-6", "anthropic/claude-haiku-4-5"], ["anthropic"]),
     )
 
@@ -63,7 +104,7 @@ describe("resolveTiersInConfig", () => {
 
     //#when
     const result = resolveTiersInConfig(
-      config,
+      withTiers(config),
       buildContext(["anthropic/claude-sonnet-4-6"], ["anthropic"]),
     )
 
@@ -80,7 +121,7 @@ describe("resolveTiersInConfig", () => {
 
     //#when
     const result = resolveTiersInConfig(
-      config,
+      withTiers(config),
       buildContext(["anthropic/claude-sonnet-4-6"], ["anthropic"]),
     )
 
@@ -98,7 +139,7 @@ describe("resolveTiersInConfig", () => {
 
     //#when
     const result = resolveTiersInConfig(
-      config,
+      withTiers(config),
       buildContext(["anthropic/claude-haiku-4-5"], ["anthropic"]),
     )
 
@@ -116,7 +157,7 @@ describe("resolveTiersInConfig", () => {
 
     //#when
     const result = resolveTiersInConfig(
-      config,
+      withTiers(config),
       buildContext(["anthropic/claude-opus-4-6", "anthropic/claude-haiku-4-5"], ["anthropic"]),
     )
 
@@ -133,7 +174,7 @@ describe("resolveTiersInConfig", () => {
 
     //#when
     const result = resolveTiersInConfig(
-      config,
+      withTiers(config),
       buildContext(["anthropic/claude-opus-4-6", "anthropic/claude-haiku-4-5"], ["anthropic"]),
     )
 
@@ -150,7 +191,7 @@ describe("resolveTiersInConfig", () => {
 
     //#when
     const result = resolveTiersInConfig(
-      config,
+      withTiers(config),
       buildContext(["anthropic/claude-haiku-4-5"], ["anthropic"]),
     )
 
@@ -166,7 +207,7 @@ describe("resolveTiersInConfig", () => {
 
     //#when
     const result = resolveTiersInConfig(
-      config,
+      withTiers(config),
       buildContext(["anthropic/claude-haiku-4-5"], ["anthropic"]),
     )
 
@@ -182,7 +223,7 @@ describe("resolveTiersInConfig", () => {
 
     //#when
     const result = resolveTiersInConfig(
-      config,
+      withTiers(config),
       buildContext(["anthropic/claude-opus-4-6"], ["anthropic"]),
     )
 

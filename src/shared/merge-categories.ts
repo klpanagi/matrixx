@@ -14,8 +14,9 @@ import type { TierResolverContext } from "./tier-resolver"
  */
 export function mergeCategories(
   userCategories?: CategoriesConfig,
+  config?: { tiers?: Record<string, { providerPriority: string[]; modelPattern: string; fallbackTier?: string; fallback?: { providers: string[]; model: string; variant?: string }[] }> } | null,
 ): Record<string, CategoryConfig> {
-  const resolvedDefaults = resolveDefaultCategories()
+  const resolvedDefaults = resolveDefaultCategories(config)
   const merged = userCategories
     ? { ...resolvedDefaults, ...userCategories }
     : { ...resolvedDefaults }
@@ -25,7 +26,9 @@ export function mergeCategories(
   )
 }
 
-function resolveDefaultCategories(): Record<string, CategoryConfig> {
+function resolveDefaultCategories(
+  config?: { tiers?: Record<string, { providerPriority: string[]; modelPattern: string; fallbackTier?: string; fallback?: { providers: string[]; model: string; variant?: string }[] }> } | null,
+): Record<string, CategoryConfig> {
   const providerCache = readProviderModelsCache()
   const availableModels = new Set<string>()
   if (providerCache) {
@@ -45,5 +48,6 @@ function resolveDefaultCategories(): Record<string, CategoryConfig> {
   return resolveTiersInCategoryRegistry(
     DEFAULT_CATEGORIES as unknown as Record<string, { model?: string; tier?: string }>,
     ctx,
+    config as never,
   ) as Record<string, CategoryConfig>
 }

@@ -1,4 +1,4 @@
-import type { AgentOverrides, BrowserAutomationProvider, CategoriesConfig, ModelRequirements } from "../../config/schema"
+import type { AgentOverrides, BrowserAutomationProvider, CategoriesConfig, ComplexityDowngrades, ModelRequirements, Tiers } from "../../config/schema"
 import type { BackgroundManager } from "../../features/background-agent"
 import type { OpencodeClient } from "./types"
 
@@ -12,6 +12,8 @@ export interface ExecutorContext {
   browserProvider?: BrowserAutomationProvider
   agentOverrides?: AgentOverrides
   modelRequirements?: ModelRequirements
+  complexityDowngrades?: ComplexityDowngrades
+  tiers?: Tiers
   onSyncSessionCreated?: (event: { sessionID: string; parentID: string; title: string }) => Promise<void>
 }
 

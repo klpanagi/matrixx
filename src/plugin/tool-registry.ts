@@ -74,6 +74,8 @@ export function createToolRegistry(args: {
     availableCategories,
     availableSkills: skillContext.availableSkills,
     modelRequirements: pluginConfig.modelRequirements,
+    complexityDowngrades: pluginConfig.complexityDowngrades,
+    tiers: pluginConfig.tiers,
     agentOverrides: pluginConfig.agents,
     onSyncSessionCreated: async (event) => {
       log("[index] onSyncSessionCreated callback", {

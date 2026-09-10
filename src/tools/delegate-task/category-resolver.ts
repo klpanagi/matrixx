@@ -36,7 +36,7 @@ export async function resolveCategoryExecution(
   inheritedModel: string | undefined,
   systemDefaultModel: string | undefined
 ): Promise<CategoryResolutionResult> {
-  const { client, userCategories, mouseModel, globalModel, modelRequirements } = executorCtx
+  const { client, userCategories, mouseModel, globalModel, modelRequirements, complexityDowngrades, tiers } = executorCtx
   const categoryRequirements = getCategoryModelRequirements(modelRequirements ? { modelRequirements } : undefined)
 
   const availableModels = await getAvailableModelsForDelegateTask(client)
@@ -185,7 +185,9 @@ Available categories: ${allCategoryNames}`,
 
   if (actualModel && (complexityLevel === 1 || complexityLevel === 2)) {
     const userDowngrades = userCategories?.[args.category as string]?.complexity_downgrades
-    const resolvedDowngrade = resolveComplexityModel(args.category as string, complexityLevel, actualModel, userDowngrades)
+    const holder = complexityDowngrades || tiers ? { complexityDowngrades, tiers } : undefined
+    const tierCtx = { availableModels, connectedProviders }
+    const resolvedDowngrade = resolveComplexityModel(args.category as string, complexityLevel, actualModel, userDowngrades, holder, tierCtx)
 
     if (resolvedDowngrade.downgraded) {
       complexityDowngraded = true
