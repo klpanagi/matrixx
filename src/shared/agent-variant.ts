@@ -1,5 +1,5 @@
 import type { MatrixxConfig } from "../config"
-import { AGENT_MODEL_REQUIREMENTS, CATEGORY_MODEL_REQUIREMENTS } from "./model-requirements"
+import { getAgentModelRequirements, getCategoryModelRequirements } from "./model-requirements"
 
 export function resolveAgentVariant(
   config: MatrixxConfig,
@@ -47,14 +47,15 @@ export function resolveVariantForModel(
   if (agentOverride?.variant) {
     return agentOverride.variant
   }
-
-  const agentRequirement = AGENT_MODEL_REQUIREMENTS[agentName]
+  const agentRequirements = getAgentModelRequirements(config)
+  const agentRequirement = agentRequirements[agentName]
   if (agentRequirement) {
     return findVariantInChain(agentRequirement.fallbackChain, currentModel)
   }
   const categoryName = agentOverride?.category
   if (categoryName) {
-    const categoryRequirement = CATEGORY_MODEL_REQUIREMENTS[categoryName]
+    const categoryRequirements = getCategoryModelRequirements(config)
+    const categoryRequirement = categoryRequirements[categoryName]
     if (categoryRequirement) {
       return findVariantInChain(categoryRequirement.fallbackChain, currentModel)
     }

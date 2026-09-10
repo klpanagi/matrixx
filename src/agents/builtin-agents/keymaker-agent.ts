@@ -1,6 +1,6 @@
 import type { AgentConfig } from "@opencode-ai/sdk"
 import type { CategoryConfig } from "../../config/schema"
-import { AGENT_MODEL_REQUIREMENTS, isAnyProviderConnected } from "../../shared"
+import { getAgentModelRequirements, isAnyProviderConnected } from "../../shared"
 import type { AvailableAgent, AvailableCategory, AvailableSkill } from "../dynamic-agent-prompt-builder"
 import { createKeymakerAgent } from "../keymaker"
 import type { AgentOverrides } from "../types"
@@ -40,7 +40,8 @@ export function maybeCreateKeymakerConfig(input: {
   if (disabledAgents.includes("keymaker")) return undefined
 
   const keymakerOverride = agentOverrides.keymaker
-  const keymakerRequirement = AGENT_MODEL_REQUIREMENTS.keymaker
+  const agentRequirements = getAgentModelRequirements()
+  const keymakerRequirement = agentRequirements.keymaker
   const hasKeymakerExplicitConfig = keymakerOverride !== undefined
 
   const hasRequiredProvider =

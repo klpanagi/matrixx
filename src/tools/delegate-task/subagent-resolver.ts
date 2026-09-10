@@ -1,7 +1,7 @@
 import { normalizeSDKResponse } from "../../shared"
 import { getAgentConfigKey, getAgentDisplayName } from "../../shared/agent-display-names"
 import { log } from "../../shared/logger"
-import { AGENT_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
+import { getAgentModelRequirements } from "../../shared/model-requirements"
 import { getAvailableModelsForDelegateTask } from "./available-models"
 import { isPlanFamily } from "./constants"
 import type { ExecutorContext } from "./executor-types"
@@ -16,7 +16,7 @@ export async function resolveSubagentExecution(
   parentAgent: string | undefined,
   categoryExamples: string
 ): Promise<{ agentToUse: string; categoryModel: { providerID: string; modelID: string; variant?: string } | undefined; error?: string }> {
-  const { client, agentOverrides } = executorCtx
+  const { client, agentOverrides, modelRequirements } = executorCtx
 
   if (!args.subagent_type?.trim()) {
     return { agentToUse: "", categoryModel: undefined, error: `Agent name cannot be empty.` }
@@ -91,7 +91,8 @@ Create the work plan directly - that's your job as the planning agent.`,
     const agentConfigKey = getAgentConfigKey(agentToUse)
     const agentOverride = agentOverrides?.[agentConfigKey as keyof typeof agentOverrides]
       ?? (agentOverrides ? Object.entries(agentOverrides).find(([key]) => key.toLowerCase() === agentConfigKey)?.[1] : undefined)
-    const agentRequirement = AGENT_MODEL_REQUIREMENTS[agentConfigKey]
+    const agentRequirements = getAgentModelRequirements(modelRequirements ? { modelRequirements } : undefined)
+    const agentRequirement = agentRequirements[agentConfigKey]
 
     if (agentOverride?.model || agentRequirement || matchedAgent.model) {
       const availableModels = await getAvailableModelsForDelegateTask(client)

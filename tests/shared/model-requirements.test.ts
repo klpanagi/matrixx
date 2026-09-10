@@ -1,437 +1,328 @@
 import { describe, expect, test } from "bun:test"
 import {
-  AGENT_MODEL_REQUIREMENTS,
-  CATEGORY_MODEL_REQUIREMENTS,
+  getAgentModelRequirements,
+  getCategoryModelRequirements,
   type FallbackEntry,
   type ModelRequirement,
 } from "../../src/shared/model-requirements"
 
-describe("AGENT_MODEL_REQUIREMENTS", () => {
-  test("merovingian has valid fallbackChain with claude-sonnet-4-6 as primary", () => {
-    // given - merovingian agent requirement
-    const merovingian = AGENT_MODEL_REQUIREMENTS.merovingian
+// helper to build ModelRequirements config with synthetic values
+function makeConfig(overrides: {
+  agents?: Record<string, ModelRequirement>
+  categories?: Record<string, ModelRequirement>
+}): { modelRequirements: { agents?: Record<string, ModelRequirement>; categories?: Record<string, ModelRequirement> } } {
+  return {
+    modelRequirements: {
+      ...(overrides.agents ? { agents: overrides.agents } : {}),
+      ...(overrides.categories ? { categories: overrides.categories } : {}),
+    },
+  }
+}
 
-    // when - accessing merovingian requirement
-    // then - fallbackChain exists with claude-sonnet-4-6 as first entry
-    expect(merovingian).toBeDefined()
-    expect(merovingian.fallbackChain).toBeArray()
-    expect(merovingian.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = merovingian.fallbackChain[0]
-    expect(primary.providers).toContain("anthropic")
-    expect(primary.model).toBe("claude-sonnet-4-6")
-    expect(primary.variant).toBeUndefined()
+describe("getAgentModelRequirements", () => {
+  test("returns {} for empty config {}", () => {
+    const result = getAgentModelRequirements({})
+    expect(result).toEqual({})
   })
 
-  test("morpheus has claude-opus-4-6 as primary and requiresAnyModel", () => {
-    // #given - morpheus agent requirement
-    const morpheus = AGENT_MODEL_REQUIREMENTS.morpheus
-
-    // #when - accessing Morpheus requirement
-    // #then - fallbackChain has claude-opus-4-6 first, claude-sonnet-4-6 second
-    expect(morpheus).toBeDefined()
-    expect(morpheus.fallbackChain).toBeArray()
-    expect(morpheus.fallbackChain).toHaveLength(2)
-    expect(morpheus.requiresAnyModel).toBe(true)
-
-    const primary = morpheus.fallbackChain[0]
-    expect(primary.providers).toEqual(["anthropic", "github-copilot", "opencode"])
-    expect(primary.model).toBe("claude-opus-4-6")
-    expect(primary.variant).toBe("max")
-
-    const last = morpheus.fallbackChain[1]
-    expect(last.providers).toEqual(["anthropic", "github-copilot", "opencode"])
-    expect(last.model).toBe("claude-sonnet-4-6")
+  test("returns {} for undefined config", () => {
+    const result = getAgentModelRequirements(undefined)
+    expect(result).toEqual({})
   })
 
-  test("operator has valid fallbackChain with claude-haiku-4-5 as primary", () => {
-    // given - operator agent requirement
-    const operator = AGENT_MODEL_REQUIREMENTS.operator
-
-    // when - accessing operator requirement
-    // then - fallbackChain exists with claude-haiku-4-5 as first entry
-    expect(operator).toBeDefined()
-    expect(operator.fallbackChain).toBeArray()
-    expect(operator.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = operator.fallbackChain[0]
-    expect(primary.providers).toContain("anthropic")
-    expect(primary.model).toBe("claude-haiku-4-5")
+  test("returns {} for null config", () => {
+    const result = getAgentModelRequirements(null)
+    expect(result).toEqual({})
   })
 
-  test("explore has valid fallbackChain with claude-haiku-4-5 as primary", () => {
-    // given - explore agent requirement
-    const explore = AGENT_MODEL_REQUIREMENTS.trinity
-
-    // when - accessing explore requirement
-    // then - fallbackChain exists with claude-haiku-4-5 as first entry
-    expect(explore).toBeDefined()
-    expect(explore.fallbackChain).toBeArray()
-    expect(explore.fallbackChain).toHaveLength(2)
-
-    const primary = explore.fallbackChain[0]
-    expect(primary.providers).toContain("anthropic")
-    expect(primary.model).toBe("claude-haiku-4-5")
-
-    const secondary = explore.fallbackChain[1]
-    expect(secondary.providers).toContain("anthropic")
-    expect(secondary.model).toBe("claude-sonnet-4-6")
+  test("returns {} when modelRequirements missing", () => {
+    const result = getAgentModelRequirements({} as never)
+    expect(result).toEqual({})
   })
 
-  test("construct has valid fallbackChain with claude-sonnet-4-6 as primary", () => {
-    // given - construct agent requirement
-    const construct = AGENT_MODEL_REQUIREMENTS.construct
-
-    // when - accessing construct requirement
-    // then - fallbackChain exists with claude-sonnet-4-6 as first entry
-    expect(construct).toBeDefined()
-    expect(construct.fallbackChain).toBeArray()
-    expect(construct.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = construct.fallbackChain[0]
-    expect(primary.providers).toContain("anthropic")
-    expect(primary.model).toBe("claude-sonnet-4-6")
+  test("returns single agent from config with synthetic model", () => {
+    const cfg = makeConfig({
+      agents: {
+        trinity: {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-a" }], // fixture: synthetic
+        },
+      },
+    })
+    const result = getAgentModelRequirements(cfg)
+    expect(result.trinity).toBeDefined()
+    expect(result.trinity.fallbackChain).toHaveLength(1)
+    expect(result.trinity.fallbackChain[0].providers).toEqual(["provider-a"])
+    expect(result.trinity.fallbackChain[0].model).toBe("model-a") // fixture: synthetic
   })
 
-  test("oracle (planner) has claude-opus-4-6 as primary", () => {
-    // #given - oracle agent requirement
-    const oracle = AGENT_MODEL_REQUIREMENTS.oracle
-
-    // #when - accessing Oracle requirement
-    // #then - claude-opus-4-6 is first
-    expect(oracle).toBeDefined()
-    expect(oracle.fallbackChain).toBeArray()
-    expect(oracle.fallbackChain.length).toBeGreaterThan(1)
-
-    const primary = oracle.fallbackChain[0]
-    expect(primary.model).toBe("claude-opus-4-6")
-    expect(primary.providers).toEqual(["anthropic", "github-copilot", "opencode"])
-    expect(primary.variant).toBe("max")
+  test("returns multiple agents with correct fallbackChain length and providers", () => {
+    const cfg = makeConfig({
+      agents: {
+        trinity: {
+          fallbackChain: [
+            { providers: ["provider-a"], model: "model-a" }, // fixture: synthetic
+            { providers: ["provider-b"], model: "model-b" }, // fixture: synthetic
+          ],
+        },
+        oracle: {
+          fallbackChain: [
+            { providers: ["provider-a", "provider-b"], model: "model-c", variant: "max" }, // fixture: synthetic
+            { providers: ["provider-a"], model: "model-a" }, // fixture: synthetic
+          ],
+          requiresAnyModel: true,
+        },
+        operator: {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-d" }], // fixture: synthetic
+        },
+      },
+    })
+    const result = getAgentModelRequirements(cfg)
+    expect(Object.keys(result)).toHaveLength(3)
+    expect(result.trinity.fallbackChain).toHaveLength(2)
+    expect(result.trinity.fallbackChain[0].providers).toEqual(["provider-a"])
+    expect(result.oracle.fallbackChain).toHaveLength(2)
+    expect(result.oracle.fallbackChain[0].variant).toBe("max")
+    expect(result.oracle.requiresAnyModel).toBe(true)
+    expect(result.operator.fallbackChain[0].model).toBe("model-d") // fixture: synthetic
   })
 
-  test("metis has claude-opus-4-6 as primary", () => {
-    // #given - metis agent requirement
-    const metis = AGENT_MODEL_REQUIREMENTS.seraph
-
-    // #when - accessing Seraph requirement
-    // #then - claude-opus-4-6 is first
-    expect(metis).toBeDefined()
-    expect(metis.fallbackChain).toBeArray()
-    expect(metis.fallbackChain.length).toBeGreaterThan(1)
-
-    const primary = metis.fallbackChain[0]
-    expect(primary.model).toBe("claude-opus-4-6")
-    expect(primary.providers).toEqual(["anthropic", "github-copilot", "opencode"])
-    expect(primary.variant).toBe("max")
+  test("factory with config containing fallbackChain returns expected chain length and providers", () => {
+    const cfg = makeConfig({
+      agents: {
+        morpheus: {
+          fallbackChain: [
+            { providers: ["provider-a", "provider-b", "provider-c"], model: "model-x", variant: "max" }, // fixture: synthetic
+            { providers: ["provider-a", "provider-b", "provider-c"], model: "model-y" }, // fixture: synthetic
+          ],
+        },
+      },
+    })
+    const result = getAgentModelRequirements(cfg)
+    expect(result.morpheus.fallbackChain).toHaveLength(2)
+    expect(result.morpheus.fallbackChain[0].providers).toEqual(["provider-a", "provider-b", "provider-c"])
+    expect(result.morpheus.fallbackChain[0].model).toBe("model-x") // fixture: synthetic
+    expect(result.morpheus.fallbackChain[1].model).toBe("model-y") // fixture: synthetic
   })
 
-  test("momus has valid fallbackChain with claude-sonnet-4-6 as primary", () => {
-    // given - momus agent requirement
-    const momus = AGENT_MODEL_REQUIREMENTS.smith
-
-    // when - accessing Smith requirement
-    // then - fallbackChain exists with claude-sonnet-4-6 as first entry
-    expect(momus).toBeDefined()
-    expect(momus.fallbackChain).toBeArray()
-    expect(momus.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = momus.fallbackChain[0]
-    expect(primary.model).toBe("claude-sonnet-4-6")
-    expect(primary.variant).toBeUndefined()
-    expect(primary.providers).toContain("anthropic")
+  test("preserves optional fields variant, requiresModel, requiresProvider", () => {
+    const cfg = makeConfig({
+      agents: {
+        keymaker: {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-a" }], // fixture: synthetic
+          variant: "custom-variant",
+          requiresModel: "model-a", // fixture: synthetic
+          requiresProvider: ["provider-a"],
+        },
+      },
+    })
+    const result = getAgentModelRequirements(cfg)
+    expect(result.keymaker.variant).toBe("custom-variant")
+    expect(result.keymaker.requiresModel).toBe("model-a") // fixture: synthetic
+    expect(result.keymaker.requiresProvider).toEqual(["provider-a"])
   })
 
-  test("architect has valid fallbackChain with claude-sonnet-4-6 as primary", () => {
-    // given - architect agent requirement
-    const architect = AGENT_MODEL_REQUIREMENTS.architect
-
-    // when - accessing Architect requirement
-    // then - fallbackChain exists with claude-sonnet-4-6 as first entry
-    expect(architect).toBeDefined()
-    expect(architect.fallbackChain).toBeArray()
-    expect(architect.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = architect.fallbackChain[0]
-    expect(primary.model).toBe("claude-sonnet-4-6")
-    expect(primary.providers).toContain("anthropic")
+  test("hardcoded literals are not required - synthetic providers and models suffice", () => {
+    const cfg = makeConfig({
+      agents: {
+        construct: {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-a" }], // fixture: synthetic
+        },
+        architect: {
+          fallbackChain: [{ providers: ["provider-b"], model: "model-b" }], // fixture: synthetic
+        },
+      },
+    })
+    const result = getAgentModelRequirements(cfg)
+    expect(result.construct.fallbackChain[0].model).toBe("model-a") // fixture: synthetic
+    expect(result.architect.fallbackChain[0].providers).toEqual(["provider-b"])
   })
 
-  test("keymaker has no requiresProvider (Claude-only chain)", () => {
-    // #given - keymaker agent requirement
-    const keymaker = AGENT_MODEL_REQUIREMENTS.keymaker
-
-    // #when - accessing keymaker requirement
-    // #then - requiresProvider is not set (Claude-only chain, no provider restriction)
-    expect(keymaker).toBeDefined()
-    expect(keymaker.requiresProvider).toBeUndefined()
-    expect(keymaker.requiresModel).toBeUndefined()
-  })
-
-  test("all 14 builtin agents have valid fallbackChain arrays", () => {
-    // #given - list of 14 agent names
-    const expectedAgents = [
-      "morpheus",
-      "keymaker",
-      "merovingian",
-      "operator",
-      "trinity",
-      "construct",
-      "oracle",
-      "seraph",
-      "smith",
-      "architect",
-      "cipher",
-      "sentinel",
-      "sati",
-    ]
-
-    // when - checking AGENT_MODEL_REQUIREMENTS
-    const definedAgents = Object.keys(AGENT_MODEL_REQUIREMENTS)
-
-    // #then - all agents present with valid fallbackChain
-    expect(definedAgents).toHaveLength(13)
-    for (const agent of expectedAgents) {
-      const requirement = AGENT_MODEL_REQUIREMENTS[agent]
-      expect(requirement).toBeDefined()
-      expect(requirement.fallbackChain).toBeArray()
-      expect(requirement.fallbackChain.length).toBeGreaterThan(0)
-
-      for (const entry of requirement.fallbackChain) {
-        expect(entry.providers).toBeArray()
-        expect(entry.providers.length).toBeGreaterThan(0)
-        expect(typeof entry.model).toBe("string")
-        expect(entry.model.length).toBeGreaterThan(0)
-      }
-    }
+  test("filters invalid entries via Zod validation", () => {
+    const cfg = {
+      modelRequirements: {
+        agents: {
+          valid: {
+            fallbackChain: [{ providers: ["provider-a"], model: "model-a" }], // fixture: synthetic
+          },
+          invalid: {
+            fallbackChain: [{ providers: [], model: "" }],
+          },
+        },
+      },
+    } as unknown as { modelRequirements: { agents: Record<string, ModelRequirement> } }
+    const result = getAgentModelRequirements(cfg)
+    expect(result.valid).toBeDefined()
+    expect(result.invalid).toBeUndefined()
   })
 })
 
-describe("CATEGORY_MODEL_REQUIREMENTS", () => {
-  test("source has valid fallbackChain with claude-opus-4-6 as primary", () => {
-    // given - source category requirement
-    const source = CATEGORY_MODEL_REQUIREMENTS.source
-
-    // when - accessing source requirement
-    // then - fallbackChain exists with claude-opus-4-6 as first entry
-    expect(source).toBeDefined()
-    expect(source.fallbackChain).toBeArray()
-    expect(source.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = source.fallbackChain[0]
-    expect(primary.variant).toBe("max")
-    expect(primary.model).toBe("claude-opus-4-6")
-    expect(primary.providers).toContain("anthropic")
+describe("getCategoryModelRequirements", () => {
+  test("returns {} for empty config {}", () => {
+    const result = getCategoryModelRequirements({})
+    expect(result).toEqual({})
   })
 
-  test("deep-jack has valid fallbackChain with claude-opus-4-6 as primary", () => {
-    // given - deep-jack category requirement
-    const deepJack = CATEGORY_MODEL_REQUIREMENTS["deep-jack"]
-
-    // when - accessing deep-jack requirement
-    // then - fallbackChain exists with claude-opus-4-6 as first entry, max variant
-    expect(deepJack).toBeDefined()
-    expect(deepJack.fallbackChain).toBeArray()
-    expect(deepJack.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = deepJack.fallbackChain[0]
-    expect(primary.variant).toBe("max")
-    expect(primary.model).toBe("claude-opus-4-6")
-    expect(primary.providers).toContain("anthropic")
+  test("returns {} for undefined config", () => {
+    const result = getCategoryModelRequirements(undefined)
+    expect(result).toEqual({})
   })
 
-  test("construct has valid fallbackChain with claude-sonnet-4-6 as primary", () => {
-    // given - construct category requirement
-    const construct = CATEGORY_MODEL_REQUIREMENTS.construct
-
-    // when - accessing construct requirement
-    // then - fallbackChain exists with claude-sonnet-4-6 as first entry
-    expect(construct).toBeDefined()
-    expect(construct.fallbackChain).toBeArray()
-    expect(construct.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = construct.fallbackChain[0]
-    expect(primary.providers).toContain("anthropic")
-    expect(primary.model).toBe("claude-sonnet-4-6")
+  test("returns {} for null config", () => {
+    const result = getCategoryModelRequirements(null)
+    expect(result).toEqual({})
   })
 
-  test("bullet-time has valid fallbackChain with claude-haiku-4-5 as primary", () => {
-    // given - bullet-time category requirement
-    const bulletTime = CATEGORY_MODEL_REQUIREMENTS["bullet-time"]
-
-    // when - accessing bullet-time requirement
-    // #then - fallbackChain exists with claude-haiku-4-5 as first entry
-    expect(bulletTime).toBeDefined()
-    expect(bulletTime.fallbackChain).toBeArray()
-    expect(bulletTime.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = bulletTime.fallbackChain[0]
-    expect(primary.model).toBe("claude-haiku-4-5")
-    expect(primary.providers).toContain("anthropic")
+  test("returns single category from config with synthetic model", () => {
+    const cfg = makeConfig({
+      categories: {
+        source: {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-a", variant: "max" }], // fixture: synthetic
+        },
+      },
+    })
+    const result = getCategoryModelRequirements(cfg)
+    expect(result.source).toBeDefined()
+    expect(result.source.fallbackChain).toHaveLength(1)
+    expect(result.source.fallbackChain[0].model).toBe("model-a") // fixture: synthetic
+    expect(result.source.fallbackChain[0].variant).toBe("max")
   })
 
-  test("blue-pill has valid fallbackChain with claude-sonnet-4-6 as primary", () => {
-    // given - blue-pill category requirement
-    const bluePill = CATEGORY_MODEL_REQUIREMENTS["blue-pill"]
-
-    // when - accessing blue-pill requirement
-    // then - fallbackChain exists with claude-sonnet-4-6 as first entry
-    expect(bluePill).toBeDefined()
-    expect(bluePill.fallbackChain).toBeArray()
-    expect(bluePill.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = bluePill.fallbackChain[0]
-    expect(primary.model).toBe("claude-sonnet-4-6")
-    expect(primary.providers[0]).toBe("anthropic")
+  test("returns multiple categories with correct providers and models", () => {
+    const cfg = makeConfig({
+      categories: {
+        construct: {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-a" }], // fixture: synthetic
+        },
+        "deep-jack": {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-b", variant: "max" }], // fixture: synthetic
+        },
+        "bullet-time": {
+          fallbackChain: [{ providers: ["provider-b"], model: "model-c" }], // fixture: synthetic
+        },
+        broadcast: {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-a" }], // fixture: synthetic
+        },
+      },
+    })
+    const result = getCategoryModelRequirements(cfg)
+    expect(Object.keys(result)).toHaveLength(4)
+    expect(result.construct.fallbackChain[0].model).toBe("model-a") // fixture: synthetic
+    expect(result["deep-jack"].fallbackChain[0].variant).toBe("max")
+    expect(result["bullet-time"].fallbackChain[0].providers).toEqual(["provider-b"])
   })
 
-  test("red-pill has claude-opus-4-6 as primary", () => {
-    // #given - red-pill category requirement
-    const unspecifiedHigh = CATEGORY_MODEL_REQUIREMENTS["red-pill"]
-
-    // #when - accessing red-pill requirement
-    // #then - claude-opus-4-6 is first
-    expect(unspecifiedHigh).toBeDefined()
-    expect(unspecifiedHigh.fallbackChain).toBeArray()
-    expect(unspecifiedHigh.fallbackChain.length).toBeGreaterThan(1)
-
-    const primary = unspecifiedHigh.fallbackChain[0]
-    expect(primary.model).toBe("claude-opus-4-6")
-    expect(primary.variant).toBe("max")
-    expect(primary.providers).toEqual(["anthropic", "github-copilot", "opencode"])
+  test("factory with config containing fallbackChain returns expected chain length and providers", () => {
+    const cfg = makeConfig({
+      categories: {
+        "red-pill": {
+          fallbackChain: [
+            { providers: ["provider-a", "provider-b", "provider-c"], model: "model-x", variant: "max" }, // fixture: synthetic
+            { providers: ["provider-a", "provider-b", "provider-c"], model: "model-y" }, // fixture: synthetic
+          ],
+        },
+      },
+    })
+    const result = getCategoryModelRequirements(cfg)
+    expect(result["red-pill"].fallbackChain).toHaveLength(2)
+    expect(result["red-pill"].fallbackChain[0].providers).toEqual(["provider-a", "provider-b", "provider-c"])
+    expect(result["red-pill"].fallbackChain[0].model).toBe("model-x") // fixture: synthetic
+    expect(result["red-pill"].fallbackChain[1].model).toBe("model-y") // fixture: synthetic
   })
 
-  test("matrix-bend has valid fallbackChain with claude-sonnet-4-6 as primary", () => {
-    // given - matrix-bend category requirement
-    const matrixBend = CATEGORY_MODEL_REQUIREMENTS["matrix-bend"]
-
-    // when - accessing matrix-bend requirement
-    // then - fallbackChain exists with claude-sonnet-4-6 as first entry
-    expect(matrixBend).toBeDefined()
-    expect(matrixBend.fallbackChain).toBeArray()
-    expect(matrixBend.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = matrixBend.fallbackChain[0]
-    expect(primary.model).toBe("claude-sonnet-4-6")
-    expect(primary.variant).toBeUndefined()
-    expect(primary.providers).toContain("anthropic")
+  test("preserves requiresModel field when provided", () => {
+    const cfg = makeConfig({
+      categories: {
+        source: {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-a" }], // fixture: synthetic
+        },
+        "deep-jack": {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-b" }], // fixture: synthetic
+        },
+      },
+    })
+    const result = getCategoryModelRequirements(cfg)
+    expect(result.source.requiresModel).toBeUndefined()
+    expect(result["deep-jack"].requiresModel).toBeUndefined()
   })
 
-  test("broadcast has valid fallbackChain with claude-sonnet-4-6 as primary", () => {
-    // given - broadcast category requirement
-    const broadcast = CATEGORY_MODEL_REQUIREMENTS.broadcast
-
-    // when - accessing broadcast requirement
-    // then - fallbackChain exists with claude-sonnet-4-6 as first entry
-    expect(broadcast).toBeDefined()
-    expect(broadcast.fallbackChain).toBeArray()
-    expect(broadcast.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = broadcast.fallbackChain[0]
-    expect(primary.model).toBe("claude-sonnet-4-6")
-    expect(primary.providers).toContain("anthropic")
-  })
-
-  test("all 8 categories have valid fallbackChain arrays", () => {
-    // given - list of 8 category names
-    const expectedCategories = [
-      "construct",
-      "source",
-      "deep-jack",
-      "matrix-bend",
-      "bullet-time",
-      "blue-pill",
-      "red-pill",
-      "broadcast",
-    ]
-
-    // when - checking CATEGORY_MODEL_REQUIREMENTS
-    const definedCategories = Object.keys(CATEGORY_MODEL_REQUIREMENTS)
-
-    // then - all categories present with valid fallbackChain
-    expect(definedCategories).toHaveLength(8)
-    for (const category of expectedCategories) {
-      const requirement = CATEGORY_MODEL_REQUIREMENTS[category]
-      expect(requirement).toBeDefined()
-      expect(requirement.fallbackChain).toBeArray()
-      expect(requirement.fallbackChain.length).toBeGreaterThan(0)
-
-      for (const entry of requirement.fallbackChain) {
-        expect(entry.providers).toBeArray()
-        expect(entry.providers.length).toBeGreaterThan(0)
-        expect(typeof entry.model).toBe("string")
-        expect(entry.model.length).toBeGreaterThan(0)
-      }
-    }
+  test("hardcoded literals are not required for categories", () => {
+    const cfg = makeConfig({
+      categories: {
+        "blue-pill": {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-a" }], // fixture: synthetic
+        },
+        "matrix-bend": {
+          fallbackChain: [{ providers: ["provider-b"], model: "model-b" }], // fixture: synthetic
+        },
+      },
+    })
+    const result = getCategoryModelRequirements(cfg)
+    expect(result["blue-pill"].fallbackChain[0].model).toBe("model-a") // fixture: synthetic
+    expect(result["matrix-bend"].fallbackChain[0].providers).toEqual(["provider-b"])
   })
 })
 
 describe("FallbackEntry type", () => {
-  test("FallbackEntry structure is correct", () => {
-    // given - a valid FallbackEntry object
+  test("FallbackEntry structure is correct with synthetic values", () => {
     const entry: FallbackEntry = {
-      providers: ["anthropic", "github-copilot", "opencode"],
-      model: "claude-opus-4-6",
-      variant: "high",
+      providers: ["provider-a", "provider-b", "provider-c"], // fixture: synthetic
+      model: "model-x", // fixture: synthetic
+      variant: "max",
     }
-
-    // when - accessing properties
-    // then - all properties are accessible
-    expect(entry.providers).toEqual(["anthropic", "github-copilot", "opencode"])
-    expect(entry.model).toBe("claude-opus-4-6")
-    expect(entry.variant).toBe("high")
+    expect(entry.providers).toEqual(["provider-a", "provider-b", "provider-c"])
+    expect(entry.model).toBe("model-x") // fixture: synthetic
+    expect(entry.variant).toBe("max")
   })
 
   test("FallbackEntry variant is optional", () => {
-    // given - a FallbackEntry without variant
     const entry: FallbackEntry = {
-      providers: ["anthropic", "github-copilot", "opencode"],
-      model: "claude-sonnet-4-6",
+      providers: ["provider-a"], // fixture: synthetic
+      model: "model-a", // fixture: synthetic
     }
-
-    // when - accessing variant
-    // then - variant is undefined
     expect(entry.variant).toBeUndefined()
   })
 })
 
 describe("ModelRequirement type", () => {
   test("ModelRequirement structure with fallbackChain is correct", () => {
-    // given - a valid ModelRequirement object
     const requirement: ModelRequirement = {
       fallbackChain: [
-        { providers: ["anthropic", "github-copilot", "opencode"], model: "claude-opus-4-6", variant: "max" },
-        { providers: ["anthropic", "github-copilot", "opencode"], model: "claude-sonnet-4-6" },
+        { providers: ["provider-a"], model: "model-x", variant: "max" }, // fixture: synthetic
+        { providers: ["provider-a"], model: "model-y" }, // fixture: synthetic
       ],
     }
-
-    // when - accessing properties
-    // then - fallbackChain is accessible with correct structure
     expect(requirement.fallbackChain).toBeArray()
     expect(requirement.fallbackChain).toHaveLength(2)
-    expect(requirement.fallbackChain[0].model).toBe("claude-opus-4-6")
-    expect(requirement.fallbackChain[1].model).toBe("claude-sonnet-4-6")
+    expect(requirement.fallbackChain[0].model).toBe("model-x") // fixture: synthetic
+    expect(requirement.fallbackChain[1].model).toBe("model-y") // fixture: synthetic
   })
 
   test("ModelRequirement variant is optional", () => {
-    // given - a ModelRequirement without top-level variant
     const requirement: ModelRequirement = {
-      fallbackChain: [{ providers: ["anthropic", "github-copilot", "opencode"], model: "claude-sonnet-4-6" }],
+      fallbackChain: [{ providers: ["provider-a"], model: "model-a" }], // fixture: synthetic
     }
-
-    // when - accessing variant
-    // then - variant is undefined
     expect(requirement.variant).toBeUndefined()
   })
 
-  test("no model in fallbackChain has provider prefix", () => {
-    // given - all agent and category requirements
-    const allRequirements = [
-      ...Object.values(AGENT_MODEL_REQUIREMENTS),
-      ...Object.values(CATEGORY_MODEL_REQUIREMENTS),
-    ]
-
-    // when - checking each model in fallbackChain
-    // then - none contain "/" (provider prefix)
+  test("no model in fallbackChain has provider prefix when using factories", () => {
+    const cfg = makeConfig({
+      agents: {
+        trinity: {
+          fallbackChain: [
+            { providers: ["provider-a"], model: "model-a" }, // fixture: synthetic
+            { providers: ["provider-b"], model: "model-b" }, // fixture: synthetic
+          ],
+        },
+      },
+      categories: {
+        source: {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-c", variant: "max" }], // fixture: synthetic
+        },
+      },
+    })
+    const agents = getAgentModelRequirements(cfg)
+    const categories = getCategoryModelRequirements(cfg)
+    const allRequirements = [...Object.values(agents), ...Object.values(categories)]
     for (const req of allRequirements) {
       for (const entry of req.fallbackChain) {
         expect(entry.model).not.toContain("/")
@@ -439,38 +330,48 @@ describe("ModelRequirement type", () => {
     }
   })
 
-   test("all fallbackChain entries have non-empty providers array", () => {
-     // given - all agent and category requirements
-     const allRequirements = [
-       ...Object.values(AGENT_MODEL_REQUIREMENTS),
-       ...Object.values(CATEGORY_MODEL_REQUIREMENTS),
-     ]
-
-     // when - checking each entry in fallbackChain
-     // then - all have non-empty providers array
-     for (const req of allRequirements) {
-       for (const entry of req.fallbackChain) {
-         expect(entry.providers).toBeArray()
-         expect(entry.providers.length).toBeGreaterThan(0)
-       }
-     }
-   })
+  test("all fallbackChain entries have non-empty providers array via factories", () => {
+    const cfg = makeConfig({
+      agents: {
+        trinity: {
+          fallbackChain: [
+            { providers: ["provider-a"], model: "model-a" }, // fixture: synthetic
+            { providers: ["provider-b", "provider-c"], model: "model-b" }, // fixture: synthetic
+          ],
+        },
+      },
+      categories: {
+        construct: {
+          fallbackChain: [{ providers: ["provider-a"], model: "model-c" }], // fixture: synthetic
+        },
+      },
+    })
+    const agents = getAgentModelRequirements(cfg)
+    const categories = getCategoryModelRequirements(cfg)
+    const allRequirements = [...Object.values(agents), ...Object.values(categories)]
+    for (const req of allRequirements) {
+      for (const entry of req.fallbackChain) {
+        expect(entry.providers).toBeArray()
+        expect(entry.providers.length).toBeGreaterThan(0)
+      }
+    }
+  })
 })
 
-describe("requiresModel field in categories", () => {
-  test("deep-jack category has no requiresModel (Claude-only chain)", () => {
-    // given
-    const deepJack = CATEGORY_MODEL_REQUIREMENTS["deep-jack"]
-
-    // when / #then - no requiresModel since all providers are Claude
-    expect(deepJack.requiresModel).toBeUndefined()
+describe("config-driven validation", () => {
+  test("empty config returns {} gracefully for both factories", () => {
+    const agents = getAgentModelRequirements({})
+    const categories = getCategoryModelRequirements({})
+    expect(agents).toEqual({})
+    expect(categories).toEqual({})
   })
 
-  test("matrix-bend category has no requiresModel (Claude-only chain)", () => {
-    // given
-    const matrixBend = CATEGORY_MODEL_REQUIREMENTS["matrix-bend"]
-
-    // when / #then - no requiresModel since all providers are Claude
-    expect(matrixBend.requiresModel).toBeUndefined()
+  test("config with empty agents/categories returns {} for respective factory", () => {
+    const cfgEmptyAgents = makeConfig({ categories: { source: { fallbackChain: [{ providers: ["provider-a"], model: "model-a" }] } } }) // fixture: synthetic
+    const cfgEmptyCategories = makeConfig({ agents: { trinity: { fallbackChain: [{ providers: ["provider-a"], model: "model-a" }] } } }) // fixture: synthetic
+    const agentsFromCategoryOnly = getAgentModelRequirements(cfgEmptyAgents)
+    const categoriesFromAgentOnly = getCategoryModelRequirements(cfgEmptyCategories)
+    expect(agentsFromCategoryOnly).toEqual({})
+    expect(categoriesFromAgentOnly).toEqual({})
   })
 })

@@ -1,12 +1,12 @@
 import { resolvePromptAppend } from "../agents/builtin-agents/resolve-file-uri";
 import { ORACLE_PERMISSION, ORACLE_SYSTEM_PROMPT } from "../agents/oracle";
-import type { CategoryConfig } from "../config/schema";
+import type { CategoryConfig, ModelRequirements } from "../config/schema";
 import {
   fetchAvailableModels,
   readConnectedProvidersCache,
   resolveModelPipeline,
 } from "../shared";
-import { AGENT_MODEL_REQUIREMENTS } from "../shared/model-requirements";
+import { getAgentModelRequirements } from "../shared/model-requirements";
 import { resolveCategoryConfig } from "./category-config-resolver";
 
 type OracleOverride = Record<string, unknown> & {
@@ -28,12 +28,14 @@ export async function buildOracleAgentConfig(params: {
   userCategories: Record<string, CategoryConfig> | undefined;
   currentModel: string | undefined;
   globalOverrideModel?: string;
+  modelRequirements?: ModelRequirements;
 }): Promise<Record<string, unknown>> {
   const categoryConfig = params.pluginOracleOverride?.category
     ? resolveCategoryConfig(params.pluginOracleOverride.category, params.userCategories)
     : undefined;
 
-  const requirement = AGENT_MODEL_REQUIREMENTS.oracle;
+  const agentRequirements = getAgentModelRequirements(params.modelRequirements ? { modelRequirements: params.modelRequirements } : undefined)
+  const requirement = agentRequirements.oracle;
   const connectedProviders = readConnectedProvidersCache();
   const availableModels = await fetchAvailableModels(undefined, {
     connectedProviders: connectedProviders ?? undefined,

@@ -152,6 +152,7 @@ export async function applyAgentConfig(params: {
         userCategories: params.pluginConfig.categories,
         currentModel,
         globalOverrideModel: params.pluginConfig.global_model,
+        modelRequirements: params.pluginConfig.modelRequirements,
       });
     }
 

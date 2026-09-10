@@ -1,6 +1,6 @@
 import type { AgentConfig } from "@opencode-ai/sdk"
 import type { BrowserAutomationProvider, CategoryConfig } from "../../config/schema"
-import { AGENT_MODEL_REQUIREMENTS, isModelAvailable } from "../../shared"
+import { getAgentModelRequirements, isModelAvailable } from "../../shared"
 import type { ModelRequirement } from "../../shared/model-requirements"
 import { buildAgent, isFactory } from "../agent-builder"
 import type { AvailableAgent } from "../dynamic-agent-prompt-builder"
@@ -53,7 +53,8 @@ export function collectPendingBuiltinAgents(input: {
 
     const override = agentOverrides[agentName]
       ?? Object.entries(agentOverrides).find(([key]) => key.toLowerCase() === agentName.toLowerCase())?.[1]
-    const baseRequirement = AGENT_MODEL_REQUIREMENTS[agentName]
+    const agentRequirements = getAgentModelRequirements()
+    const baseRequirement = agentRequirements[agentName]
     const requirement: ModelRequirement | undefined = override?.fallbackChain
       ? { ...baseRequirement, fallbackChain: override.fallbackChain }
       : baseRequirement

@@ -489,12 +489,12 @@ Scenario: Prefixed model migration warns but does not fail
 
 **Acceptance Criteria**:
 
-- [ ] `src/shared/model-requirements.ts` contains 0 lines with `claude-` or `anthropic` (verify `rg -n "claude-|anthropic" src/shared/model-requirements.ts` → 0)
-- [ ] Exports `getAgentModelRequirements` + `getCategoryModelRequirements` factories (or single `getModelRequirements`)
-- [ ] `rg -n "AGENT_MODEL_REQUIREMENTS|CATEGORY_MODEL_REQUIREMENTS" src/ --no-heading` → either 0 (if fully renamed) or only `get*` definitions + test fixtures marked `// fixture`
-- [ ] Callers updated to use factory with config injection
-- [ ] `bun run typecheck` → PASS
-- [ ] `bun test tests/shared/model-requirements.test.ts` → PASS (new config-empty test)
+- [x] `src/shared/model-requirements.ts` contains 0 lines with `claude-` or `anthropic` (verify `rg -n "claude-|anthropic" src/shared/model-requirements.ts` → 0)
+- [x] Exports `getAgentModelRequirements` + `getCategoryModelRequirements` factories (or single `getModelRequirements`)
+- [x] `rg -n "AGENT_MODEL_REQUIREMENTS|CATEGORY_MODEL_REQUIREMENTS" src/ --no-heading` → either 0 (if fully renamed) or only `get*` definitions + test fixtures marked `// fixture`
+- [x] Callers updated to use factory with config injection
+- [x] `bun run typecheck` → PASS
+- [x] `bun test tests/shared/model-requirements.test.ts` → PASS (new config-empty test)
 
 **Agent-Executed QA Scenarios**:
 
@@ -1308,7 +1308,7 @@ grep -c "ProviderModelNotFoundError" /tmp/matrixx.log || echo 0  # Expected: 0
 
 ### Wave 2 (After Wave 1 Completes — 4 tasks parallel)
 
-- [ ] Task 3: Refactor `src/shared/model-requirements.ts` — factory from config, no literals
+- [x] Task 3: Refactor `src/shared/model-requirements.ts` — factory from config, no literals
 - [ ] Task 4: Refactor `src/shared/model-tiers.ts` — factory from config, no `staticFallback` literals
 - [ ] Task 5: Delete `BUILTIN_COMPLEXITY_DOWNGRADES` literals (`src/tools/delegate-task/complexity-constants.ts`)
 - [ ] Task 6: Audit `model-availability.ts` + unify `parseModelString` duplicates

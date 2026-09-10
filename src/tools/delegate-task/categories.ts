@@ -1,7 +1,7 @@
-import type { CategoriesConfig, CategoryConfig } from "../../config/schema"
+import type { CategoriesConfig, CategoryConfig, ModelRequirements } from "../../config/schema"
 import { log } from "../../shared/logger"
 import { isModelAvailable } from "../../shared/model-availability"
-import { CATEGORY_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
+import { getCategoryModelRequirements } from "../../shared/model-requirements"
 import { normalizeModel } from "../../shared/model-resolution-pipeline"
 import type { TierResolverContext } from "../../shared/tier-resolver"
 import { resolveTier } from "../../shared/tier-resolver"
@@ -13,6 +13,7 @@ interface ResolveCategoryConfigOptions {
   systemDefaultModel?: string
   availableModels?: Set<string>
   tierContext?: TierResolverContext
+  modelRequirements?: ModelRequirements
 }
 
 interface ResolveCategoryConfigResult {
@@ -35,7 +36,7 @@ export function resolveCategoryConfig(
   categoryName: string,
   options: ResolveCategoryConfigOptions
 ): ResolveCategoryConfigResult | null {
-  const { userCategories, inheritedModel: _inheritedModel, systemDefaultModel, availableModels, tierContext } = options
+  const { userCategories, inheritedModel: _inheritedModel, systemDefaultModel, availableModels, tierContext, modelRequirements } = options
 
   const defaultConfig = DEFAULT_CATEGORIES[categoryName]
   const userConfig = userCategories?.[categoryName]
@@ -45,7 +46,8 @@ export function resolveCategoryConfig(
     return null
   }
 
-  const categoryReq = CATEGORY_MODEL_REQUIREMENTS[categoryName]
+  const categoryRequirements = getCategoryModelRequirements(modelRequirements ? { modelRequirements } : undefined)
+  const categoryReq = categoryRequirements[categoryName]
   if (categoryReq?.requiresModel && availableModels && !hasExplicitUserConfig) {
     if (!isModelAvailable(categoryReq.requiresModel, availableModels)) {
       log(`[resolveCategoryConfig] Category ${categoryName} requires ${categoryReq.requiresModel} but not available`)

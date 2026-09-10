@@ -3,7 +3,7 @@ import type {
   AvailableCategory,
   AvailableSkill,
 } from "../../agents/dynamic-agent-prompt-builder"
-import type { AgentOverrides, BrowserAutomationProvider, CategoriesConfig } from "../../config/schema"
+import type { AgentOverrides, BrowserAutomationProvider, CategoriesConfig, ModelRequirements } from "../../config/schema"
 import type { BackgroundManager } from "../../features/background-agent"
 
 export type OpencodeClient = PluginInput["client"]
@@ -75,6 +75,7 @@ export interface DelegateTaskToolOptions {
   availableCategories?: AvailableCategory[]
   availableSkills?: AvailableSkill[]
   agentOverrides?: AgentOverrides
+  modelRequirements?: ModelRequirements
   onSyncSessionCreated?: (event: SyncSessionCreatedEvent) => Promise<void>
 }
 
