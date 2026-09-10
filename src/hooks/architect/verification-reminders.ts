@@ -30,7 +30,7 @@ ${buildVerificationReminder(sessionId)}
 
 The subagent was instructed to record findings in notepad files. Read them NOW:
 \`\`\`
-Glob(".matrixx/notepads/${planName}/*.md")
+Glob(".matrixx/notepads/${planName}/*.md") (if Glob is unavailable, Read each known notepad file directly)
 \`\`\`
 Then \`Read\` each file found — especially:
 - **learnings.md**: Patterns, conventions, successful approaches discovered

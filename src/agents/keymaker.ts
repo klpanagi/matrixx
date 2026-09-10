@@ -13,6 +13,7 @@ import {
   buildOracleSection,
   buildToolSelectionTable,
   categorizeTools,
+  hasGrepGlobToolNames,
 } from "./dynamic-agent-prompt-builder"
 import type { AgentMode } from "./types"
 
@@ -125,7 +126,8 @@ function buildKeymakerPrompt(
   const hardBlocks = buildHardBlocksSection()
   const antiPatterns = buildAntiPatternsSection()
   const hasContextMode = availableTools.some((t) => t.name.startsWith("ctx_"))
-  const contextDiscipline = buildContextDisciplineSection(hasContextMode)
+  const hasGrepGlob = hasGrepGlobToolNames(availableTools.map((t) => t.name))
+  const contextDiscipline = buildContextDisciplineSection(hasContextMode, hasGrepGlob)
   const hasHeadroom = availableTools.some((t) => t.name.startsWith("headroom_"))
   const headroomDiscipline = buildHeadroomSection(hasHeadroom)
   const todoDiscipline = buildTodoDisciplineSection(useTaskSystem)

@@ -114,8 +114,8 @@ Your response has **FAILED** if:
 Use the right tool for the job:
 - **Semantic search** (definitions, references): LSP tools
 - **Structural patterns** (function shapes, class structures): ast_grep_search  
-- **Text patterns** (strings, comments, logs): grep
-- **File patterns** (find by name/extension): glob
+- **Text patterns** (strings, comments, logs): grep (if available; otherwise ctx_search / ast_grep_search)
+- **File patterns** (find by name/extension): glob (if available; otherwise ctx_search / LSP)
 - **History/evolution** (when added, who changed): git commands
 
 Flood with parallel calls. Cross-validate findings across multiple tools.`,

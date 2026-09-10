@@ -3,6 +3,7 @@ import {
   buildCompactContextDisciplineSection,
   buildExploreDisciplineSection,
   buildHeadroomSection,
+  hasGrepGlobToolNames,
 } from "../agents/dynamic-agent-prompt-builder";
 import { createMouseAgentWithOverrides } from "../agents/mouse";
 import type { MatrixxConfig } from "../config";
@@ -29,6 +30,7 @@ export function injectContextDiscipline(
   const hasContextMode = availableToolNames.some((n) => n.startsWith("ctx_"));
   const hasHeadroom = availableToolNames.some((n) => n.startsWith("headroom_"));
   if (!(hasContextMode || hasHeadroom)) return;
+  const hasGrepGlob = hasGrepGlobToolNames(availableToolNames);
   const exploreAgents = new Set(["trinity", "operator", "seraph", "smith", "merovingian", "construct", "bdd-contract"]);
   for (const [name, cfg] of Object.entries(agents)) {
     if (name === "morpheus" || name === "keymaker") continue;
@@ -37,9 +39,9 @@ export function injectContextDiscipline(
     const normalized = name.toLowerCase();
     let discipline = "";
     if (exploreAgents.has(normalized) || normalized === "oracle") {
-      discipline = buildExploreDisciplineSection(hasContextMode, hasHeadroom);
+      discipline = buildExploreDisciplineSection(hasContextMode, hasHeadroom, hasGrepGlob);
     } else {
-      const compact = buildCompactContextDisciplineSection(hasContextMode);
+      const compact = buildCompactContextDisciplineSection(hasContextMode, hasGrepGlob);
       const headroom = buildHeadroomSection(hasHeadroom);
       discipline = [compact, headroom].filter(Boolean).join("\n\n");
     }

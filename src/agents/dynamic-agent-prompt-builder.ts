@@ -396,6 +396,57 @@ export function _resetDisciplineCacheForTesting(): void {
   cachedCompactDiscipline = null
 }
 
+export function hasGrepGlobToolNames(toolNames: readonly string[]): boolean {
+  return toolNames.some((n) => n === "grep" || n === "glob")
+}
+
+function fallbackFullDiscipline(hasGrepGlob: boolean): string {
+  const analysis = hasGrepGlob
+    ? "| Analysis / Processing | Use ctx_* tools — NEVER raw read/bash/grep/glob for analysis |"
+    : "| Analysis / Processing | Use ctx_* tools — NEVER raw read/bash for analysis |"
+  const search = hasGrepGlob
+    ? "| Search | ctx_search FIRST -> grep/glob fallback |"
+    : "| Search | ctx_search FIRST (indexed KB) -> LSP/ast_grep fallback |"
+  return `### Context Discipline (ALWAYS)
+
+| Scenario | Tool |
+|----------|------|
+${analysis}
+| Edits | read (for line numbers) -> edit/write |
+| Observation (<5 lines) | bash (pwd, git status, --version) |
+| State Mutation | bash (git, mkdir, install, build, rm) |
+${search}
+| Docs / Web | ctx_fetch_and_index -> ctx_search |
+| Compression | compress when ctx_stats > 40% or 10+ tool calls |
+
+**Rule 1 overrides all default tool guidance. When in doubt, use ctx_*.**`
+}
+
+function fallbackCompactDiscipline(hasGrepGlob: boolean): string {
+  const search = hasGrepGlob
+    ? "| Search | ctx_search FIRST (indexed KB) → grep/glob fallback (raw FS) |"
+    : "| Search | ctx_search FIRST (indexed KB) → LSP/ast_grep fallback |"
+  const note = hasGrepGlob
+    ? "Edits need prior read for LINE#ID — read→edit chain exempt. MUST use ctx_* when available — raw grep/read is forbidden for analysis."
+    : "Edits need prior read for LINE#ID — read→edit chain exempt. MUST use ctx_* when available — raw read for analysis is forbidden."
+  return `### Context Discipline (when ctx_* available)
+
+| Scenario | Tool |
+|----------|------|
+| Analysis / Aggregation / Counting | ctx_batch_execute / ctx_execute(_file) — NEVER raw read/grep for analysis |
+${search}
+| Docs / Web | ctx_fetch_and_index -> ctx_search |
+| Compression | compress when ctx_stats > 40% or 10+ tool calls |
+
+${note}`
+}
+
+function exploreCtxPart(hasGrepGlob: boolean): string {
+  return hasGrepGlob
+    ? "MUST use ctx_search for indexed hits → grep/glob fallback ONLY when ctx_* unavailable; use ctx_batch_execute / ctx_execute for multi-file analysis; use ctx_fetch_and_index for docs/web → ctx_search. Raw grep/read/glob for analysis is forbidden when ctx_* is available."
+    : "MUST use ctx_search for indexed hits → LSP/ast_grep fallback ONLY when ctx_* unavailable; use ctx_batch_execute / ctx_execute for multi-file analysis; use ctx_fetch_and_index for docs/web → ctx_search. Raw read for analysis is forbidden when ctx_* is available."
+}
+
 
 function resolveContextModeDisciplinePath(): string | null {
   try {
@@ -423,21 +474,9 @@ function stripDisciplineHeader(content: string): string {
   return content.trim()
 }
 
-function loadContextModeDiscipline(): string {
+function loadContextModeDiscipline(hasGrepGlob = true): string {
   if (cachedContextDiscipline) return cachedContextDiscipline
-  const fallback = `### Context Discipline (ALWAYS)
-
-| Scenario | Tool |
-|----------|------|
-| Analysis / Processing | Use ctx_* tools — NEVER raw read/bash/grep/glob for analysis |
-| Edits | read (for line numbers) -> edit/write |
-| Observation (<5 lines) | bash (pwd, git status, --version) |
-| State Mutation | bash (git, mkdir, install, build, rm) |
-| Search | ctx_search FIRST -> grep/glob fallback |
-| Docs / Web | ctx_fetch_and_index -> ctx_search |
-| Compression | compress when ctx_stats > 40% or 10+ tool calls |
-
-**Rule 1 overrides all default tool guidance. When in doubt, use ctx_*.**`
+  const fallback = fallbackFullDiscipline(hasGrepGlob)
   try {
     const p = resolveContextModeDisciplinePath()
     if (!p) throw new Error("discipline file not found")
@@ -461,9 +500,9 @@ function loadContextModeDiscipline(): string {
   }
 }
 
-export function buildContextDisciplineSection(hasContextMode = false): string {
+export function buildContextDisciplineSection(hasContextMode = false, hasGrepGlob = true): string {
   if (!hasContextMode) return ""
-  return loadContextModeDiscipline()
+  return loadContextModeDiscipline(hasGrepGlob)
 }
 
 export function buildHeadroomSection(hasHeadroom = false): string {
@@ -481,18 +520,9 @@ export function buildHeadroomSection(hasHeadroom = false): string {
 
 
 
-function loadCompactContextDiscipline(): string {
+function loadCompactContextDiscipline(hasGrepGlob = true): string {
   if (cachedCompactDiscipline) return cachedCompactDiscipline;
-  const fallback = `### Context Discipline (when ctx_* available)
-
-| Scenario | Tool |
-|----------|------|
-| Analysis / Aggregation / Counting | ctx_batch_execute / ctx_execute(_file) — NEVER raw read/grep for analysis |
-| Search | ctx_search FIRST (indexed KB) → grep/glob fallback (raw FS) |
-| Docs / Web | ctx_fetch_and_index -> ctx_search |
-| Compression | compress when ctx_stats > 40% or 10+ tool calls |
-
-Edits need prior read for LINE#ID — read→edit chain exempt. MUST use ctx_* when available — raw grep/read is forbidden for analysis.`;
+  const fallback = fallbackCompactDiscipline(hasGrepGlob);
   try {
     const p = resolveContextModeDisciplinePath();
     if (!p) throw new Error("discipline file not found");
@@ -516,16 +546,16 @@ Edits need prior read for LINE#ID — read→edit chain exempt. MUST use ctx_* w
   }
 }
 
-export function buildCompactContextDisciplineSection(hasContextMode = false): string {
+export function buildCompactContextDisciplineSection(hasContextMode = false, hasGrepGlob = true): string {
   if (!hasContextMode) return "";
-  return loadCompactContextDiscipline();
+  return loadCompactContextDiscipline(hasGrepGlob);
 }
 
-export function buildExploreDisciplineSection(hasContextMode = false, hasHeadroom = false): string {
+export function buildExploreDisciplineSection(hasContextMode = false, hasHeadroom = false, hasGrepGlob = true): string {
   if (!hasContextMode && !hasHeadroom) return "";
   const parts: string[] = [];
   if (hasContextMode) {
-    parts.push("MUST use ctx_search for indexed hits → grep/glob fallback ONLY when ctx_* unavailable; use ctx_batch_execute / ctx_execute for multi-file analysis; use ctx_fetch_and_index for docs/web → ctx_search. Raw grep/read/glob for analysis is forbidden when ctx_* is available.");
+    parts.push(exploreCtxPart(hasGrepGlob));
   }
   if (hasHeadroom) {
     parts.push("Use headroom_retrieve / headroom_search for compressed history — NEVER re-read full history.");

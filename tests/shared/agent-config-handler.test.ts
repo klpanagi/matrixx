@@ -38,17 +38,30 @@ describe("injectContextDiscipline pure", () => {
   })
 
   it("should inject explore into explore agents when ctx_* present", () => {
-    //#given: ctx tools
+    //#given: ctx tools plus grep/glob
     const agents = makeAgents(["trinity", "operator", "seraph", "smith", "merovingian", "construct", "oracle"])
     //#when
-    injectContextDiscipline(["ctx_search", "ctx_batch_execute"], agents)
-    //#then: explore
+    injectContextDiscipline(["ctx_search", "ctx_batch_execute", "grep", "glob"], agents)
+    //#then: explore with grep/glob fallback
     for (const name of ["trinity", "operator", "seraph", "smith", "merovingian", "construct", "oracle"]) {
       const prompt = (agents[name] as { prompt: string }).prompt
       expect(prompt).toContain("when available")
       expect(prompt).toContain("ctx_search")
       expect(prompt).toContain("grep/glob fallback")
     }
+  })
+
+  it("should inject explore with LSP fallback when grep/glob hidden", () => {
+    //#given: ctx tools without grep/glob
+    const agents = makeAgents(["trinity"])
+    //#when
+    injectContextDiscipline(["ctx_search"], agents)
+    //#then: explore points at LSP/ast_grep instead
+    const prompt = (agents["trinity"] as { prompt: string }).prompt
+    expect(prompt).toContain("when available")
+    expect(prompt).toContain("ctx_search")
+    expect(prompt).not.toContain("grep/glob fallback")
+    expect(prompt).toContain("LSP/ast_grep")
   })
 
   it("should inject explore into bdd-contract when present", () => {

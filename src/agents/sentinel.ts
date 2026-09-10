@@ -178,7 +178,7 @@ Mark verified false positives as such with reasoning rather than silently omitti
 
 <tool_usage_rules>
 - Use bash to run security scanning CLIs (gitleaks, semgrep, trivy, npm audit, osv-scanner)
-- Use read/grep/glob to examine source code for manual vulnerability review
+- Use read (plus grep/glob if available) to examine source code for manual vulnerability review
 - Use ast_grep_search for AST-aware vulnerability pattern detection
 - Parallelize independent tool scans for speed
 - Parse JSON output from tools to extract structured findings
