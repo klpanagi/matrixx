@@ -158,8 +158,9 @@ export const CATEGORY_MODEL_REQUIREMENTS = DEFAULT_CATEGORY_MODEL_REQUIREMENTS
 export function getAgentModelRequirements(
   config?: { modelRequirements?: ModelRequirements } | null,
 ): Record<string, ModelRequirement> {
-  const agents = config?.modelRequirements?.agents
-  if (!agents || Object.keys(agents).length === 0) return DEFAULT_AGENT_MODEL_REQUIREMENTS
+  if (!config?.modelRequirements) return DEFAULT_AGENT_MODEL_REQUIREMENTS
+  const agents = config.modelRequirements.agents
+  if (!agents || Object.keys(agents).length === 0) return {}
   const result: Record<string, ModelRequirement> = {}
   for (const [key, value] of Object.entries(agents)) {
     const parsed = AgentModelRequirementsSchema.safeParse(value)
@@ -173,8 +174,9 @@ export function getAgentModelRequirements(
 export function getCategoryModelRequirements(
   config?: { modelRequirements?: ModelRequirements } | null,
 ): Record<string, ModelRequirement> {
-  const categories = config?.modelRequirements?.categories
-  if (!categories || Object.keys(categories).length === 0) return DEFAULT_CATEGORY_MODEL_REQUIREMENTS
+  if (!config?.modelRequirements) return DEFAULT_CATEGORY_MODEL_REQUIREMENTS
+  const categories = config.modelRequirements.categories
+  if (!categories || Object.keys(categories).length === 0) return {}
   const result: Record<string, ModelRequirement> = {}
   for (const [key, value] of Object.entries(categories)) {
     const parsed = CategoryModelRequirementsSchema.safeParse(value)

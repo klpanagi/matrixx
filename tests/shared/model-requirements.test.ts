@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import {
+  DEFAULT_AGENT_MODEL_REQUIREMENTS,
+  DEFAULT_CATEGORY_MODEL_REQUIREMENTS,
   getAgentModelRequirements,
   getCategoryModelRequirements,
   type FallbackEntry,
@@ -22,22 +24,22 @@ function makeConfig(overrides: {
 describe("getAgentModelRequirements", () => {
   test("returns {} for empty config {}", () => {
     const result = getAgentModelRequirements({})
-    expect(result).toEqual({})
+    expect(result).toEqual(DEFAULT_AGENT_MODEL_REQUIREMENTS) // first-run: no modelRequirements -> defaults
   })
 
   test("returns {} for undefined config", () => {
     const result = getAgentModelRequirements(undefined)
-    expect(result).toEqual({})
+    expect(result).toEqual(DEFAULT_AGENT_MODEL_REQUIREMENTS) // first-run: no modelRequirements -> defaults
   })
 
   test("returns {} for null config", () => {
     const result = getAgentModelRequirements(null)
-    expect(result).toEqual({})
+    expect(result).toEqual(DEFAULT_AGENT_MODEL_REQUIREMENTS) // first-run: no modelRequirements -> defaults
   })
 
   test("returns {} when modelRequirements missing", () => {
     const result = getAgentModelRequirements({} as never)
-    expect(result).toEqual({})
+    expect(result).toEqual(DEFAULT_AGENT_MODEL_REQUIREMENTS) // first-run: no modelRequirements -> defaults
   })
 
   test("returns single agent from config with synthetic model", () => {
@@ -159,17 +161,17 @@ describe("getAgentModelRequirements", () => {
 describe("getCategoryModelRequirements", () => {
   test("returns {} for empty config {}", () => {
     const result = getCategoryModelRequirements({})
-    expect(result).toEqual({})
+    expect(result).toEqual(DEFAULT_CATEGORY_MODEL_REQUIREMENTS) // first-run: no modelRequirements -> defaults
   })
 
   test("returns {} for undefined config", () => {
     const result = getCategoryModelRequirements(undefined)
-    expect(result).toEqual({})
+    expect(result).toEqual(DEFAULT_CATEGORY_MODEL_REQUIREMENTS) // first-run: no modelRequirements -> defaults
   })
 
   test("returns {} for null config", () => {
     const result = getCategoryModelRequirements(null)
-    expect(result).toEqual({})
+    expect(result).toEqual(DEFAULT_CATEGORY_MODEL_REQUIREMENTS) // first-run: no modelRequirements -> defaults
   })
 
   test("returns single category from config with synthetic model", () => {
@@ -362,8 +364,8 @@ describe("config-driven validation", () => {
   test("empty config returns {} gracefully for both factories", () => {
     const agents = getAgentModelRequirements({})
     const categories = getCategoryModelRequirements({})
-    expect(agents).toEqual({})
-    expect(categories).toEqual({})
+    expect(agents).toEqual(DEFAULT_AGENT_MODEL_REQUIREMENTS) // first-run: no modelRequirements -> defaults
+    expect(categories).toEqual(DEFAULT_CATEGORY_MODEL_REQUIREMENTS) // first-run: no modelRequirements -> defaults
   })
 
   test("config with empty agents/categories returns {} for respective factory", () => {
