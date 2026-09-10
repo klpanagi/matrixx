@@ -388,12 +388,16 @@ export function buildAntiPatternsSection(): string {
 ${patterns.join("\n")}`
 }
 
-let cachedContextDiscipline: string | null = null
-let cachedCompactDiscipline: string | null = null
+let cachedRuntimeFull: string | null = null
+let cachedRuntimeCompact: string | null = null
+let cachedFallbackFull: Record<string, string> = {}
+let cachedFallbackCompact: Record<string, string> = {}
 
 export function _resetDisciplineCacheForTesting(): void {
-  cachedContextDiscipline = null
-  cachedCompactDiscipline = null
+  cachedRuntimeFull = null
+  cachedRuntimeCompact = null
+  cachedFallbackFull = {}
+  cachedFallbackCompact = {}
 }
 
 export function hasGrepGlobToolNames(toolNames: readonly string[]): boolean {
@@ -475,8 +479,9 @@ function stripDisciplineHeader(content: string): string {
 }
 
 function loadContextModeDiscipline(hasGrepGlob = true): string {
-  if (cachedContextDiscipline) return cachedContextDiscipline
-  const fallback = fallbackFullDiscipline(hasGrepGlob)
+  if (cachedRuntimeFull) return cachedRuntimeFull
+  const fallbackKey = hasGrepGlob ? "1" : "0"
+  if (cachedFallbackFull[fallbackKey]) return cachedFallbackFull[fallbackKey]
   try {
     const p = resolveContextModeDisciplinePath()
     if (!p) throw new Error("discipline file not found")
@@ -490,12 +495,13 @@ function loadContextModeDiscipline(hasGrepGlob = true): string {
     } catch {}
     const body = stripDisciplineHeader(raw)
     const withVersion = body.includes("<!-- discipline") ? body : `${body}\n\n<!-- discipline v${version} Elastic-2.0 -->`
-    cachedContextDiscipline = withVersion
+    cachedRuntimeFull = withVersion
     log("context-discipline loaded", { path: p, version })
     return withVersion
   } catch (e) {
     log("context-discipline fallback", { error: String(e) })
-    cachedContextDiscipline = fallback
+    const fallback = fallbackFullDiscipline(hasGrepGlob)
+    cachedFallbackFull[fallbackKey] = fallback
     return fallback
   }
 }
@@ -521,8 +527,9 @@ export function buildHeadroomSection(hasHeadroom = false): string {
 
 
 function loadCompactContextDiscipline(hasGrepGlob = true): string {
-  if (cachedCompactDiscipline) return cachedCompactDiscipline;
-  const fallback = fallbackCompactDiscipline(hasGrepGlob);
+  if (cachedRuntimeCompact) return cachedRuntimeCompact;
+  const fallbackKey = hasGrepGlob ? "1" : "0";
+  if (cachedFallbackCompact[fallbackKey]) return cachedFallbackCompact[fallbackKey];
   try {
     const p = resolveContextModeDisciplinePath();
     if (!p) throw new Error("discipline file not found");
@@ -536,12 +543,13 @@ function loadCompactContextDiscipline(hasGrepGlob = true): string {
     } catch {}
     const body = stripDisciplineHeader(raw);
     const withVersion = body.includes("<!-- discipline") ? body : `${body}\n\n<!-- discipline v${version} Elastic-2.0 -->`;
-    cachedCompactDiscipline = withVersion;
+    cachedRuntimeCompact = withVersion;
     log("compact-discipline loaded", { path: p, version });
     return withVersion;
   } catch (e) {
     log("compact-discipline fallback", { error: String(e) });
-    cachedCompactDiscipline = fallback;
+    const fallback = fallbackCompactDiscipline(hasGrepGlob);
+    cachedFallbackCompact[fallbackKey] = fallback;
     return fallback;
   }
 }
