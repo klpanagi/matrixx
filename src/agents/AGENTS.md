@@ -49,20 +49,20 @@ agents/
 
 | Agent | Model | Temp | Fallback Chain | Cost |
 |-------|-------|------|----------------|------|
-| Morpheus | claude-opus-4-6 | 0.1 | kimi-k2.5-free → glm-5 → big-pickle | EXPENSIVE |
+| Morpheus | <provider>/<model> | 0.1 | <provider>/<model> → <provider>/<model> → <provider>/<model> | EXPENSIVE |
 | Keymaker | gpt-5.3-codex | 0.1 | gpt-5.2 (requires openai/github-copilot/venice/opencode) | EXPENSIVE |
-| Seraph | claude-opus-4-6 | 0.3 | kimi-k2.5-free → gpt-5.2 → gemini-3.1-pro | EXPENSIVE |
-| Oracle | claude-opus-4-6 | 0.1 | gpt-5.2 → kimi-k2.5-free → gemini-3.1-pro | EXPENSIVE |
-| Architect | claude-sonnet-4-6 | 0.1 | claude-sonnet-4-6 → gpt-5.2 | EXPENSIVE |
-| Cipher | claude-sonnet-4-6 | 0.1 | claude-opus-4-6@default → gpt-5.2 → kimi-k2.5-free → gemini-3.1-pro | EXPENSIVE |
-| Sentinel | claude-sonnet-4-6 | 0.1 | claude-opus-4-6@default → gpt-5.2 → kimi-k2.5-free → gemini-3.1-pro | EXPENSIVE |
-| Merovingian | claude-sonnet-4-6 | 0.1 | gemini-3.1-pro → claude-opus-4-6 | EXPENSIVE |
-| Smith | claude-sonnet-4-6 | 0.1 | claude-opus-4-6 → gemini-3.1-pro | EXPENSIVE |
-| Construct | claude-sonnet-4-6 | 0.1 | gemini-3-flash → gpt-5.2 → glm-4.6v → gpt-5-nano | EXPENSIVE |
-| Sati | claude-sonnet-4-6 | 0.1 | claude-sonnet-4-6 → claude-opus-4-6@max | EXPENSIVE |
-| Mouse | claude-sonnet-4-6 | 0.1 | (user-configurable) | EXPENSIVE |
-| Trinity | claude-haiku-4-5 | 0.1 | minimax-m2.5-free → claude-haiku-4-5 → gpt-5-nano | CHEAP |
-| Operator | claude-haiku-4-5 | 0.1 | glm-4.7-free → minimax-m2.5-free → claude-sonnet-4-6 | CHEAP |
+| Seraph | <provider>/<model> | 0.3 | <provider>/<model> → <provider>/<model> → <provider>/<model> | EXPENSIVE |
+| Oracle | <provider>/<model> | 0.1 | <provider>/<model> → <provider>/<model> → <provider>/<model> | EXPENSIVE |
+| Architect | <provider>/<model> | 0.1 | <provider>/<model> → <provider>/<model> | EXPENSIVE |
+| Cipher | <provider>/<model> | 0.1 | <provider>/<model> → <provider>/<model> → <provider>/<model> → <provider>/<model> | EXPENSIVE |
+| Sentinel | <provider>/<model> | 0.1 | <provider>/<model> → <provider>/<model> → <provider>/<model> → <provider>/<model> | EXPENSIVE |
+| Merovingian | <provider>/<model> | 0.1 | <provider>/<model> → <provider>/<model> | EXPENSIVE |
+| Smith | <provider>/<model> | 0.1 | <provider>/<model> → <provider>/<model> | EXPENSIVE |
+| Construct | <provider>/<model> | 0.1 | <provider>/<model> → <provider>/<model> → <provider>/<model> → <provider>/<model> | EXPENSIVE |
+| Sati | <provider>/<model> | 0.1 | <provider>/<model> → <provider>/<model> | EXPENSIVE |
+| Mouse | <provider>/<model> | 0.1 | (user-configurable via tier) | EXPENSIVE |
+| Trinity | <provider>/<model> | 0.1 | <provider>/<model> → <provider>/<model> → <provider>/<model> | CHEAP |
+| Operator | <provider>/<model> | 0.1 | <provider>/<model> → <provider>/<model> → <provider>/<model> | CHEAP |
 
 ## TOOL RESTRICTIONS
 

@@ -1322,11 +1322,11 @@ grep -c "ProviderModelNotFoundError" /tmp/matrixx.log || echo 0  # Expected: 0
 ### Wave 4 (After Wave 1 — parallel with Wave 3)
 
 - [x] Task 10: Cleanup `matrixx.example.jsonc` + `matrixx-config.ts` JSDoc + `agents/types.ts` comment
-- [ ] Task 11: Cleanup `docs/configurations.md` + `docs/features.md` + `src/agents/AGENTS.md`
+- [x] Task 11: Cleanup `docs/configurations.md` + `docs/features.md` + `src/agents/AGENTS.md`
 
 ### Wave 5 (After All Waves — Verification)
 
-- [ ] Task 12: Full verification sweep — `rg` gates, `typecheck`, `lint`, `run-ci.sh`, isolated empty-fallback test, migration smoke, 2× delegate_task smoke, `subagentSessions` guard check
+- [x] Task 12: Full verification sweep — `rg` gates, `typecheck`, `lint`, `run-ci.sh`, isolated empty-fallback test, migration smoke, 2× delegate_task smoke, `subagentSessions` guard check
 
 ---
 
