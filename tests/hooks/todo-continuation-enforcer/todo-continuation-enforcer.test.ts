@@ -356,10 +356,10 @@ describe("todo-continuation-enforcer", () => {
       event: { type: "session.idle", properties: { sessionID: bgTaskSession } },
     })
 
-    // then - continuation injected for background task session
+    // then - NO continuation for subagent (guarded: subagentSessions blocked)
     await wait(2500)
-    expect(promptCalls.length).toBe(1)
-    expect(promptCalls[0].sessionID).toBe(bgTaskSession)
+    expect(promptCalls.length).toBe(0)
+
   }, { timeout: 15000 })
 
 
