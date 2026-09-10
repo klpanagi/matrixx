@@ -2,6 +2,7 @@ import type { PluginInput } from "@opencode-ai/plugin"
 
 import type { BackgroundManager } from "../../features/background-agent"
 import type { ToolPermission } from "../../features/hook-message-injector"
+import { subagentSessions } from "../../features/session-state"
 import { normalizeSDKResponse } from "../../shared"
 import { getAgentConfigKey } from "../../shared/agent-display-names"
 import { log } from "../../shared/logger"
@@ -37,6 +38,11 @@ export async function handleSessionIdle(args: {
   } = args
 
   log(`[${HOOK_NAME}] session.idle`, { sessionID })
+
+  if (subagentSessions.has(sessionID)) {
+    log(`[${HOOK_NAME}] Skipped: subagent session`, { sessionID })
+    return
+  }
 
   const state = sessionStateStore.getState(sessionID)
   if (state.countdownTimer || state.countdownInterval) {
