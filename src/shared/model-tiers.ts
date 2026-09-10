@@ -85,6 +85,7 @@ const DEFAULT_TIER_SPECS: Record<string, TierSpec> = {
 }
 
 export function buildTierSpecs(config: TierConfigHolder): Record<string, TierSpec> {
+  if (!config?.tiers) return {}
   if (!config?.tiers) return DEFAULT_TIER_SPECS
   const result: Record<string, TierSpec> = {}
   for (const [name, raw] of Object.entries(config.tiers)) {

@@ -1051,12 +1051,15 @@ describe("override.category expansion in createBuiltinAgents", () => {
 
   test("standard agent override with category expands category properties", async () => {
     // #given
+    const categories = {
+      source: { model: "anthropic/claude-opus-4-6", variant: "max" as const }, // fixture: explicit category config for empty-tier behavior
+    }
     const overrides = {
       merovingian: { category: "source" },
     } satisfies OverrideMap
 
     // #when
-    const agents = await createBuiltinAgents([], overrides, undefined, TEST_DEFAULT_MODEL)
+    const agents = await createBuiltinAgents([], overrides, undefined, TEST_DEFAULT_MODEL, categories)
 
     // #then - source category: model=anthropic/claude-opus-4-6, variant=max
     expect(agents.merovingian).toBeDefined()
@@ -1120,12 +1123,15 @@ describe("override.category expansion in createBuiltinAgents", () => {
 
   test("morpheus override with category expands category properties", async () => {
     // #given
+    const categories = {
+      source: { model: "anthropic/claude-opus-4-6", variant: "max" as const }, // fixture: explicit category config for empty-tier behavior
+    }
     const overrides = {
       morpheus: { category: "source" },
     } satisfies OverrideMap
 
     // #when
-    const agents = await createBuiltinAgents([], overrides, undefined, TEST_DEFAULT_MODEL)
+    const agents = await createBuiltinAgents([], overrides, undefined, TEST_DEFAULT_MODEL, categories)
 
     // #then - source category: model=anthropic/claude-opus-4-6, variant=max
     expect(agents.morpheus).toBeDefined()
@@ -1135,12 +1141,15 @@ describe("override.category expansion in createBuiltinAgents", () => {
 
   test("architect override with category expands category properties", async () => {
     // #given
+    const categories = {
+      source: { model: "anthropic/claude-opus-4-6", variant: "max" as const }, // fixture: explicit category config for empty-tier behavior
+    }
     const overrides = {
       architect: { category: "source" },
     } satisfies OverrideMap
 
     // #when
-    const agents = await createBuiltinAgents([], overrides, undefined, TEST_DEFAULT_MODEL)
+    const agents = await createBuiltinAgents([], overrides, undefined, TEST_DEFAULT_MODEL, categories)
 
     // #then - source category: model=anthropic/claude-opus-4-6, variant=max
     expect(agents.architect).toBeDefined()
