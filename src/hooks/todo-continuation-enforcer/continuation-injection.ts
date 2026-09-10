@@ -6,6 +6,7 @@ import {
   findNearestMessageWithFieldsFromSDK,
   type ToolPermission,
 } from "../../features/hook-message-injector"
+import { subagentSessions } from "../../features/session-state"
 import { normalizeSDKResponse } from "../../shared"
 import { getAgentConfigKey } from "../../shared/agent-display-names"
 import { log } from "../../shared/logger"
@@ -47,6 +48,10 @@ export async function injectContinuation(args: {
     sessionStateStore,
   } = args
 
+  if (subagentSessions.has(sessionID)) {
+    log(`[${HOOK_NAME}] Skipped injection: subagent session`, { sessionID })
+    return
+  }
   const state = sessionStateStore.getExistingState(sessionID)
   if (state?.isRecovering) {
     log(`[${HOOK_NAME}] Skipped injection: in recovery`, { sessionID })

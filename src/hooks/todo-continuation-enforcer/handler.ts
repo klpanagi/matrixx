@@ -1,6 +1,6 @@
 import type { PluginInput } from "@opencode-ai/plugin"
-
 import type { BackgroundManager } from "../../features/background-agent"
+import { subagentSessions } from "../../features/session-state"
 import { log } from "../../shared/logger"
 
 import { DEFAULT_SKIP_AGENTS, HOOK_NAME } from "./constants"
@@ -45,6 +45,7 @@ export function createTodoContinuationHandler(args: {
     if (event.type === "session.idle") {
       const sessionID = props?.sessionID as string | undefined
       if (!sessionID) return
+      if (subagentSessions.has(sessionID)) return
       await handleSessionIdle({
         ctx,
         sessionID,
