@@ -84,7 +84,7 @@ const ANTHROPIC_INDICATORS = ["anthropic", "claude"]
 
 /**
  * Detect Anthropic/Claude models by provider or model name.
- * Matches: "anthropic/claude-*", "google-vertex-anthropic/claude-*", etc.
+ * Matches: "<provider>/<model>" e.g., provider/model strings containing relevant indicators — replace with live model from provider.list
  */
 export function isAnthropicModel(model: string): boolean {
   const lowered = model.toLowerCase()

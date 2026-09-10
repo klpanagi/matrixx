@@ -33,7 +33,7 @@ import { WebsearchConfigSchema } from "./websearch"
 
 export const MatrixxConfigSchema = z.object({
   $schema: z.string().optional(),
-  /** Global provider/model override for ALL agents and categories (e.g., "<provider>/<model>").
+  /** Global provider/model override for ALL agents and categories (e.g., "<provider>/<model>" from provider.list — replace with your live model).
    * When set, this model is used for every agent and category regardless of their individual config. */
   global_model: z.string().optional(),
   /** Default tier applied to every agent and category that has no explicit `model` or `tier`. */

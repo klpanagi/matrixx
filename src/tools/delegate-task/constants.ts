@@ -74,7 +74,7 @@ Approach:
 </Category_Context>
 
 <Caller_Warning>
-THIS CATEGORY USES A LESS CAPABLE MODEL (claude-haiku-4-5).
+THIS CATEGORY USES A LESS CAPABLE MODEL (<model>).
 
 The model executing this task has LIMITED reasoning capacity. Your prompt MUST be:
 
@@ -125,7 +125,7 @@ This is NOT a default choice - it's for genuinely unclassifiable moderate-effort
 </Category_Context>
 
 <Caller_Warning>
-THIS CATEGORY USES A MID-TIER MODEL (claude-sonnet-4-6).
+THIS CATEGORY USES A MID-TIER MODEL (<model>).
 
 **PROVIDE CLEAR STRUCTURE:**
 1. MUST DO: Enumerate required actions explicitly

@@ -39,7 +39,7 @@ const MODE: AgentMode = "subagent"
 const BLOCKED_TOOLS = ["task"]
 
 export const MOUSE_DEFAULTS = {
-  model: "anthropic/claude-sonnet-4-6",
+  model: undefined as unknown as string, // no hardcoded model — resolved via config tiers/fallback
   temperature: 0.1,
 } as const
 

@@ -1315,13 +1315,13 @@ grep -c "ProviderModelNotFoundError" /tmp/matrixx.log || echo 0  # Expected: 0
 
 ### Wave 3 (After Wave 2 Completes — 3 tasks, 2 parallel)
 
-- [ ] Task 7: Refactor `category-resolver.ts` — error template + downgrade via config/tier
-- [ ] Task 8: Refactor `model-selection` + `model-suggestion-retry.ts` — config wiring
-- [ ] Task 9: Fix `mouse/agent.ts` default + `constants.ts` warnings + `context-limit-resolver.ts` regex
+- [x] Task 7: Refactor `category-resolver.ts` — error template + downgrade via config/tier
+- [x] Task 8: Refactor `model-selection` + `model-suggestion-retry.ts` — config wiring
+- [x] Task 9: Fix `mouse/agent.ts` default + `constants.ts` warnings + `context-limit-resolver.ts` regex
 
 ### Wave 4 (After Wave 1 — parallel with Wave 3)
 
-- [ ] Task 10: Cleanup `matrixx.example.jsonc` + `matrixx-config.ts` JSDoc + `agents/types.ts` comment
+- [x] Task 10: Cleanup `matrixx.example.jsonc` + `matrixx-config.ts` JSDoc + `agents/types.ts` comment
 - [ ] Task 11: Cleanup `docs/configurations.md` + `docs/features.md` + `src/agents/AGENTS.md`
 
 ### Wave 5 (After All Waves — Verification)

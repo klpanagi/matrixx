@@ -1,4 +1,5 @@
 import type { createOpencodeClient } from "@opencode-ai/sdk"
+import { parseModelString } from "../tools/delegate-task/model-string-parser"
 import { getErrorMessage } from "./error-formatting"
 import { log } from "./logger"
 import { isRecord } from "./record-type-guard"
@@ -118,13 +119,17 @@ export async function promptSyncWithModelSuggestionRetry(
       suggested: suggestion.suggestion,
     })
 
+    // Suggestion may be bare modelID ("model-id") or full "provider/model" — extract bare model via single-source parser
+    const parsedSuggestion = parseModelString(suggestion.suggestion)
+    const suggestionModelID = parsedSuggestion ? parsedSuggestion.modelID : suggestion.suggestion.trim()
+
     await client.session.prompt({
       ...args,
       body: {
         ...args.body,
         model: {
           providerID: suggestion.providerID,
-          modelID: suggestion.suggestion,
+          modelID: suggestionModelID,
         },
       },
     } as Parameters<typeof client.session.prompt>[0])
