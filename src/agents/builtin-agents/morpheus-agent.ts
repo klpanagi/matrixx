@@ -62,7 +62,8 @@ export function maybeCreateMorpheusConfig(input: {
   })
 
   if (isFirstRunNoCache && !morpheusOverride?.model && !uiSelectedModel) {
-    morpheusResolution = getFirstFallbackModel(morpheusRequirement)
+    const firstFallback = getFirstFallbackModel(morpheusRequirement)
+    if (firstFallback) morpheusResolution = firstFallback
   }
 
   if (!morpheusResolution) return undefined

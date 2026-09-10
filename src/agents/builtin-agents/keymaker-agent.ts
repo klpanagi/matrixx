@@ -61,7 +61,8 @@ export function maybeCreateKeymakerConfig(input: {
   })
 
   if (isFirstRunNoCache && !keymakerOverride?.model) {
-    keymakerResolution = getFirstFallbackModel(keymakerRequirement)
+    const firstFallback = getFirstFallbackModel(keymakerRequirement)
+    if (firstFallback) keymakerResolution = firstFallback
   }
 
   if (!keymakerResolution) return undefined
