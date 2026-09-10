@@ -102,13 +102,15 @@ describe("resolveTier", () => {
       expect(result).toBeNull()
     })
 
-    it("#given empty config #when resolveTier('free') #then returns null gracefully", () => {
+    it("#given empty config #when resolveTier('free') #then resolves via defaults", () => {
       //#given
-      const available = new Set(["opencode/kimi-k2.5-free"])
+      const available = new Set(["opencode/kimi-k2.5-free"]) // allow-hardcoded: first-run fallback
       //#when
       const result = resolveTier("free", { availableModels: available, connectedProviders: null }, {} as never)
       //#then
-      expect(result).toBeNull()
+      expect(result).not.toBeNull()
+      expect(result!.model).toBe("opencode/kimi-k2.5-free") // allow-hardcoded: first-run fallback
+      expect(result!.tier).toBe("free")
     })
   })
 
@@ -288,11 +290,11 @@ describe("parseTierReference", () => {
     expect(result).toBeNull()
   })
 
-  it("#given empty config #when parsed #then returns null", () => {
+  it("#given empty config #when parsed #then returns tier via defaults", () => {
     //#given / #when
     const result = parseTierReference("tier:premium", {} as never)
     //#then
-    expect(result).toBeNull()
+    expect(result).toBe("premium") // allow-hardcoded: first-run fallback
   })
 })
 
@@ -325,14 +327,25 @@ describe("buildTierSpecs config-driven", () => {
     }
   })
 
-  it("#given empty config #when buildTierSpecs({}) #then returns {}", () => {
+  it("#given empty config #when buildTierSpecs({}) #then returns defaults", () => {
     //#then
-    expect(buildTierSpecs({} as never)).toEqual({})
+    const specs = buildTierSpecs({} as never)
+    expect(Object.keys(specs).length).toBe(5) // allow-hardcoded: first-run fallback count
+    expect(specs.fast).toBeDefined()
+    expect(specs.fast.name).toBe("fast")
+    expect(specs.free).toBeDefined()
+    expect(specs.standard).toBeDefined()
+    expect(specs.premium).toBeDefined()
+    expect(specs.frontier).toBeDefined()
   })
 
-  it("#given empty config #when getTierSpec('fast', {}) #then returns undefined", () => {
+  it("#given empty config #when getTierSpec('fast', {}) #then returns fast tier", () => {
     //#then
-    expect(getTierSpec("fast", {} as never)).toBeUndefined()
+    const spec = getTierSpec("fast", {} as never)
+    expect(spec).toBeDefined() // allow-hardcoded: first-run fallback
+    expect(spec!.name).toBe("fast") // allow-hardcoded: first-run fallback
+    expect(spec!.fallback).toBeDefined()
+    expect(spec!.fallback![0].model).toBe("claude-haiku-4-5") // allow-hardcoded: first-run fallback
   })
 
   it("#given invalid regex #when buildTierSpecs #then pattern never matches", () => {
