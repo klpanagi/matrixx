@@ -24,7 +24,7 @@ function getAnthropicActualLimit(modelCacheState?: ContextLimitModelCacheState):
 }
 
 function supportsCachedAnthropicLimit(modelID: string): boolean {
-  return /^(opus|sonnet)-4(?:-|\.)(?:6|7)(?:-high)?$/.test(modelID)
+  return /(opus|sonnet)-4/.test(modelID)
 }
 
 export function resolveActualContextLimit(
