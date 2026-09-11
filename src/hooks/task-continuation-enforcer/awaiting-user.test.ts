@@ -19,11 +19,11 @@ import { createSessionStateStore } from "./session-state"
 // (matrix-loop/mission disposition state, set via Record cast to stay type-clean).
 // Current code ignores both channels, so suppression assertions FAIL (RED).
 
-function writeValidTask(dir: string, id: string, status = "pending"): void {
+function writeValidTask(dir: string, id: string, status = "pending", threadID?: string): void {
   mkdirSync(join(dir, ".matrixx", "tasks"), { recursive: true })
   writeFileSync(
     join(dir, ".matrixx", "tasks", `${id}.json`),
-    JSON.stringify({ id, subject: `task ${id}`, description: "d", status, blocks: [], blockedBy: [], threadID: "thr-1" }),
+    JSON.stringify({ id, subject: `task ${id}`, description: "d", status, blocks: [], blockedBy: [], threadID: threadID ?? "thr-1" }),
   )
 }
 
@@ -60,7 +60,7 @@ describe("task-continuation awaiting-user guard (RED)", () => {
   test("countdown-start suppressed when awaiting-user=true", async () => {
     //#given a session with pending work awaiting user answer
     const dir = mkdtempSync(join(tmpdir(), "task-await-"))
-    writeValidTask(dir, "T-await-1", "pending")
+    writeValidTask(dir, "T-await-1", "pending", "await-1")
     const toastMock = mock(async () => ({} as never))
     const ctx = makeCtx(dir, toastMock, awaitingQuestionMessages())
     const store = createSessionStateStore()
@@ -77,7 +77,7 @@ describe("task-continuation awaiting-user guard (RED)", () => {
   test("inject-time suppressed when awaiting-user=true (race)", async () => {
     //#given countdown already started but user was asked meanwhile
     const dir = mkdtempSync(join(tmpdir(), "task-await-"))
-    writeValidTask(dir, "T-await-2", "pending")
+    writeValidTask(dir, "T-await-2", "pending", "await-2")
     const toastMock = mock(async () => ({} as never))
     const promptAsyncMock = mock(async () => ({} as never))
     const ctx = makeCtx(dir, toastMock, awaitingQuestionMessages(), promptAsyncMock)
@@ -95,14 +95,16 @@ describe("task-continuation awaiting-user guard (RED)", () => {
   test("enforcement fires when awaiting-user=false with pending work", async () => {
     //#given a session with pending work and no awaiting flag
     const dir = mkdtempSync(join(tmpdir(), "task-await-"))
-    writeValidTask(dir, "T-await-3", "pending")
+    writeValidTask(dir, "T-await-3", "pending", "await-3")
     const toastMock = mock(async () => ({} as never))
     const promptAsyncMock = mock(async () => ({} as never))
     const ctx = makeCtx(dir, toastMock, [], promptAsyncMock)
     const store = createSessionStateStore()
+    const { registerSubagentSession } = await import("../../features/session-state")
+    registerSubagentSession("await-3b", "await-3")
     //#when idle fires and inject runs without awaiting signal
     await handleSessionIdle({ ctx, sessionID: "await-3", sessionStateStore: store, skipAgents: [] })
-    await injectContinuation({ ctx, sessionID: "await-3b", sessionStateStore: store, skipAgents: [] })
+    await injectContinuation({ ctx, sessionID: "await-3", sessionStateStore: store, skipAgents: [] })
     //#then enforcement still fires (control case)
     expect(toastMock).toHaveBeenCalledTimes(1)
     expect(promptAsyncMock).toHaveBeenCalledTimes(1)
@@ -113,7 +115,7 @@ describe("task-continuation awaiting-user guard (RED)", () => {
   test("suppression bounded: resumes after user responds", async () => {
     //#given a suppressed session that later receives user answer
     const dir = mkdtempSync(join(tmpdir(), "task-await-"))
-    writeValidTask(dir, "T-await-4", "pending")
+    writeValidTask(dir, "T-await-4", "pending", "await-4")
     const toastMock = mock(async () => ({} as never))
     const ctxAwaiting = makeCtx(dir, toastMock, awaitingQuestionMessages())
     const store = createSessionStateStore()

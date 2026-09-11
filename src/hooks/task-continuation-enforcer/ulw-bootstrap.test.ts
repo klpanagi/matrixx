@@ -76,7 +76,7 @@ describe("ulw bootstrap", () => {
     mkdirSync(join(dir, ".matrixx", "tasks"), { recursive: true })
     writeFileSync(
       join(dir, ".matrixx", "tasks", "T-done.json"),
-      JSON.stringify({ id: "T-done", subject: "done", description: "d", status: "completed", blocks: [], blockedBy: [], threadID: "thr-1" }),
+      JSON.stringify({ id: "T-done", subject: "done", description: "d", status: "completed", blocks: [], blockedBy: [], threadID: "ulw4" }),
     )
     const toastMock = mock(async () => ({} as never))
     const ctx = {
