@@ -223,3 +223,23 @@ in-memory; file-backed index (like `.matrixx/tasks/`) is the proposed direction.
 Also the reaper still kills tasks in long silent LLM-thinking phases (no part
 updates) — awaiting-user guard does not cover that; liveness heartbeat or
 threshold tuning is the follow-up.
+
+## Fix log (2026-09-11) — Secondary: mainSessionID hijack by foreign top-level sessions
+
+Confirmed during the same investigation: `src/plugin/event.ts` session.created
+handler called `setMainSession(id)` for ANY parentless session. opencode-mem's
+capture sessions are top-level (parentID=undefined) → they hijacked the plugin's
+global mainSessionID, breaking keyword-detector / context-injector /
+session-notification targeting (proven in logs: mainSessionID pointed at the
+capture session).
+
+Fix (GREEN, 5/5 tests in src/features/session-state/state.test.ts):
+- New pure helper `isMainSessionCandidate(sessionInfo)` in
+  `src/features/session-state/state.ts`: top-level sessions qualify UNLESS their
+  metadata marks them internal to another plugin (e.g.
+  metadata["opencode-mem"].internal === true).
+- `src/plugin/event.ts` now gates `setMainSession` on the helper.
+
+Verification: `bun test src/features/session-state/state.test.ts` 5/5 pass;
+`bun run typecheck` clean; biome clean; lsp_diagnostics clean; continuation
+enforcer suites (30 tests) still green.

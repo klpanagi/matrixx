@@ -4,6 +4,7 @@ import type { Managers } from "../create-managers"
 import {
   clearSessionAgent,
   getMainSessionID,
+  isMainSessionCandidate,
   setMainSession,
   updateSessionAgent,
 } from "../features/session-state"
@@ -94,10 +95,10 @@ export function createEventHandler(args: {
 
     if (event.type === "session.created") {
       const sessionInfo = props?.info as
-        | { id?: string; title?: string; parentID?: string }
+        | { id?: string; title?: string; parentID?: string; metadata?: Record<string, unknown> }
         | undefined
 
-      if (!sessionInfo?.parentID) {
+      if (isMainSessionCandidate(sessionInfo)) {
         setMainSession(sessionInfo?.id)
       }
 
