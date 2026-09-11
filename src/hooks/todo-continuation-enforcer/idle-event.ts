@@ -5,6 +5,7 @@ import type { ToolPermission } from "../../features/hook-message-injector"
 import { subagentSessions } from "../../features/session-state"
 import { normalizeSDKResponse } from "../../shared"
 import { getAgentConfigKey } from "../../shared/agent-display-names"
+import { isAwaitingUser } from "../../shared/awaiting-user"
 import { log } from "../../shared/logger"
 import { isLastAssistantMessageAborted } from "./abort-detection"
 import {
@@ -63,6 +64,10 @@ export async function handleSessionIdle(args: {
     }
     state.abortDetectedAt = undefined
   }
+  if (isAwaitingUser(state)) {
+    log(`[${HOOK_NAME}] Skipped: awaiting user`, { sessionID })
+    return
+  }
 
   const hasRunningBgTasks = backgroundManager
     ? backgroundManager.getTasksByParentSession(sessionID).some((task: { status: string }) => task.status === "running")
@@ -81,6 +86,10 @@ export async function handleSessionIdle(args: {
     const messages = normalizeSDKResponse(messagesResp, [] as Array<{ info?: MessageInfo }>)
     if (isLastAssistantMessageAborted(messages)) {
       log(`[${HOOK_NAME}] Skipped: last assistant message was aborted (API fallback)`, { sessionID })
+      return
+    }
+    if (isAwaitingUser(state, messages)) {
+      log(`[${HOOK_NAME}] Skipped: awaiting user (pending question)`, { sessionID })
       return
     }
   } catch (error) {
@@ -190,6 +199,10 @@ export async function handleSessionIdle(args: {
     return
   }
 
+  if (isAwaitingUser(state)) {
+    log(`[${HOOK_NAME}] Skipped: awaiting user (race)`, { sessionID })
+    return
+  }
   startCountdown({
     ctx,
     sessionID,
