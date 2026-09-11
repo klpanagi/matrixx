@@ -10,6 +10,29 @@ export function getMainSessionID(): string | undefined {
   return _mainSessionID
 }
 
+/**
+ * Whether a session.created payload should be tracked as the plugin's main
+ * session. Top-level sessions (no parentID) qualify UNLESS they are internal
+ * sessions of another plugin (e.g. opencode-mem structured-output capture
+ * sessions are top-level with metadata["opencode-mem"].internal === true).
+ * Foreign top-level sessions must not hijack main-session tracking.
+ */
+export function isMainSessionCandidate(
+  sessionInfo: { id?: string; parentID?: string; metadata?: Record<string, unknown> } | undefined,
+): boolean {
+  if (!sessionInfo || sessionInfo.parentID) return false
+  const metadata = sessionInfo.metadata
+  if (!metadata) return true
+  // Reject sessions flagged as plugin-internal. Plugin-created top-level
+  // sessions (e.g. opencode-mem capture sessions carrying
+  // `opencode-mem.internal: true`) must not hijack main-session tracking.
+  return !Object.entries(metadata).some(([key, value]) => {
+    if (key.toLowerCase().includes("internal") && value === true) return true
+    if (typeof value === "object" && value !== null && (value as { internal?: boolean }).internal === true) return true
+    return false
+  })
+}
+
 const sessionAgentMap = new Map<string, string>()
 
 const failureCounterMap = new Map<string, { count: number; lastFailedAt: number; lastSuccessAt?: number }>()
