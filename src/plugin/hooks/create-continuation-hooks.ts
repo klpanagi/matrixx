@@ -58,8 +58,18 @@ export function createContinuationHooks(args: {
 
   const evolutionEnabled = pluginConfig.evolution?.enabled === true
 
+  // Lazy bridge: the stop guard consults the active continuation enforcer's
+  // awaiting-user state before cancelling background tasks. The enforcer is
+  // created after the guard, so resolve it at call time.
+  let activeContinuationEnforcer: { isAwaitingUser: (sessionID: string) => boolean } | null = null
+
   const stopContinuationGuard = isHookEnabled("stop-continuation-guard")
-    ? safeHook("stop-continuation-guard", () => createStopContinuationGuardHook(ctx, { backgroundManager }))
+    ? safeHook("stop-continuation-guard", () =>
+        createStopContinuationGuardHook(ctx, {
+          backgroundManager,
+          isAwaitingUser: (sessionID: string) =>
+            activeContinuationEnforcer?.isAwaitingUser(sessionID) ?? false,
+        }))
     : null
 
   const compactionContextInjector = isHookEnabled("compaction-context-injector")
@@ -73,19 +83,25 @@ export function createContinuationHooks(args: {
   const isTaskSystem = isTaskSystemEnabled(pluginConfig)
 
   const todoContinuationEnforcer = !isTaskSystem && isHookEnabled("todo-continuation-enforcer")
-    ? safeHook("todo-continuation-enforcer", () =>
-        createTodoContinuationEnforcer(ctx, {
+    ? safeHook("todo-continuation-enforcer", () => {
+        const enforcer = createTodoContinuationEnforcer(ctx, {
           backgroundManager,
           isContinuationStopped: stopContinuationGuard?.isStopped,
-        }))
+        })
+        activeContinuationEnforcer = enforcer
+        return enforcer
+      })
     : null
 
   const taskContinuationEnforcer = isTaskSystem && isHookEnabled("task-continuation-enforcer")
-    ? safeHook("task-continuation-enforcer", () =>
-        createTaskContinuationEnforcer(ctx, {
+    ? safeHook("task-continuation-enforcer", () => {
+        const enforcer = createTaskContinuationEnforcer(ctx, {
           backgroundManager,
           isContinuationStopped: stopContinuationGuard?.isStopped,
-        }))
+        })
+        activeContinuationEnforcer = enforcer
+        return enforcer
+      })
     : null
 
   const unstableAgentBabysitter = isHookEnabled("unstable-agent-babysitter")

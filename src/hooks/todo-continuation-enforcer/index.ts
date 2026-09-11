@@ -1,5 +1,6 @@
 import type { PluginInput } from "@opencode-ai/plugin"
 
+import { isAwaitingUserState } from "../../shared/awaiting-user"
 import { log } from "../../shared/logger"
 
 import { DEFAULT_SKIP_AGENTS, HOOK_NAME } from "./constants"
@@ -20,6 +21,9 @@ export function createTodoContinuationEnforcer(
   } = options
 
   const sessionStateStore = createSessionStateStore()
+
+  const isAwaitingUser = (sessionID: string): boolean =>
+    isAwaitingUserState(sessionStateStore.getExistingState(sessionID))
 
   const markRecovering = (sessionID: string): void => {
     const state = sessionStateStore.getState(sessionID)
@@ -54,5 +58,6 @@ export function createTodoContinuationEnforcer(
     markRecovering,
     markRecoveryComplete,
     cancelAllCountdowns,
+    isAwaitingUser,
   }
 }

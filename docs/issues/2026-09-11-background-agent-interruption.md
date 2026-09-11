@@ -1,6 +1,7 @@
 # Background agents interrupted: handles lost while work lands (2026-09-11)
 
-> Status: OPEN investigation. This file is the directive for a future session:
+> Status: Mode B (stop-continuation guard) FIXED 2026-09-11. Mode A (reaper) still open.
+> This file is the directive for a future session:
 > read it, reproduce, then fix. Do not implement before reproducing.
 
 ## TL;DR
@@ -123,3 +124,33 @@ Note the asymmetry: every `task()` result used in this session arrived via
   `src/hooks/task-continuation-enforcer/*`, `src/hooks/stop-continuation-guard/hook.ts`,
   `src/plugin/hooks/create-continuation-hooks.ts`, `src/config/schema/background-task.ts`,
   `/tmp/matrixx.log`.
+
+## Fix log (2026-09-11) — Mode B: awaiting-user guard at stop()
+
+Reproduced first (RED): `src/hooks/stop-continuation-guard/repro.test.ts` —
+`stop()` called `cancelAllForSession` even when the session was awaiting a user
+answer (subagent mid-question). 4 pass / 1 fail before the fix.
+
+Root cause: `stop-continuation-guard/hook.ts:stop(sessionID)` cancelled all
+background tasks unconditionally. The awaiting-user guard (`isAwaitingUser` from
+`src/shared/awaiting-user.ts`) existed at countdown-start and inject-time but
+had no parity at the stop path.
+
+Fix (GREEN, 4 pass / 0 fail):
+- `stop-continuation-guard/hook.ts`: `stop()` is now async and consults an
+  `isAwaitingUser` callback (explicit state flag) plus a pending-question
+  message scan before calling `cancelAllForSession`. The `stoppedSessions` flag
+  is still set regardless, so `isStopped()` semantics are unchanged.
+- `task-continuation-enforcer` + `todo-continuation-enforcer`: expose
+  `isAwaitingUser(sessionID)` (reads the session state store).
+- `create-continuation-hooks.ts`: lazy bridge wires the active enforcer's
+  `isAwaitingUser` into the stop guard (enforcer is created after the guard).
+- `tool-execute-before.ts`: `/stop-continuation` awaits the async `stop()`.
+
+Verification: `bun run typecheck` clean; `bun test` on the 3 affected dirs
+(30 tests) green; biome lint clean on touched files.
+
+Remaining (Mode A / reaper + handle persistence): see hypotheses H1/H3-H5 above.
+The reaper is gated on parent-session idle + staleness thresholds; the user
+transcript kill happened immediately after a user message, so Mode B was the
+primary suspect. Mode A still needs a live repro with mocked timers.

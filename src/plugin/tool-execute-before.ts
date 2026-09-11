@@ -187,7 +187,7 @@ const rtkBashRewriterHook = hooks.rtkBashRewriter?.["tool.execute.before"]
       }
 
       if (command === "stop-continuation" && sessionID) {
-        hooks.stopContinuationGuard?.stop(sessionID)
+        await hooks.stopContinuationGuard?.stop(sessionID)
         hooks.todoContinuationEnforcer?.cancelAllCountdowns()
         hooks.matrixLoop?.cancelLoop(sessionID)
         clearMissionState(ctx.directory)
