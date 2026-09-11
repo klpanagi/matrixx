@@ -1,6 +1,6 @@
 # Background agents interrupted: handles lost while work lands (2026-09-11)
 
-> Status: Mode B (stop-continuation guard) FIXED 2026-09-11. Mode A (reaper) still open.
+> Status: Mode B (stop-continuation guard) FIXED 2026-09-11. Mode A (reaper) FIXED 2026-09-11.
 > This file is the directive for a future session:
 > read it, reproduce, then fix. Do not implement before reproducing.
 
@@ -150,7 +150,35 @@ Fix (GREEN, 4 pass / 0 fail):
 Verification: `bun run typecheck` clean; `bun test` on the 3 affected dirs
 (30 tests) green; biome lint clean on touched files.
 
-Remaining (Mode A / reaper + handle persistence): see hypotheses H1/H3-H5 above.
-The reaper is gated on parent-session idle + staleness thresholds; the user
-transcript kill happened immediately after a user message, so Mode B was the
-primary suspect. Mode A still needs a live repro with mocked timers.
+## Fix log (2026-09-11) — Mode A: awaiting-user guard at reaper
+
+Reproduced first (RED): `script/repro-mode-a-reaper.ts` — standalone repro (not in
+`src/`) proving the reaper (`checkAndInterruptStaleTasks` in
+`src/features/background-agent/manager.ts`) cancels running tasks when the
+subagent session reports idle and no progress update lands within the
+thresholds:
+- no-progress task, idle session, runtime > 600s → cancelled + session aborted
+- stale-progress task, idle session, lastUpdate > 180s → cancelled + session aborted
+- controls (session running / within thresholds) → survive
+- RED scenario D: task past thresholds but subagent session has a pending
+  question (awaiting user) → was cancelled (bug), must survive
+
+Root cause: the reaper treats "subagent session idle + no recent progress" as
+stuck, but a subagent awaiting user input (unanswered question) is legitimately
+idle — killing it loses the handle and the pending answer.
+
+Fix (GREEN, 6/6 scenarios):
+- `manager.ts`: new `isSessionAwaitingUser(sessionID)` — fetches the subagent
+  session messages and checks `hasPendingQuestionMessage` (ground truth; fails
+  open on fetch error). Both cancel branches in `checkAndInterruptStaleTasks`
+  now skip tasks whose subagent session is awaiting user input.
+
+Verification: `bun run script/repro-mode-a-reaper.ts` 6/6 pass; `bun run
+typecheck` clean; biome clean; `bun test` on stop-continuation-guard +
+continuation enforcers (30 tests) green.
+
+Remaining: handle persistence (H3/H5) — bg_* handle → task linkage is still
+volatile in-memory; file-backed index (like `.matrixx/tasks/`) is the proposed
+direction. Also: the reaper still kills tasks in long silent LLM-thinking
+phases (no part updates) — the awaiting-user guard does not cover that; a
+liveness heartbeat or threshold tuning would be the follow-up.
