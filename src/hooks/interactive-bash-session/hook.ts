@@ -112,7 +112,13 @@ export function createInteractiveBashSessionHook(ctx: PluginInput) {
 
       if (sessionID) {
         const state = getOrCreateStateLocal(sessionID);
-        await killAllTrackedSessionsLocal(state);
+        // Only run cleanup when this session actually owned tracked tmux sessions.
+        // The subagent abort inside must NOT fire for unrelated session deletions
+        // (e.g. foreign-plugin sessions like opencode-mem capture) — it would
+        // mass-abort every running background subagent.
+        if (state.tmuxSessions.size > 0) {
+          await killAllTrackedSessionsLocal(state);
+        }
         sessionStates.delete(sessionID);
         clearInteractiveBashSessionState(sessionID);
       }

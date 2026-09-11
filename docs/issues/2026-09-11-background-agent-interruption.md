@@ -1,6 +1,6 @@
 # Background agents interrupted: handles lost while work lands (2026-09-11)
 
-> Status: Mode B (stop-continuation guard) FIXED 2026-09-11. Mode A (reaper) FIXED 2026-09-11.
+> Status: Mode B (stop-continuation guard) FIXED 2026-09-11. Mode A (reaper) FIXED 2026-09-11. Root cause (opencode-mem trigger) FIXED 2026-09-11.
 > This file is the directive for a future session:
 > read it, reproduce, then fix. Do not implement before reproducing.
 
@@ -182,3 +182,44 @@ volatile in-memory; file-backed index (like `.matrixx/tasks/`) is the proposed
 direction. Also: the reaper still kills tasks in long silent LLM-thinking
 phases (no part updates) — the awaiting-user guard does not cover that; a
 liveness heartbeat or threshold tuning would be the follow-up.
+
+## Fix log (2026-09-11) — Root cause: interactive-bash-session mass-abort on session.deleted
+
+Live verification (opencode 1.18.30 + opencode-mem) proved the REAL trigger behind the
+original report: opencode-mem's structured-output auto-capture creates a transient
+TOP-LEVEL session (parentID=undefined, agent=opencode-mem-structured, title="opencode-mem
+capture"). On 90s timeout it aborts + deletes that session. The Matrixx
+`interactive-bash-session` hook's `session.deleted` handler then ran
+`killAllTrackedSessionsLocal(state)` which aborts EVERY session in the global
+`subagentSessions` set — mass-killing all running background subagents.
+
+Kill chain (core log, run=4408f00c):
+- 17:35:23.923 core `cancel session.id=<capture>` (opencode-mem abort on timeout)
+- 17:35:23.988 capture session deleted → plugin session.deleted handlers fire
+- 17:35:23.993/.995 core `cancel session.id=<trinity>` ×2 (interactive-bash abort loop)
+- 17:35:23.999 trinity MessageAbortedError
+
+Why the task system is implicated: `subagentSessions` is populated by
+`background-agent/manager.ts` (291/481/527/594) on every bg task launch. Before the
+task system only delegate-task/delegate-agent (rare, sync) populated it. The
+interactive-bash hook then mass-aborted that global set on ANY session deletion —
+including foreign-plugin sessions. A/B experiment: opencode-mem OFF → subagent
+survives; ON → killed. CAUSAL.
+
+Fix (GREEN, 2/2 tests in src/hooks/interactive-bash-session/hook.test.ts):
+- `hook.ts` session.deleted handler now gates `killAllTrackedSessionsLocal` on
+  `state.tmuxSessions.size > 0` — cleanup (tmux kill + subagent abort) only runs
+  when the deleted session actually owned tracked tmux sessions. Foreign session
+  deletions (opencode-mem capture) no longer mass-abort subagents.
+- RED test: session.deleted for a session with no tmux state must NOT abort
+  subagentSessions (was failing: aborted). Control: session owning tmux sessions
+  still aborts its subagents.
+
+Verification: `bun test src/hooks/interactive-bash-session/hook.test.ts` 2/2 pass;
+`bun run typecheck` clean; biome clean; lsp_diagnostics clean.
+
+Remaining: handle persistence (H3/H5) — bg_* handle → task linkage still volatile
+in-memory; file-backed index (like `.matrixx/tasks/`) is the proposed direction.
+Also the reaper still kills tasks in long silent LLM-thinking phases (no part
+updates) — awaiting-user guard does not cover that; liveness heartbeat or
+threshold tuning is the follow-up.
