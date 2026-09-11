@@ -10,11 +10,15 @@ export function getIncompleteCount(todos: { status: string }[]): number {
   ).length
 }
 
-export function getIncompleteTaskCount(tasks: Task[]): number {
+export function getIncompleteTasks(tasks: Task[]): Task[] {
   const byId = new Map(tasks.map((t) => [t.id, t]))
   return tasks.filter((task) => {
     if (task.status !== "pending" && task.status !== "in_progress") return false
     if (task.blockedBy.length === 0) return true
     return task.blockedBy.every((bid) => byId.get(bid)?.status === "completed")
-  }).length
+  })
+}
+
+export function getIncompleteTaskCount(tasks: Task[]): number {
+  return getIncompleteTasks(tasks).length
 }

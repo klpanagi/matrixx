@@ -1,4 +1,5 @@
 import type { PluginInput } from "@opencode-ai/plugin"
+import type { MatrixxConfig } from "../../config/schema"
 import type { BackgroundManager } from "../../features/background-agent"
 import { subagentSessions } from "../../features/session-state"
 import { log } from "../../shared/logger"
@@ -13,6 +14,7 @@ export function createTaskContinuationHandler(args: {
   backgroundManager?: BackgroundManager
   skipAgents?: string[]
   isContinuationStopped?: (sessionID: string) => boolean
+  config?: Partial<MatrixxConfig>
 }): (input: { event: { type: string; properties?: unknown } }) => Promise<void> {
   const {
     ctx,
@@ -20,6 +22,7 @@ export function createTaskContinuationHandler(args: {
     backgroundManager,
     skipAgents = DEFAULT_SKIP_AGENTS,
     isContinuationStopped,
+    config,
   } = args
 
   return async ({ event }: { event: { type: string; properties?: unknown } }): Promise<void> => {
@@ -52,6 +55,7 @@ export function createTaskContinuationHandler(args: {
         backgroundManager,
         skipAgents,
         isContinuationStopped,
+        config,
       })
       return
     }

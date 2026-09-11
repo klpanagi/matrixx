@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from "node:fs"
+import { join } from "node:path"
 import type { PluginInput } from "@opencode-ai/plugin"
-
+import type { MatrixxConfig } from "../../config/schema"
 import type { BackgroundManager } from "../../features/background-agent"
 import {
   findNearestMessageWithFields,
@@ -23,7 +24,8 @@ import {
 } from "./constants"
 import { getMessageDir } from "./message-directory"
 import type { SessionStateStore } from "./session-state"
-import { getIncompleteTaskCount } from "./todo"
+import { formatTaskAge, getStaleAfterMs, getTaskAgeMs, isTaskStale } from "./staleness"
+import { getIncompleteTasks } from "./todo"
 import type { ResolvedMessageInfo } from "./types"
 
 function hasWritePermission(tools: Record<string, ToolPermission> | undefined): boolean {
@@ -42,6 +44,7 @@ export async function injectContinuation(args: {
   skipAgents?: string[]
   resolvedInfo?: ResolvedMessageInfo
   sessionStateStore: SessionStateStore
+  config?: Partial<MatrixxConfig>
 }): Promise<void> {
   const {
     ctx,
@@ -50,6 +53,7 @@ export async function injectContinuation(args: {
     skipAgents = DEFAULT_SKIP_AGENTS,
     resolvedInfo,
     sessionStateStore,
+    config,
   } = args
 
   if (subagentSessions.has(sessionID)) {
@@ -79,8 +83,9 @@ export async function injectContinuation(args: {
   const tasks: Task[] = []
   let total = 0
   let isBootstrap = false
+  let taskDir = ""
   try {
-    const taskDir = getTaskDir({}, ctx.directory)
+    taskDir = getTaskDir(config, ctx.directory)
     if (!existsSync(taskDir)) {
       const hadBgTasks = backgroundManager ? backgroundManager.getTasksByParentSession(sessionID).length > 0 : false
       if (hadBgTasks) {
@@ -120,7 +125,7 @@ export async function injectContinuation(args: {
     stateForBootstrap._bootstrap = undefined
   }
 
-  const freshIncompleteCount = isBootstrap ? 1 : getIncompleteTaskCount(tasks)
+  const freshIncompleteCount = isBootstrap ? 1 : getIncompleteTasks(tasks).length
   if (!isBootstrap && freshIncompleteCount === 0) {
     log(`[${HOOK_NAME}] Skipped injection: no incomplete tasks`, { sessionID, total })
     return
@@ -167,19 +172,25 @@ export async function injectContinuation(args: {
   if (isBootstrap) {
     prompt = BOOTSTRAP_PROMPT
   } else {
-    const byId = new Map(tasks.map((t) => [t.id, t]))
-    const incompleteTasks = tasks.filter((task) => {
-      if (task.status !== "pending" && task.status !== "in_progress") return false
-      if (task.blockedBy.length === 0) return true
-      return task.blockedBy.every((bid) => byId.get(bid)?.status === "completed")
-    })
-    const taskList = incompleteTasks.map((task) => `- [${task.status}] ${task.subject} (${task.id})`).join("\n")
+    const incompleteTasks = getIncompleteTasks(tasks)
+    const staleAfterMs = getStaleAfterMs(config)
+    const taskList = incompleteTasks
+      .map((task) => {
+        const ageMs = getTaskAgeMs(join(taskDir, `${task.id}.json`))
+        const staleSuffix = ageMs !== null && ageMs > staleAfterMs ? ` (stale: ${formatTaskAge(ageMs)})` : ""
+        return `- [${task.status}] ${task.subject} (${task.id})${staleSuffix}`
+      })
+      .join("\n")
+    const staleCount = incompleteTasks.filter((t) => isTaskStale(join(taskDir, `${t.id}.json`), staleAfterMs)).length
+    const staleNote = staleCount > 0
+      ? `\n\nNote: ${staleCount} remaining task(s) have had no activity for >${Math.round(staleAfterMs / 3_600_000)}h and may be orphaned. Mark them completed/deleted if superseded.`
+      : ""
     prompt = `${CONTINUATION_PROMPT}
 
 [Status: ${total - freshIncompleteCount}/${total} completed, ${freshIncompleteCount} remaining]
 
 Remaining Matrixx tasks:
-${taskList}`
+${taskList}${staleNote}`
   }
 
   const injectionState = sessionStateStore.getExistingState(sessionID)

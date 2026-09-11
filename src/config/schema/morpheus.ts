@@ -7,6 +7,8 @@ const MorpheusTasksConfigSchema = z.object({
   task_list_id: z.string().optional(),
   /** Task storage scope: project → .matrixx/tasks per project (default), global → ~/.config/opencode/tasks/{listId} */
   scope: z.enum(["global", "project"]).default("project").optional().describe("Task storage scope: project → .matrixx/tasks per project (default), global → ~/.config/opencode/tasks/{listId}"),
+  /** Pending tasks with no file activity for this many hours are considered stale (default: 24). Stale tasks are excluded from task-continuation directives. */
+  stale_after_hours: z.number().int().min(1).optional().describe("Pending tasks with no file activity for this many hours are considered stale (default: 24). Stale tasks are excluded from task-continuation directives."),
 })
 
 export const MorpheusConfigSchema = z.object({

@@ -17,6 +17,7 @@ Hybrid layout selected by `morpheus.tasks.scope` (default `project`) and resolve
 - `migrateLegacyTasksIfNeeded(config, directory)` lazy copies (not moves) legacy `T-*.json` to project dir on first `task_create`, logs `[task-storage] Migrated N legacy tasks from <legacy> to <project>`, retains legacy 30d. Delete manually or via prune.
 - Rollback: set `scope: "global"` in `matrixx.jsonc` to restore global layout.
 - `.matrixx/` gitignored per `.gitignore` — project tasks stay local per clone.
+- **Cross-session:** the task store is project-wide — `task-continuation-enforcer` and `task_list` see the **union of all sessions' tasks** in `.matrixx/tasks/`. A directive may list tasks created by other sessions; mark foreign tasks `completed`/`deleted` to stop them from driving directives.
 ## STRUCTURE
 ```
 task-storage/

@@ -1,7 +1,11 @@
 import { z } from "zod"
+import { TASK_ID_PATTERN } from "./constants"
 
 export const TaskStatusSchema = z.enum(["pending", "in_progress", "completed", "deleted"])
 export type TaskStatus = z.infer<typeof TaskStatusSchema>
+
+/** Task ID must match T-{uuid}-style format (rejects truncated IDs like "T-"). */
+export const TaskIdSchema = z.string().regex(TASK_ID_PATTERN)
 
 export const TaskObjectSchema = z
   .object({
@@ -32,12 +36,12 @@ export const TaskCreateInputSchema = z.object({
   subject: z.string(),
   description: z.string().optional(),
   activeForm: z.string().optional(),
-  blocks: z.array(z.string()).optional(),
-  blockedBy: z.array(z.string()).optional(),
+  blocks: z.array(TaskIdSchema).optional(),
+  blockedBy: z.array(TaskIdSchema).optional(),
   owner: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   repoURL: z.string().optional(),
-  parentID: z.string().optional(),
+  parentID: TaskIdSchema.optional(),
 })
 
 export type TaskCreateInput = z.infer<typeof TaskCreateInputSchema>
@@ -61,12 +65,12 @@ export const TaskUpdateInputSchema = z.object({
   description: z.string().optional(),
   status: TaskStatusSchema.optional(),
   activeForm: z.string().optional(),
-  addBlocks: z.array(z.string()).optional(),
-  addBlockedBy: z.array(z.string()).optional(),
+  addBlocks: z.array(TaskIdSchema).optional(),
+  addBlockedBy: z.array(TaskIdSchema).optional(),
   owner: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   repoURL: z.string().optional(),
-  parentID: z.string().optional(),
+  parentID: TaskIdSchema.optional(),
 })
 
 export type TaskUpdateInput = z.infer<typeof TaskUpdateInputSchema>

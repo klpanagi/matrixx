@@ -1,5 +1,5 @@
 import type { PluginInput } from "@opencode-ai/plugin"
-
+import type { MatrixxConfig } from "../../config/schema"
 import type { BackgroundManager } from "../../features/background-agent"
 import { log } from "../../shared/logger"
 
@@ -38,6 +38,7 @@ export function startCountdown(args: {
   backgroundManager?: BackgroundManager
   skipAgents: string[]
   sessionStateStore: SessionStateStore
+  config?: Partial<MatrixxConfig>
 }): void {
   const {
     ctx,
@@ -47,6 +48,7 @@ export function startCountdown(args: {
     backgroundManager,
     skipAgents,
     sessionStateStore,
+    config,
   } = args
 
   const state = sessionStateStore.getState(sessionID)
@@ -75,6 +77,7 @@ export function startCountdown(args: {
       skipAgents,
       resolvedInfo,
       sessionStateStore,
+      config,
     })
   }, COUNTDOWN_SECONDS * 1000)
 

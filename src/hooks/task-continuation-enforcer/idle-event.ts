@@ -1,5 +1,7 @@
 import { existsSync, readdirSync } from "node:fs"
+import { join } from "node:path"
 import type { PluginInput } from "@opencode-ai/plugin"
+import type { MatrixxConfig } from "../../config/schema"
 import type { BackgroundManager } from "../../features/background-agent"
 import type { ToolPermission } from "../../features/hook-message-injector"
 import { subagentSessions } from "../../features/session-state"
@@ -21,7 +23,8 @@ import {
 } from "./constants"
 import { startCountdown } from "./countdown"
 import type { SessionStateStore } from "./session-state"
-import { getIncompleteTaskCount } from "./todo"
+import { getStaleAfterMs, isTaskStale } from "./staleness"
+import { getIncompleteTasks } from "./todo"
 import type { MessageInfo, ResolvedMessageInfo } from "./types"
 
 export async function handleSessionIdle(args: {
@@ -31,6 +34,7 @@ export async function handleSessionIdle(args: {
   backgroundManager?: BackgroundManager
   skipAgents?: string[]
   isContinuationStopped?: (sessionID: string) => boolean
+  config?: Partial<MatrixxConfig>
 }): Promise<void> {
   const {
     ctx,
@@ -39,6 +43,7 @@ export async function handleSessionIdle(args: {
     backgroundManager,
     skipAgents = DEFAULT_SKIP_AGENTS,
     isContinuationStopped,
+    config,
   } = args
 
   log(`[${HOOK_NAME}] session.idle`, { sessionID })
@@ -102,8 +107,9 @@ export async function handleSessionIdle(args: {
   let incompleteCount = 0
   let total = 0
   let isBootstrap = false
+  let taskDir = ""
   try {
-    const taskDir = getTaskDir({}, ctx.directory)
+    taskDir = getTaskDir(config, ctx.directory)
     if (!existsSync(taskDir)) {
       const hadBgTasks = backgroundManager ? backgroundManager.getTasksByParentSession(sessionID).length > 0 : false
       if (hadBgTasks) {
@@ -134,7 +140,21 @@ export async function handleSessionIdle(args: {
           return
         }
       } else {
-        incompleteCount = getIncompleteTaskCount(tasks)
+        const incompleteTasks = getIncompleteTasks(tasks)
+        incompleteCount = incompleteTasks.length
+        const staleAfterMs = getStaleAfterMs(config)
+        const staleIncompleteCount = incompleteTasks.filter((t) =>
+          isTaskStale(join(taskDir, `${t.id}.json`), staleAfterMs),
+        ).length
+        const activeIncompleteCount = incompleteCount - staleIncompleteCount
+        if (activeIncompleteCount === 0 && staleIncompleteCount > 0) {
+          log(`[${HOOK_NAME}] Skipped: only stale tasks remain`, {
+            sessionID,
+            staleIncompleteCount,
+            staleAfterMs,
+          })
+          return
+        }
       }
     }
   } catch (error) {
@@ -245,5 +265,6 @@ export async function handleSessionIdle(args: {
     backgroundManager,
     skipAgents,
     sessionStateStore,
+    config,
   })
 }

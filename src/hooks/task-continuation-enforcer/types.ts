@@ -1,3 +1,4 @@
+import type { MatrixxConfig } from "../../config/schema"
 import type { BackgroundManager } from "../../features/background-agent"
 import type { ToolPermission } from "../../features/hook-message-injector"
 
@@ -5,6 +6,8 @@ export interface TaskContinuationEnforcerOptions {
   backgroundManager?: BackgroundManager
   skipAgents?: string[]
   isContinuationStopped?: (sessionID: string) => boolean
+  /** Plugin config — used for task storage resolution and stale-task threshold. */
+  config?: Partial<MatrixxConfig>
 }
 
 export interface TaskContinuationEnforcer {
