@@ -33,6 +33,8 @@ export interface SessionState {
   consecutiveFailures?: number
   lastInjectedAt?: number
   inFlight?: boolean
+  awaitingUser?: boolean
+  awaitingUserSince?: number
 }
 
 export interface MessageInfo {

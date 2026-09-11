@@ -1,3 +1,4 @@
+import { clearAwaitingUser, isQuestionTool, markAwaitingUser } from "../../shared/awaiting-user"
 import { log } from "../../shared/logger"
 
 import { COUNTDOWN_GRACE_PERIOD_MS, HOOK_NAME } from "./constants"
@@ -18,6 +19,7 @@ export function handleNonIdleEvent(args: {
 
     if (role === "user") {
       const state = sessionStateStore.getExistingState(sessionID)
+      if (state) clearAwaitingUser(state)
       if (state?.countdownStartedAt) {
         const elapsed = Date.now() - state.countdownStartedAt
         if (elapsed < COUNTDOWN_GRACE_PERIOD_MS) {
@@ -58,6 +60,7 @@ export function handleNonIdleEvent(args: {
     if (sessionID) {
       const state = sessionStateStore.getExistingState(sessionID)
       if (state) state.abortDetectedAt = undefined
+      if (state && isQuestionTool(properties)) markAwaitingUser(state)
       sessionStateStore.cancelCountdown(sessionID)
     }
     return

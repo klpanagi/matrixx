@@ -11,6 +11,7 @@ import { subagentSessions } from "../../features/session-state"
 import { getTaskDir, readJsonSafe } from "../../features/task-storage/storage"
 import type { Task } from "../../features/task-storage/types"
 import { getAgentConfigKey } from "../../shared/agent-display-names"
+import { isAwaitingUser } from "../../shared/awaiting-user"
 import { log } from "../../shared/logger"
 import { isSqliteBackend } from "../../shared/opencode-storage-detection"
 import { TaskObjectSchema } from "../../tools/task/types"
@@ -59,6 +60,10 @@ export async function injectContinuation(args: {
   const state = sessionStateStore.getExistingState(sessionID)
   if (state?.isRecovering) {
     log(`[${HOOK_NAME}] Skipped injection: in recovery`, { sessionID })
+    return
+  }
+  if (isAwaitingUser(state)) {
+    log(`[${HOOK_NAME}] Skipped injection: awaiting user`, { sessionID })
     return
   }
 
@@ -182,6 +187,10 @@ ${taskList}`
     injectionState.inFlight = true
   }
 
+  if (isAwaitingUser(sessionStateStore.getExistingState(sessionID))) {
+    log(`[${HOOK_NAME}] Skipped injection: awaiting user (race)`, { sessionID })
+    return
+  }
   try {
     log(`[${HOOK_NAME}] Injecting continuation`, {
       sessionID,
