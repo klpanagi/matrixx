@@ -8,7 +8,7 @@ import {
   findNearestMessageWithFieldsFromSDK,
   type ToolPermission,
 } from "../../features/hook-message-injector"
-import { subagentSessions } from "../../features/session-state"
+import { getSubagentSessionIDs, subagentSessions } from "../../features/session-state"
 import { getTaskDir, readJsonSafe } from "../../features/task-storage/storage"
 import type { Task } from "../../features/task-storage/types"
 import { getAgentConfigKey } from "../../shared/agent-display-names"
@@ -25,7 +25,7 @@ import {
 import { getMessageDir } from "./message-directory"
 import type { SessionStateStore } from "./session-state"
 import { formatTaskAge, getStaleAfterMs, getTaskAgeMs, isTaskStale } from "./staleness"
-import { getIncompleteTasks } from "./todo"
+import { filterTasksBySession, getIncompleteTasks } from "./todo"
 import type { ResolvedMessageInfo } from "./types"
 
 function hasWritePermission(tools: Record<string, ToolPermission> | undefined): boolean {
@@ -81,6 +81,7 @@ export async function injectContinuation(args: {
   }
 
   const tasks: Task[] = []
+  let filteredTasks: Task[] = []
   let total = 0
   let isBootstrap = false
   let taskDir = ""
@@ -102,7 +103,12 @@ export async function injectContinuation(args: {
         const parsed = readJsonSafe(`${taskDir}/${f}`, TaskObjectSchema)
         if (parsed) tasks.push(parsed)
       }
-      total = tasks.length
+      filteredTasks = filterTasksBySession(tasks, {
+        sessionID,
+        subagentIDs: getSubagentSessionIDs(sessionID),
+        sessionScoped: config?.morpheus?.tasks?.session_scoped !== false,
+      })
+      total = filteredTasks.length
       if (total === 0) {
         const hadBgTasks = backgroundManager ? backgroundManager.getTasksByParentSession(sessionID).length > 0 : false
         if (hadBgTasks) {
@@ -125,7 +131,7 @@ export async function injectContinuation(args: {
     stateForBootstrap._bootstrap = undefined
   }
 
-  const freshIncompleteCount = isBootstrap ? 1 : getIncompleteTasks(tasks).length
+  const freshIncompleteCount = isBootstrap ? 1 : getIncompleteTasks(filteredTasks).length
   if (!isBootstrap && freshIncompleteCount === 0) {
     log(`[${HOOK_NAME}] Skipped injection: no incomplete tasks`, { sessionID, total })
     return
@@ -172,7 +178,7 @@ export async function injectContinuation(args: {
   if (isBootstrap) {
     prompt = BOOTSTRAP_PROMPT
   } else {
-    const incompleteTasks = getIncompleteTasks(tasks)
+    const incompleteTasks = getIncompleteTasks(filteredTasks)
     const staleAfterMs = getStaleAfterMs(config)
     const taskList = incompleteTasks
       .map((task) => {

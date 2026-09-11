@@ -4947,6 +4947,11 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 9007199254740991
+            },
+            "session_scoped": {
+              "description": "When true, the task-continuation-enforcer only considers tasks created by the current session (or its subagent sessions). When false, all project tasks are considered regardless of session origin.",
+              "default": true,
+              "type": "boolean"
             }
           },
           "additionalProperties": false
