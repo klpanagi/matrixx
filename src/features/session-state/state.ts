@@ -1,5 +1,25 @@
 export const subagentSessions = new Set<string>()
 
+const subagentParentMap = new Map<string, string>() // subagentID → parentID
+
+export function registerSubagentSession(sessionID: string, parentSessionID: string): void {
+  subagentSessions.add(sessionID)
+  subagentParentMap.set(sessionID, parentSessionID)
+}
+
+export function getParentSessionID(subagentSessionID: string): string | undefined {
+  return subagentParentMap.get(subagentSessionID)
+}
+
+export function getSubagentSessionIDs(parentSessionID: string): string[] {
+  const ids: string[] = []
+  for (const [subID, parentID] of subagentParentMap) {
+    if (parentID === parentSessionID) ids.push(subID)
+  }
+  return ids
+}
+
+
 let _mainSessionID: string | undefined
 
 export function setMainSession(id: string | undefined) {
@@ -41,6 +61,7 @@ const failureCounterMap = new Map<string, { count: number; lastFailedAt: number;
 export function _resetForTesting(): void {
   _mainSessionID = undefined
   subagentSessions.clear()
+  subagentParentMap.clear()
   sessionAgentMap.clear()
   failureCounterMap.clear()
 }

@@ -4,7 +4,7 @@ import type { PluginInput } from "@opencode-ai/plugin"
 import type { MatrixxConfig } from "../../config/schema"
 import type { BackgroundManager } from "../../features/background-agent"
 import type { ToolPermission } from "../../features/hook-message-injector"
-import { subagentSessions } from "../../features/session-state"
+import { getSubagentSessionIDs, subagentSessions } from "../../features/session-state"
 import { getTaskDir, readJsonSafe } from "../../features/task-storage/storage"
 import type { Task } from "../../features/task-storage/types"
 import { normalizeSDKResponse } from "../../shared"
@@ -24,7 +24,7 @@ import {
 import { startCountdown } from "./countdown"
 import type { SessionStateStore } from "./session-state"
 import { getStaleAfterMs, isTaskStale } from "./staleness"
-import { getIncompleteTasks } from "./todo"
+import { filterTasksBySession, getIncompleteTasks } from "./todo"
 import type { MessageInfo, ResolvedMessageInfo } from "./types"
 
 export async function handleSessionIdle(args: {
@@ -128,7 +128,12 @@ export async function handleSessionIdle(args: {
         const parsed = readJsonSafe(`${taskDir}/${f}`, TaskObjectSchema)
         if (parsed) tasks.push(parsed)
       }
-      total = tasks.length
+      const filteredTasks = filterTasksBySession(tasks, {
+        sessionID,
+        subagentIDs: getSubagentSessionIDs(sessionID),
+        sessionScoped: config?.morpheus?.tasks?.session_scoped !== false,
+      })
+      total = filteredTasks.length
       if (total === 0) {
         const hadBgTasks = backgroundManager ? backgroundManager.getTasksByParentSession(sessionID).length > 0 : false
         if (hadBgTasks) {
@@ -140,7 +145,7 @@ export async function handleSessionIdle(args: {
           return
         }
       } else {
-        const incompleteTasks = getIncompleteTasks(tasks)
+        const incompleteTasks = getIncompleteTasks(filteredTasks)
         incompleteCount = incompleteTasks.length
         const staleAfterMs = getStaleAfterMs(config)
         const staleIncompleteCount = incompleteTasks.filter((t) =>

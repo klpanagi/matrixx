@@ -7,7 +7,7 @@ import { hasPendingQuestionMessage } from "../../shared/awaiting-user"
 import { formatDuration } from "../../shared/format-duration"
 import { setSessionTemperature, setSessionTools } from "../../shared/session-state"
 import { isInsideTmux } from "../../shared/tmux"
-import { subagentSessions } from "../session-state"
+import { registerSubagentSession, subagentSessions } from "../session-state"
 import { getTaskToastManager } from "../task-toast-manager"
 import { ConcurrencyManager } from "./concurrency"
 import {
@@ -288,7 +288,7 @@ export class BackgroundManager {
     }
 
     const sessionID = createResult.data.id
-    subagentSessions.add(sessionID)
+    registerSubagentSession(sessionID, input.parentSessionID)
 
     log("[background-agent] tmux callback check", {
       hasCallback: !!this.onSubagentSessionCreated,
@@ -478,7 +478,7 @@ export class BackgroundManager {
       }
 
       if (existingTask.sessionID) {
-        subagentSessions.add(existingTask.sessionID)
+        registerSubagentSession(existingTask.sessionID, input.parentSessionID)
       }
       this.startPolling()
 
@@ -524,7 +524,7 @@ export class BackgroundManager {
     }
 
     this.tasks.set(task.id, task)
-    subagentSessions.add(input.sessionID)
+    registerSubagentSession(input.sessionID, input.parentSessionID)
     this.startPolling()
     this.taskHistory.record(input.parentSessionID, { id: task.id, sessionID: input.sessionID, agent: input.agent || "task", description: input.description, status: "running", startedAt: task.startedAt })
 
@@ -591,7 +591,7 @@ export class BackgroundManager {
 
     this.startPolling()
     if (existingTask.sessionID) {
-      subagentSessions.add(existingTask.sessionID)
+      registerSubagentSession(existingTask.sessionID, input.parentSessionID)
     }
 
     if (input.parentSessionID) {

@@ -1,4 +1,4 @@
-import { subagentSessions } from "../../features/session-state"
+import { registerSubagentSession, subagentSessions } from "../../features/session-state"
 import { getTaskToastManager } from "../../features/task-toast-manager"
 import type { ModelFallbackInfo } from "../../features/task-toast-manager/types"
 import { storeToolMetadata } from "../../features/tool-metadata-store"
@@ -40,7 +40,7 @@ export async function executeSyncTask(
 
     const sessionID = createSessionResult.sessionID
     syncSessionID = sessionID
-    subagentSessions.add(sessionID)
+    registerSubagentSession(sessionID, parentContext.sessionID)
 
     if (onSyncSessionCreated) {
       log("[task] Invoking onSyncSessionCreated callback", { sessionID, parentID: parentContext.sessionID })
