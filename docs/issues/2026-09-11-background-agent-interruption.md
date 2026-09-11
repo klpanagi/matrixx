@@ -1,6 +1,7 @@
 # Background agents interrupted: handles lost while work lands (2026-09-11)
 
-> Status: OPEN investigation. This file is the directive for a future session:
+> Status: Mode B (stop-continuation guard) FIXED 2026-09-11. Mode A (reaper) FIXED 2026-09-11.
+> This file is the directive for a future session:
 > read it, reproduce, then fix. Do not implement before reproducing.
 
 ## TL;DR
@@ -123,3 +124,61 @@ Note the asymmetry: every `task()` result used in this session arrived via
   `src/hooks/task-continuation-enforcer/*`, `src/hooks/stop-continuation-guard/hook.ts`,
   `src/plugin/hooks/create-continuation-hooks.ts`, `src/config/schema/background-task.ts`,
   `/tmp/matrixx.log`.
+
+## Fix log (2026-09-11) — Mode B: awaiting-user guard at stop()
+
+Reproduced first (RED): `src/hooks/stop-continuation-guard/repro.test.ts` —
+`stop()` called `cancelAllForSession` even when the session was awaiting a user
+answer (subagent mid-question). 4 pass / 1 fail before the fix.
+
+Root cause: `stop-continuation-guard/hook.ts:stop(sessionID)` cancelled all
+background tasks unconditionally. The awaiting-user guard (`isAwaitingUser` from
+`src/shared/awaiting-user.ts`) existed at countdown-start and inject-time but
+had no parity at the stop path.
+
+Fix (GREEN, 4 pass / 0 fail):
+- `stop-continuation-guard/hook.ts`: `stop()` is now async and consults an
+  `isAwaitingUser` callback (explicit state flag) plus a pending-question
+  message scan before calling `cancelAllForSession`. The `stoppedSessions` flag
+  is still set regardless, so `isStopped()` semantics are unchanged.
+- `task-continuation-enforcer` + `todo-continuation-enforcer`: expose
+  `isAwaitingUser(sessionID)` (reads the session state store).
+- `create-continuation-hooks.ts`: lazy bridge wires the active enforcer's
+  `isAwaitingUser` into the stop guard (enforcer is created after the guard).
+- `tool-execute-before.ts`: `/stop-continuation` awaits the async `stop()`.
+
+Verification: `bun run typecheck` clean; `bun test` on the 3 affected dirs
+(30 tests) green; biome lint clean on touched files.
+
+## Fix log (2026-09-11) — Mode A: awaiting-user guard at reaper
+
+Reproduced first (RED): `script/repro-mode-a-reaper.ts` — standalone repro (not in
+`src/`) proving the reaper (`checkAndInterruptStaleTasks` in
+`src/features/background-agent/manager.ts`) cancels running tasks when the
+subagent session reports idle and no progress update lands within the
+thresholds:
+- no-progress task, idle session, runtime > 600s → cancelled + session aborted
+- stale-progress task, idle session, lastUpdate > 180s → cancelled + session aborted
+- controls (session running / within thresholds) → survive
+- RED scenario D: task past thresholds but subagent session has a pending
+  question (awaiting user) → was cancelled (bug), must survive
+
+Root cause: the reaper treats "subagent session idle + no recent progress" as
+stuck, but a subagent awaiting user input (unanswered question) is legitimately
+idle — killing it loses the handle and the pending answer.
+
+Fix (GREEN, 6/6 scenarios):
+- `manager.ts`: new `isSessionAwaitingUser(sessionID)` — fetches the subagent
+  session messages and checks `hasPendingQuestionMessage` (ground truth; fails
+  open on fetch error). Both cancel branches in `checkAndInterruptStaleTasks`
+  now skip tasks whose subagent session is awaiting user input.
+
+Verification: `bun run script/repro-mode-a-reaper.ts` 6/6 pass; `bun run
+typecheck` clean; biome clean; `bun test` on stop-continuation-guard +
+continuation enforcers (30 tests) green.
+
+Remaining: handle persistence (H3/H5) — bg_* handle → task linkage is still
+volatile in-memory; file-backed index (like `.matrixx/tasks/`) is the proposed
+direction. Also: the reaper still kills tasks in long silent LLM-thinking
+phases (no part updates) — the awaiting-user guard does not cover that; a
+liveness heartbeat or threshold tuning would be the follow-up.

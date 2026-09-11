@@ -3,6 +3,7 @@
 import type { PluginInput } from "@opencode-ai/plugin"
 import type { BackgroundTaskConfig, TmuxConfig } from "../../config/schema"
 import { getAgentToolRestrictions, log, normalizeSDKResponse, promptWithModelSuggestionRetry } from "../../shared"
+import { hasPendingQuestionMessage } from "../../shared/awaiting-user"
 import { formatDuration } from "../../shared/format-duration"
 import { setSessionTemperature, setSessionTools } from "../../shared/session-state"
 import { isInsideTmux } from "../../shared/tmux"
@@ -1484,6 +1485,26 @@ export class BackgroundManager {
     }
   }
 
+  /**
+   * True when the subagent session is awaiting user input (unanswered question).
+   * The reaper must not kill a task that is legitimately waiting for an answer:
+   * its session reports idle and it stops posting progress, but it is not stuck.
+   * Ground truth comes from the session message history (hasPendingQuestionMessage);
+   * on fetch failure we fail open (return false) so reaping behavior is unchanged.
+   */
+  private async isSessionAwaitingUser(sessionID: string): Promise<boolean> {
+    try {
+      const resp = await this.client.session.messages({
+        path: { id: sessionID },
+        query: { directory: this.directory },
+      })
+      return hasPendingQuestionMessage(normalizeSDKResponse(resp, [] as Array<unknown>))
+    } catch (err) {
+      log("[background-agent] isSessionAwaitingUser check failed:", { sessionID, error: err })
+      return false
+    }
+  }
+
   private async checkAndInterruptStaleTasks(
     allStatuses: Record<string, { type: string }> = {},
   ): Promise<void> {
@@ -1505,6 +1526,7 @@ export class BackgroundManager {
       if (!task.progress?.lastUpdate) {
         if (sessionIsRunning) continue
         if (runtime <= messageStalenessMs) continue
+        if (await this.isSessionAwaitingUser(sessionID)) continue
 
         const staleMinutes = Math.round(runtime / 60000)
         task.status = "cancelled"
@@ -1533,6 +1555,7 @@ export class BackgroundManager {
 
       const timeSinceLastUpdate = now - task.progress.lastUpdate.getTime()
       if (timeSinceLastUpdate <= staleTimeoutMs) continue
+      if (await this.isSessionAwaitingUser(sessionID)) continue
       if (task.status !== "running") continue
 
       const staleMinutes = Math.round(timeSinceLastUpdate / 60000)
