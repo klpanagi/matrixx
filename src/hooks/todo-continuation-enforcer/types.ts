@@ -29,6 +29,8 @@ export interface SessionState {
   abortDetectedAt?: number
   lastInjectedAt?: number
   inFlight?: boolean
+  awaitingUser?: boolean
+  awaitingUserSince?: number
   consecutiveFailures: number
 }
 
