@@ -94,8 +94,8 @@ matrixx.jsonc
       "storage_path": "/custom/path",   // absolute or relative override
       "task_list_id": "my-project",     // override env/default
       "scope": "project",               // "project" | "global"
+      "stale_after_hours": 24,          // stale-task threshold for task-continuation enforcer
       "claude_code_compat": false
-    }
   }
 }
 ```
@@ -105,6 +105,7 @@ matrixx.jsonc
 | `storage_path` | `string` | — | Absolute path used verbatim; relative path `join(cwd, storage_path)`. When set, bypasses `scope`/`listId` resolution. |
 | `task_list_id` | `string` | — | Explicit list ID. Alternative to `ULTRAWORK_TASK_LIST_ID` env. Sanitized to `[a-zA-Z0-9_-]`. |
 | `scope` | `"project" \| "global"` | `"project"` | `project` → `.matrixx/tasks` in the project root. `global` → `~/.config/opencode/tasks/{listId}` via `getOpenCodeConfigDir()`. |
+| `stale_after_hours` | `number` | `24` | Pending/in_progress tasks with no file activity for this many hours are treated as stale by `task-continuation-enforcer` (skipped when all incomplete are stale; annotated `(stale: N)` otherwise). |
 | `claude_code_compat` | `boolean` | `false` | Claude Code path compatibility flag (reserved). |
 
 **Schema:** `MorpheusTasksConfigSchema` in `src/config/schema/morpheus.ts` (`storage_path?: string`, `task_list_id?: string`, `scope?: enum`, `claude_code_compat?: boolean`).
@@ -499,8 +500,9 @@ event:idle
   ├─ consecutiveFailures >=5 && now - lastFailure < 5min ──► skip (circuit breaker)
   ├─ now - lastContinuation < 30s ──► skip (cooldown)
   │
-  ├─ getIncompleteTaskCount(dir)  // task_list filtered count via storage
+  ├─ getIncompleteTasks(dir)  // task_list filtered via storage
   │     count == 0 ──► done (no injection)
+  │     all incomplete stale (mtime > stale_after_hours) ──► skip (log "only stale tasks remain")
   │     count > 0  ──► startCountdown(2s) → injectContinuation(CONTINUATION_PROMPT)
   │
   └─ on injection failure → increment consecutiveFailures, record lastFailureAt
@@ -509,6 +511,10 @@ event:idle
 **Countdown:** `startCountdown(2s)` in `countdown.ts` — 2-second toast countdown with 500ms grace. Cancels if new tool activity arrives.
 
 **Recovery integration:** `sessionRecovery.setOnAbortCallback/markRecovering` and `setOnRecoveryCompleteCallback` in `create-continuation-hooks.ts` — abort detection via `onAbortCallbacks`, recovery flag via `onRecoveryCompleteCallbacks`.
+
+**Cross-session scope:** The enforcer reads the **project-wide** task store (`.matrixx/tasks/`, resolved via `getTaskDir(config, directory)`), so a directive reflects the **union of all sessions' tasks** in the project — not just the current session's. Tasks created by other sessions (or orphaned when their session ended) are included in the count and the directive's task list. This is by design: the file-backed task system is the shared execution substrate. To avoid a directive chasing another session's work, mark foreign tasks `completed`/`deleted` or use `morpheus.tasks.scope: "global"` to scope storage.
+
+**Stale-task handling:** A pending/in_progress task whose task file has had no write activity for `morpheus.tasks.stale_after_hours` (default `24`) is considered **stale**. When *all* incomplete tasks are stale, the enforcer skips the directive entirely (logged as `Skipped: only stale tasks remain`). When stale tasks coexist with active ones, the directive annotates them with a `(stale: 2h)` suffix and appends a note suggesting they may be orphaned and should be marked completed/deleted if superseded.
 
 ### 8.2 `tasks-todowrite-disabler` — Enforce Task System
 

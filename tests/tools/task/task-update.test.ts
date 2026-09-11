@@ -420,5 +420,59 @@ describe("task_update tool", () => {
       expect(result.task.status).toBe("in_progress")
       expect(result.task.owner).toBe("alice")
     })
+
+    test("rejects malformed addBlockedBy task IDs", async () => {
+      //#given
+      const taskId = "T-test-135"
+      const taskPath = join(testDir, TEST_STORAGE, `${taskId}.json`)
+      const initialTask: TaskObject = {
+        id: taskId,
+        subject: "Original subject",
+        description: "Original description",
+        status: "pending",
+        blocks: [],
+        blockedBy: [],
+        threadID: TEST_SESSION_ID,
+      }
+      await Bun.write(taskPath, JSON.stringify(initialTask))
+
+      //#when
+      const args = {
+        id: taskId,
+        addBlockedBy: ["T-"],
+      }
+      const resultStr = await tool.execute(args, TEST_CONTEXT)
+      const result = JSON.parse(resultStr)
+
+      //#then
+      expect(result.error).toBe("validation_error")
+    })
+
+    test("rejects malformed addBlocks task IDs", async () => {
+      //#given
+      const taskId = "T-test-136"
+      const taskPath = join(testDir, TEST_STORAGE, `${taskId}.json`)
+      const initialTask: TaskObject = {
+        id: taskId,
+        subject: "Original subject",
+        description: "Original description",
+        status: "pending",
+        blocks: [],
+        blockedBy: [],
+        threadID: TEST_SESSION_ID,
+      }
+      await Bun.write(taskPath, JSON.stringify(initialTask))
+
+      //#when
+      const args = {
+        id: taskId,
+        addBlocks: ["T-a--b"],
+      }
+      const resultStr = await tool.execute(args, TEST_CONTEXT)
+      const result = JSON.parse(resultStr)
+
+      //#then
+      expect(result.error).toBe("validation_error")
+    })
   })
 })

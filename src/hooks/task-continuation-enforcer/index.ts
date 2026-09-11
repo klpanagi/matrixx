@@ -17,6 +17,7 @@ export function createTaskContinuationEnforcer(
     backgroundManager,
     skipAgents = DEFAULT_SKIP_AGENTS,
     isContinuationStopped,
+    config,
   } = options
 
   const sessionStateStore = createSessionStateStore()
@@ -45,6 +46,7 @@ export function createTaskContinuationEnforcer(
     backgroundManager,
     skipAgents,
     isContinuationStopped,
+    config,
   })
 
   const cancelAllCountdowns = (): void => {

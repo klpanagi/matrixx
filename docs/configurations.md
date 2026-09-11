@@ -1057,6 +1057,7 @@ Configure task storage for the Task System. The system is gated by `experimental
       "storage_path": ".matrixx/tasks",
       "task_list_id": "my-project",
       "scope": "project",
+      "stale_after_hours": 24,
       "claude_code_compat": false
     }
   }
@@ -1070,6 +1071,7 @@ Configure task storage for the Task System. The system is gated by `experimental
 | `storage_path`       | `string` | — (runtime default: `.matrixx/tasks` when `scope=project`) | Absolute or relative path override. When set, bypasses `scope`/`listId` resolution. |
 | `task_list_id`       | `string` | — (falls back to `basename(cwd)` sanitized) | Force task list ID (alternative to `ULTRAWORK_TASK_LIST_ID` / `CLAUDE_CODE_TASK_LIST_ID` env). Sanitized to `[a-zA-Z0-9_-]`. |
 | `scope`              | `"global" \| "project"` | `"project"` | `project` → `.matrixx/tasks` per project (default). `global` → `~/.config/opencode/tasks/{listId}`. |
+| `stale_after_hours`  | `number`   | `24`              | Pending/in_progress tasks with no file activity for this many hours are treated as stale by `task-continuation-enforcer` (skipped when all incomplete are stale; annotated `(stale: N)` otherwise). |
 | `claude_code_compat` | `boolean` | `false`            | Enable Claude Code path compatibility mode.                                |
 
 ## MCPs

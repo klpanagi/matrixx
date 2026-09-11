@@ -98,6 +98,7 @@ export function createContinuationHooks(args: {
         const enforcer = createTaskContinuationEnforcer(ctx, {
           backgroundManager,
           isContinuationStopped: stopContinuationGuard?.isStopped,
+          config: pluginConfig,
         })
         activeContinuationEnforcer = enforcer
         return enforcer

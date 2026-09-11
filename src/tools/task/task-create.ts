@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import type { PluginInput } from "@opencode-ai/plugin";
 import { type ToolDefinition, tool } from "@opencode-ai/plugin/tool";
+import { z } from "zod";
 import type { MatrixxConfig } from "../../config/schema";
 import {
   acquireLockWithRetry,
@@ -108,7 +109,7 @@ async function handleCreate(
       lock.release();
     }
   } catch (error) {
-    if (error instanceof Error && error.message.includes("Required")) {
+    if (error instanceof z.ZodError) {
       return JSON.stringify({
         error: "validation_error",
         message: error.message,

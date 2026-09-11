@@ -298,5 +298,35 @@ describe("task_create tool", () => {
       expect(taskContent.subject).toBe("Test task")
       expect(taskContent.description).toBe("Test description")
     })
+
+    test("rejects malformed blockedBy task IDs", async () => {
+      //#given
+      const args = {
+        subject: "Test task",
+        blockedBy: ["T-"],
+      }
+
+      //#when
+      const resultStr = await tool.execute(args, TEST_CONTEXT)
+      const result = JSON.parse(resultStr)
+
+      //#then
+      expect(result.error).toBe("validation_error")
+    })
+
+    test("rejects malformed blocks task IDs", async () => {
+      //#given
+      const args = {
+        subject: "Test task",
+        blocks: ["T-abc-"],
+      }
+
+      //#when
+      const resultStr = await tool.execute(args, TEST_CONTEXT)
+      const result = JSON.parse(resultStr)
+
+      //#then
+      expect(result.error).toBe("validation_error")
+    })
   })
 })

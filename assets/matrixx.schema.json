@@ -4941,6 +4941,12 @@
                 "global",
                 "project"
               ]
+            },
+            "stale_after_hours": {
+              "description": "Pending tasks with no file activity for this many hours are considered stale (default: 24). Stale tasks are excluded from task-continuation directives.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
             }
           },
           "additionalProperties": false
