@@ -5,9 +5,9 @@ import type {
 } from "../agents/dynamic-agent-prompt-builder"
 import type { MatrixxConfig } from "../config"
 import type { Managers } from "../create-managers"
-import { log } from "../shared";
-import { filterDisabledTools } from "../shared/disabled-tools";
-import { isTaskSystemEnabled } from "../shared/task-system-gating";
+import { log } from "../shared"
+import { filterDisabledTools } from "../shared/disabled-tools"
+import { isTaskSystemEnabled } from "../shared/task-system-gating"
 import {
   builtinTools,
   createAssemblyTool,
@@ -18,7 +18,7 @@ import {
   createBddPipelineTool,
   createBddValidateContractTool,
   createDcpSwitchProfileTool,
-createDelegateAgent,
+  createDelegateAgent,
   createDelegateTask,
   createGlobTools,
   createGrepTools,
@@ -26,6 +26,11 @@ createDelegateAgent,
   createHashlineEditTool,
   createLookAt,
   createPdfExtractFiguresTool,
+  createPlanCreateTool,
+  createPlanDeleteTool,
+  createPlanListTool,
+  createPlanReadTool,
+  createPlanUpdateTool,
   createSessionManagerTools,
   createSkillTool,
   createSlashcommandTool,
@@ -96,7 +101,6 @@ export function createToolRegistry(args: {
     },
   })
 
-
   const skillTool = createSkillTool({
     skills: skillContext.builtinSkills,
     disabledSkills: skillContext.disabledSkills,
@@ -124,13 +128,21 @@ export function createToolRegistry(args: {
     ? { edit: createHashlineEditTool(ctx) }
     : {}
 
+  const planToolsRecord: Record<string, ToolDefinition> = {
+    plan_create: createPlanCreateTool(ctx),
+    plan_read: createPlanReadTool(ctx),
+    plan_list: createPlanListTool(ctx),
+    plan_update: createPlanUpdateTool(ctx),
+    plan_delete: createPlanDeleteTool(ctx),
+  }
+
   const assemblyEnabled = pluginConfig.assembly?.enabled !== false
-const assemblyTool = assemblyEnabled
-  ? createAssemblyTool({
-    manager: managers.backgroundManager,
-    pluginConfig,
-  })
-  : null
+  const assemblyTool = assemblyEnabled
+    ? createAssemblyTool({
+        manager: managers.backgroundManager,
+        pluginConfig,
+      })
+    : null
 
   const allTools: Record<string, ToolDefinition> = {
     ...builtinTools,
@@ -138,10 +150,10 @@ const assemblyTool = assemblyEnabled
     ...createGlobTools(ctx),
     ...createAstGrepTools(ctx),
     ...createSessionManagerTools(ctx),
-...createHandoffTools(ctx),
-...createPdfExtractFiguresTool(),
+    ...createHandoffTools(ctx),
+    ...createPdfExtractFiguresTool(),
     ...createDcpSwitchProfileTool({ pluginConfig }),
-...backgroundTools,
+    ...backgroundTools,
     delegate_agent: delegateAgent,
     ...(lookAt ? { look_at: lookAt } : {}),
     task: delegateTask,
@@ -150,12 +162,13 @@ const assemblyTool = assemblyEnabled
     interactive_bash,
     ...taskToolsRecord,
     ...hashlineToolsRecord,
+    ...planToolsRecord,
     ...(assemblyTool ? { assembly: assemblyTool } : {}),
     bdd_create_contract: createBddCreateContractTool(),
     bdd_parse_gherkin: createBddParseGherkinTool(),
     bdd_pipeline_run: createBddPipelineTool({ manager: managers.backgroundManager }),
     bdd_validate_contract: createBddValidateContractTool(),
-}
+  }
 
   const filteredTools = filterDisabledTools(allTools, pluginConfig.disabled_tools)
 

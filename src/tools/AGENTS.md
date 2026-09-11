@@ -2,13 +2,14 @@
 
 ## OVERVIEW
 
-22 tool dirs (LSP ×6, AST-grep ×2, grep/glob, session-manager ×4, task ×5 `create/list/get/update/cleanup`, delegate-task/agent, background-task, handoff, hashline-edit, interactive-bash, look-at, skill/slashcommand, assembly, bdd-*/dcp-switch/pdf-extract). Two patterns: Direct ToolDefinition (static) and Factory Function (context-dependent).
+23 tool dirs (LSP ×6, AST-grep ×2, grep/glob, session-manager ×4, task ×5 `create/list/get/update/cleanup`, plan ×5 `create/read/update/list/delete` for `.matrixx/plans/*.md`, delegate-task/agent, background-task, handoff, hashline-edit, interactive-bash, look-at, skill/slashcommand, assembly, bdd-*/dcp-switch/pdf-extract). Two patterns: Direct ToolDefinition (static) and Factory Function (context-dependent).
 
 ## STRUCTURE
 ```
 tools/
 ├── delegate-task/    # Category routing (constants.ts 569 lines, tools.ts 213 lines) + complexity routing
-├── task/             # 4 individual tools: create, list, get, update (task-create.ts, task-list.ts, task-get.ts, task-update.ts)
+├── task/             # 5 individual tools: create, list, get, update, cleanup (task-create.ts, task-list.ts, task-get.ts, task-update.ts)
+├── plan/             # 5 plan tools: create, read, update, list, delete for `.matrixx/plans/*.md` (kebab-case, hashline IDs, atomicWrite, unconditional registry)
 ├── lsp/              # 6 LSP tools: goto_definition, find_references, symbols, diagnostics, prepare_rename, rename
 ├── ast-grep/         # 2 tools: search, replace (25 languages)
 ├── grep/             # Custom grep (60s timeout, 10MB limit)

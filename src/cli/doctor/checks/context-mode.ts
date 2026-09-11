@@ -1,9 +1,40 @@
 import { existsSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
 import { join } from "node:path"
-import { getOmoOpenCodeCacheDir } from "../../../shared/data-path"
+import { getOmoOpenCodeCacheDir, getOpenCodeCacheDir } from "../../../shared/data-path"
 import { parseJsoncSafe } from "../../../shared/jsonc-parser"
 import { getOpenCodeConfigDir } from "../../../shared/opencode-config-dir"
 import type { CheckResult, DoctorCheck } from "../types"
+
+function resolveDisciplineInfo(): { path: string | null; version: string | null } {
+  const candidates: string[] = []
+  try {
+    const resolved = require.resolve("context-mode/configs/opencode/AGENTS.md")
+    candidates.push(resolved)
+  } catch {}
+  try {
+    candidates.push(join(getOpenCodeCacheDir(), "packages/context-mode@latest/node_modules/context-mode/configs/opencode/AGENTS.md"))
+  } catch {}
+  try {
+    const base = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache")
+    candidates.push(join(base, "opencode/packages/context-mode@latest/node_modules/context-mode/configs/opencode/AGENTS.md"))
+  } catch {}
+  for (const p of candidates) {
+    try {
+      if (existsSync(p)) {
+        let version: string | null = null
+        try {
+          const pkgPath = join(p.replace(/configs\/opencode\/AGENTS\.md$/, ""), "package.json")
+          const pkgRaw = readFileSync(pkgPath, "utf-8")
+          const pkg = JSON.parse(pkgRaw)
+          if (typeof pkg.version === "string") version = pkg.version
+        } catch {}
+        return { path: p, version }
+      }
+    } catch {}
+  }
+  return { path: null, version: null }
+}
 
 function loadContextModeConfig(): { enabled: boolean } | null {
   const dir = getOpenCodeConfigDir({ binary: "opencode" })
@@ -68,11 +99,13 @@ export const contextModeCheck: DoctorCheck = {
         detail: `Add "context-mode" to plugin array in ${join(getOpenCodeConfigDir({ binary: "opencode" }), "opencode.jsonc")}\nCache dir: ${cacheDir} ${hasCache ? "(exists)" : "(not found — will be created on first use)"}`,
       }
     }
+    const discipline = resolveDisciplineInfo()
+    const disciplineLine = discipline.path ? `Discipline: ${discipline.path}${discipline.version ? ` (v${discipline.version})` : ""}` : "Discipline: not found — fallback table in use"
     return {
       name: "context-mode-integration",
       status: "pass",
-      message: `context-mode plugin registered${hasCache ? ", cache present" : " (cache not yet created)"}`,
-      detail: `Cache: ${cacheDir}`,
+      message: `context-mode plugin registered${hasCache ? ", cache present" : " (cache not yet created)"}${discipline.version ? `, discipline v${discipline.version}` : ""}`,
+      detail: `Cache: ${cacheDir}\n${disciplineLine}\nPlan tools: plan_create/read/update/list/delete (unconditional)`,
     }
   },
 }

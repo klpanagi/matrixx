@@ -8,8 +8,6 @@ import {
   lspManager,
 } from "./lsp"
 
-
-
 export { createAstGrepTools } from "./ast-grep"
 export { createBddCreateContractTool } from "./bdd-create-contract"
 export { createBddParseGherkinTool } from "./bdd-parse-gherkin"
@@ -20,12 +18,16 @@ export { createGrepTools } from "./grep"
 export { createHandoffTools } from "./handoff"
 export { interactive_bash, startBackgroundCheck as startTmuxCheck } from "./interactive-bash"
 export { createPdfExtractFiguresTool } from "./pdf-extract-figures"
+export { createPlanCreateTool } from "./plan/plan-create"
+export { createPlanDeleteTool } from "./plan/plan-delete"
+export { createPlanListTool } from "./plan/plan-list"
+export { createPlanReadTool } from "./plan/plan-read"
+export { createPlanUpdateTool } from "./plan/plan-update"
 export { createSessionManagerTools } from "./session-manager"
 export { sessionExists } from "./session-manager/storage"
 export { createSkillTool } from "./skill"
 export { createSlashcommandTool, discoverCommandsSync } from "./slashcommand"
 export { lspManager }
-
 
 import type { PluginInput, ToolDefinition } from "@opencode-ai/plugin"
 import type { BackgroundManager } from "../features/background-agent"

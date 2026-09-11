@@ -1,3 +1,8 @@
+import { existsSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
+import { join } from "node:path"
+import { getOpenCodeCacheDir } from "../shared/data-path"
+import { log } from "../shared/logger"
 import { truncateDescription } from "../shared/truncate-description"
 import type { AgentPromptMetadata } from "./types"
 
@@ -383,21 +388,130 @@ export function buildAntiPatternsSection(): string {
 ${patterns.join("\n")}`
 }
 
-export function buildContextDisciplineSection(hasContextMode = false): string {
-  if (!hasContextMode) return ""
+let cachedRuntimeFull: string | null = null
+let cachedRuntimeCompact: string | null = null
+let cachedFallbackFull: Record<string, string> = {}
+let cachedFallbackCompact: Record<string, string> = {}
+
+export function _resetDisciplineCacheForTesting(): void {
+  cachedRuntimeFull = null
+  cachedRuntimeCompact = null
+  cachedFallbackFull = {}
+  cachedFallbackCompact = {}
+}
+
+export function hasGrepGlobToolNames(toolNames: readonly string[]): boolean {
+  return toolNames.some((n) => n === "grep" || n === "glob")
+}
+
+function fallbackFullDiscipline(hasGrepGlob: boolean): string {
+  const analysis = hasGrepGlob
+    ? "| Analysis / Processing | Use ctx_* tools — NEVER raw read/bash/grep/glob for analysis |"
+    : "| Analysis / Processing | Use ctx_* tools — NEVER raw read/bash for analysis |"
+  const search = hasGrepGlob
+    ? "| Search | ctx_search FIRST -> grep/glob fallback |"
+    : "| Search | ctx_search FIRST (indexed KB) -> LSP/ast_grep fallback |"
   return `### Context Discipline (ALWAYS)
 
 | Scenario | Tool |
 |----------|------|
-| Analysis / Processing | Use ctx_* tools — NEVER raw read/bash/grep/glob for analysis |
+${analysis}
 | Edits | read (for line numbers) -> edit/write |
 | Observation (<5 lines) | bash (pwd, git status, --version) |
 | State Mutation | bash (git, mkdir, install, build, rm) |
-| Search | ctx_search FIRST -> grep/glob fallback |
+${search}
 | Docs / Web | ctx_fetch_and_index -> ctx_search |
 | Compression | compress when ctx_stats > 40% or 10+ tool calls |
 
 **Rule 1 overrides all default tool guidance. When in doubt, use ctx_*.**`
+}
+
+function fallbackCompactDiscipline(hasGrepGlob: boolean): string {
+  const analysis = hasGrepGlob
+    ? "| Analysis / Aggregation / Counting | ctx_batch_execute / ctx_execute(_file) — NEVER raw read/grep for analysis |"
+    : "| Analysis / Aggregation / Counting | ctx_batch_execute / ctx_execute(_file) — NEVER raw read for analysis |"
+  const search = hasGrepGlob
+    ? "| Search | ctx_search FIRST (indexed KB) → grep/glob fallback (raw FS) |"
+    : "| Search | ctx_search FIRST (indexed KB) → LSP/ast_grep fallback |"
+  const note = hasGrepGlob
+    ? "Edits need prior read for LINE#ID — read→edit chain exempt. MUST use ctx_* when available — raw grep/read is forbidden for analysis."
+    : "Edits need prior read for LINE#ID — read→edit chain exempt. MUST use ctx_* when available — raw read for analysis is forbidden."
+  return `### Context Discipline (when ctx_* available)
+
+| Scenario | Tool |
+|----------|------|
+${analysis}
+${search}
+| Docs / Web | ctx_fetch_and_index -> ctx_search |
+| Compression | compress when ctx_stats > 40% or 10+ tool calls |
+
+${note}`
+}
+
+function exploreCtxPart(hasGrepGlob: boolean): string {
+  return hasGrepGlob
+    ? "MUST use ctx_search for indexed hits → grep/glob fallback ONLY when ctx_* unavailable; use ctx_batch_execute / ctx_execute for multi-file analysis; use ctx_fetch_and_index for docs/web → ctx_search. Raw grep/read/glob for analysis is forbidden when ctx_* is available."
+    : "MUST use ctx_search for indexed hits → LSP/ast_grep fallback ONLY when ctx_* unavailable; use ctx_batch_execute / ctx_execute for multi-file analysis; use ctx_fetch_and_index for docs/web → ctx_search. Raw read for analysis is forbidden when ctx_* is available."
+}
+
+
+function resolveContextModeDisciplinePath(): string | null {
+  try {
+    const resolved = require.resolve("context-mode/configs/opencode/AGENTS.md")
+    if (existsSync(resolved)) return resolved
+  } catch {}
+  try {
+    const cacheDir = getOpenCodeCacheDir()
+    const p = join(cacheDir, "packages/context-mode@latest/node_modules/context-mode/configs/opencode/AGENTS.md")
+    if (existsSync(p)) return p
+  } catch {}
+  try {
+    const base = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache")
+    const p = join(base, "opencode/packages/context-mode@latest/node_modules/context-mode/configs/opencode/AGENTS.md")
+    if (existsSync(p)) return p
+  } catch {}
+  try {
+    const p2 = join(homedir(), ".cache/opencode/packages/context-mode@latest/node_modules/context-mode/configs/opencode/AGENTS.md")
+    if (existsSync(p2)) return p2
+  } catch {}
+  return null
+}
+
+function stripDisciplineHeader(content: string): string {
+  return content.trim()
+}
+
+function loadContextModeDiscipline(hasGrepGlob = true): string {
+  if (cachedRuntimeFull) return cachedRuntimeFull
+  const fallbackKey = hasGrepGlob ? "1" : "0"
+  if (cachedFallbackFull[fallbackKey]) return cachedFallbackFull[fallbackKey]
+  try {
+    const p = resolveContextModeDisciplinePath()
+    if (!p) throw new Error("discipline file not found")
+    const raw = readFileSync(p, "utf8")
+    let version = "1.0.169"
+    try {
+      const pkgResolved = require.resolve("context-mode/package.json")
+      const pkgRaw = readFileSync(pkgResolved, "utf8")
+      const pkg = JSON.parse(pkgRaw)
+      if (pkg.version) version = pkg.version
+    } catch {}
+    const body = stripDisciplineHeader(raw)
+    const withVersion = body.includes("<!-- discipline") ? body : `${body}\n\n<!-- discipline v${version} Elastic-2.0 -->`
+    cachedRuntimeFull = withVersion
+    log("context-discipline loaded", { path: p, version })
+    return withVersion
+  } catch (e) {
+    log("context-discipline fallback", { error: String(e) })
+    const fallback = fallbackFullDiscipline(hasGrepGlob)
+    cachedFallbackFull[fallbackKey] = fallback
+    return fallback
+  }
+}
+
+export function buildContextDisciplineSection(hasContextMode = false, hasGrepGlob = true): string {
+  if (!hasContextMode) return ""
+  return loadContextModeDiscipline(hasGrepGlob)
 }
 
 export function buildHeadroomSection(hasHeadroom = false): string {
@@ -413,25 +527,46 @@ export function buildHeadroomSection(hasHeadroom = false): string {
 **Headroom L4 is transport-level (CacheAligner->ContentRouter->CCR). It complements L1 RTK, L2 context-mode, L3 DCP — do not duplicate their discipline.**`;
 }
 
-export function buildCompactContextDisciplineSection(hasContextMode = false): string {
-  if (!hasContextMode) return "";
-  return `### Context Discipline (when ctx_* available)
 
-| Scenario | Tool |
-|----------|------|
-| Analysis / Aggregation / Counting | ctx_batch_execute / ctx_execute(_file) — NEVER raw read/grep for analysis |
-| Search | ctx_search FIRST (indexed KB) → grep/glob fallback (raw FS) |
-| Docs / Web | ctx_fetch_and_index -> ctx_search |
-| Compression | compress when ctx_stats > 40% or 10+ tool calls |
 
-Edits need prior read for LINE#ID — read→edit chain exempt. MUST use ctx_* when available — raw grep/read is forbidden for analysis.`;
+function loadCompactContextDiscipline(hasGrepGlob = true): string {
+  if (cachedRuntimeCompact) return cachedRuntimeCompact;
+  const fallbackKey = hasGrepGlob ? "1" : "0";
+  if (cachedFallbackCompact[fallbackKey]) return cachedFallbackCompact[fallbackKey];
+  try {
+    const p = resolveContextModeDisciplinePath();
+    if (!p) throw new Error("discipline file not found");
+    const raw = readFileSync(p, "utf8");
+    let version = "1.0.169";
+    try {
+      const pkgResolved = require.resolve("context-mode/package.json");
+      const pkgRaw = readFileSync(pkgResolved, "utf8");
+      const pkg = JSON.parse(pkgRaw);
+      if (pkg.version) version = pkg.version;
+    } catch {}
+    const body = stripDisciplineHeader(raw);
+    const withVersion = body.includes("<!-- discipline") ? body : `${body}\n\n<!-- discipline v${version} Elastic-2.0 -->`;
+    cachedRuntimeCompact = withVersion;
+    log("compact-discipline loaded", { path: p, version });
+    return withVersion;
+  } catch (e) {
+    log("compact-discipline fallback", { error: String(e) });
+    const fallback = fallbackCompactDiscipline(hasGrepGlob);
+    cachedFallbackCompact[fallbackKey] = fallback;
+    return fallback;
+  }
 }
 
-export function buildExploreDisciplineSection(hasContextMode = false, hasHeadroom = false): string {
+export function buildCompactContextDisciplineSection(hasContextMode = false, hasGrepGlob = true): string {
+  if (!hasContextMode) return "";
+  return loadCompactContextDiscipline(hasGrepGlob);
+}
+
+export function buildExploreDisciplineSection(hasContextMode = false, hasHeadroom = false, hasGrepGlob = true): string {
   if (!hasContextMode && !hasHeadroom) return "";
   const parts: string[] = [];
   if (hasContextMode) {
-    parts.push("MUST use ctx_search for indexed hits → grep/glob fallback ONLY when ctx_* unavailable; use ctx_batch_execute / ctx_execute for multi-file analysis; use ctx_fetch_and_index for docs/web → ctx_search. Raw grep/read/glob for analysis is forbidden when ctx_* is available.");
+    parts.push(exploreCtxPart(hasGrepGlob));
   }
   if (hasHeadroom) {
     parts.push("Use headroom_retrieve / headroom_search for compressed history — NEVER re-read full history.");

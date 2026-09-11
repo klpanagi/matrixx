@@ -18,7 +18,7 @@ ANALYSIS MODE. Gather context before diving deep:
 CONTEXT GATHERING (parallel):
 - 1-2 trinity agents (codebase patterns, implementations)
 - 1-2 operator agents (if external library involved)
-- Direct tools: Grep, AST-grep, LSP for targeted searches
+- Direct tools: Grep (if available), AST-grep, LSP for targeted searches
 
 IF COMPLEX - DO NOT STRUGGLE ALONE. Consult specialists:
 - **Oracle**: Conventional problems (architecture, debugging, complex logic)

@@ -1,12 +1,32 @@
 import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 
 import { log } from "../../shared"
-import { BLOCKED_PATTERNS, HOOK_NAME } from "./constants"
+import { BLOCKED_PATTERNS, HOOK_NAME, PLAN_WRITE_WARN } from "./constants"
 
 export function createTaskEditGuardHook(ctx: PluginInput): Hooks {
   return {
-    "tool.execute.before": async (input, output) => {
-      if (input.tool?.toLowerCase() !== "bash") return
+    "tool.execute.before": async (input, output: { args: Record<string, unknown>; message?: string }): Promise<void> => {
+      const tool = input.tool?.toLowerCase()
+
+      // WARN for generic Write/Edit to .matrixx/plans/*.md — suggest plan_* until v2.8 (no throw)
+      if (tool === "write" || tool === "edit") {
+        const args = output.args as unknown as Record<string, unknown>
+        const filePath = (args?.filePath ?? args?.path ?? args?.file) as string | undefined
+        if (filePath) {
+          const normalized = filePath.toLowerCase().replace(/\\/g, "/")
+          if (normalized.includes(".matrixx/plans")) {
+            log(`[${HOOK_NAME}] WARN generic Write/Edit to .matrixx/plans — suggest plan_*`, {
+              sessionID: input.sessionID,
+              tool: input.tool,
+              filePath,
+            })
+            output.message = (output.message ? `${output.message} ` : "") + PLAN_WRITE_WARN
+          }
+        }
+        return
+      }
+
+      if (tool !== "bash") return
 
       const args = output.args as unknown as Record<string, unknown>
       const cmd = args?.command as string | undefined

@@ -23,32 +23,45 @@ describe("injectContextDiscipline pure", () => {
   })
 
   it("should inject compact into executors when ctx_* present", () => {
-    //#given: ctx tools
+    //#given: ctx tools (runtime file or fallback)
     const agents = makeAgents(["mouse", "cipher", "sati", "sentinel", "architect", "customBot"])
     //#when
     injectContextDiscipline(["ctx_search", "ctx_batch_execute"], agents)
-    //#then: compact
+    //#then: compact discipline in either form
     for (const name of ["mouse", "cipher", "sati", "sentinel", "architect", "customBot"]) {
       const prompt = (agents[name] as { prompt: string }).prompt
-      expect(prompt).toContain("when ctx_* available")
+      expect(prompt.includes("when ctx_* available") || prompt.includes("context-mode")).toBe(true)
       expect(prompt).toContain("ctx_batch_execute")
-      expect(prompt).toContain("ctx_search FIRST")
+      expect(prompt).toContain("ctx_search")
       expect(prompt).toContain("ctx_fetch_and_index")
     }
   })
 
   it("should inject explore into explore agents when ctx_* present", () => {
-    //#given: ctx tools
+    //#given: ctx tools plus grep/glob
     const agents = makeAgents(["trinity", "operator", "seraph", "smith", "merovingian", "construct", "oracle"])
     //#when
-    injectContextDiscipline(["ctx_search", "ctx_batch_execute"], agents)
-    //#then: explore
+    injectContextDiscipline(["ctx_search", "ctx_batch_execute", "grep", "glob"], agents)
+    //#then: explore with grep/glob fallback
     for (const name of ["trinity", "operator", "seraph", "smith", "merovingian", "construct", "oracle"]) {
       const prompt = (agents[name] as { prompt: string }).prompt
       expect(prompt).toContain("when available")
       expect(prompt).toContain("ctx_search")
       expect(prompt).toContain("grep/glob fallback")
     }
+  })
+
+  it("should inject explore with LSP fallback when grep/glob hidden", () => {
+    //#given: ctx tools without grep/glob
+    const agents = makeAgents(["trinity"])
+    //#when
+    injectContextDiscipline(["ctx_search"], agents)
+    //#then: explore points at LSP/ast_grep instead
+    const prompt = (agents["trinity"] as { prompt: string }).prompt
+    expect(prompt).toContain("when available")
+    expect(prompt).toContain("ctx_search")
+    expect(prompt).not.toContain("grep/glob fallback")
+    expect(prompt).toContain("LSP/ast_grep")
   })
 
   it("should inject explore into bdd-contract when present", () => {
@@ -113,14 +126,14 @@ describe("injectContextDiscipline pure", () => {
   })
 
   it("should inject compact into custom agents", () => {
-    //#given: custom
+    //#given: custom (runtime file or fallback)
     const agents = makeAgents(["myCustom"])
     //#when
     injectContextDiscipline(["ctx_search"], agents)
     //#then: compact
     const prompt = (agents["myCustom"] as { prompt: string }).prompt
-    expect(prompt).toContain("when ctx_* available")
-    expect(prompt).toContain("ctx_search FIRST")
+    expect(prompt.includes("when ctx_* available") || prompt.includes("context-mode")).toBe(true)
+    expect(prompt).toContain("ctx_search")
   })
 
   it("should handle agents without prompt gracefully", () => {
@@ -145,17 +158,18 @@ describe("injectContextDiscipline pure", () => {
     //#then: Trinity/Oracle get explore (lowercased), MOUSE gets compact
     expect((agents["Trinity"] as { prompt: string }).prompt).toContain("when available")
     expect((agents["Oracle"] as { prompt: string }).prompt).toContain("when available")
-    expect((agents["MOUSE"] as { prompt: string }).prompt).toContain("when ctx_* available")
+    const mousePrompt = (agents["MOUSE"] as { prompt: string }).prompt
+    expect(mousePrompt.includes("when ctx_* available") || mousePrompt.includes("context-mode")).toBe(true)
   })
 
   it("should preserve read→edit chain exempt note in compact", () => {
-    //#given: ctx
+    //#given: ctx (runtime file distinguishes edit-reads; fallback states chain exempt)
     const agents = makeAgents(["cipher"])
     //#when
     injectContextDiscipline(["ctx_search"], agents)
-    //#then: LINE#ID
+    //#then: edit-read guidance in either form
     const prompt = (agents["cipher"] as { prompt: string }).prompt
-    expect(prompt).toContain("LINE#ID")
+    expect(prompt.includes("LINE#ID") || prompt.includes("reading correct") || prompt.includes("ctx_execute_file")).toBe(true)
   })
 
   it("should not mutate when agents empty", () => {

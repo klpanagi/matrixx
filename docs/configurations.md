@@ -1190,25 +1190,25 @@ Opt-in experimental features that may change or be removed in future versions. U
 | `hashline_edit`             | `true` (at call site) | Enable hashline-anchored `Edit` tool for `.matrixx/plans/*.md` (line#hash IDs).                                                     |
 ## Context Mode
 
-Enforce sandbox-based `ctx_*` tools (`ctx_read`, `ctx_grep`, `ctx_batch_execute`, `ctx_search`, `ctx_execute`) over raw `Read`/`Grep`/`Glob` for analysis. See [Context Management](./context-management.md) for the full 5-layer stack.
+Enforce sandbox-based `ctx_*` tools (`ctx_batch_execute`, `ctx_search`, `ctx_execute`, `ctx_execute_file`, `ctx_fetch_and_index`, `ctx_index`) over raw `Read`/`Grep`/`Glob` for analysis. Discipline prompt is loaded at runtime from the installed `context-mode` package (`configs/opencode/AGENTS.md`, memoized `readFileSync` + fallback) when `ctx_*` tools are present. Dedicated `plan_*` tools (`plan_create/read/update/list/delete`) cover `.matrixx/plans/*.md` — generic `Write`/`Edit` to plans warns until v2.8. See [Context Management](./context-management.md) for the full 5-layer stack.
 
 ```jsonc
 {
   "context_mode": {
-    "enabled": true,      // default true — inject ctx_* discipline into prompts
-    "enforce": false,     // when true, blocks raw grep/glob/read via hook
-    "blocked_tools": ["read", "grep", "glob"]  // tools blocked when enforce:true
+    "enabled": true,      // default true — inject ctx_* discipline into prompts (runtime read + fallback)
+    "enforce": false,     // when true, blocks raw grep/glob via hook (read is WARN_ONLY, write is no-op)
+    "blocked_tools": ["read", "grep", "glob"]  // read warns only; write has no hook branch
   }
 }
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `enabled` | `boolean` | `true` | Inject context-mode discipline into agent prompts. |
-| `enforce` | `boolean` | `false` | When `true`, `context-mode-enforcer` hook blocks `read`/`grep`/`glob` for analysis — forces `ctx_*` sandbox (see `ctx_search(queries: [...])`). |
-| `blocked_tools` | `string[]` | `["read","grep","glob"]` | Tools blocked when `enforce:true`. |
+| `enabled` | `boolean` | `true` | Inject context-mode discipline into agent prompts (runtime file + fallback). |
+| `enforce` | `boolean` | `false` | When `true`, `context-mode-enforcer` hook blocks `grep`/`glob` for analysis (`read` warns, `write` no-op) — forces `ctx_*` sandbox. |
+| `blocked_tools` | `string[]` | `["read","grep","glob"]` | Tools gated when `enforce:true` (`read` warn-only; `write` ignored — no branch). |
 
-> Schema: `src/config/schema/context-mode.ts` (`ContextModeConfigSchema`). Example: `matrixx.example.jsonc` § context_mode.
+> Schema: `src/config/schema/context-mode.ts` (`ContextModeConfigSchema`, `additionalProperties:false` — no `disabled_tools` inside `context_mode`; use top-level `disabled_tools` to hide tools). Example: `matrixx.example.jsonc` § context_mode. Doctor: `doctor --check context-mode-integration` reports discipline path + version + plan tools.
 
 ## Headroom
 

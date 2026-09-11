@@ -40,7 +40,7 @@ export const ULTRAWORK_GPT_MESSAGE = `<ultrawork-mode>
 
 <uncertainty_handling>
 - If the question is ambiguous or underspecified:
-  - EXPLORE FIRST using tools (grep, file reads, trinity agents)
+  - EXPLORE FIRST using tools (grep if available, file reads, trinity agents)
   - If still unclear, state your interpretation and proceed
   - Ask clarifying questions ONLY as last resort
 - Never fabricate exact figures, line numbers, or references when uncertain
@@ -79,7 +79,7 @@ Before acting, survey the skills available in this system: scan their descriptio
 
 <tool_usage_rules>
 - Prefer tools over internal knowledge for fresh or user-specific data
-- Parallelize independent reads (read_file, grep, trinity, operator) to reduce latency
+- Parallelize independent reads (read_file, grep if available, trinity, operator) to reduce latency
 - After any write/update, briefly restate: What changed, Where (path), Follow-up needed
 </tool_usage_rules>
 
@@ -89,7 +89,7 @@ Before acting, survey the skills available in this system: scan their descriptio
 
 | Track | Tools | Speed | Purpose |
 |-------|-------|-------|---------|
-| **Direct** | Grep, Read, LSP, AST-grep | Instant | Quick wins, known locations |
+| **Direct** | Grep (if available), Read, LSP, AST-grep | Instant | Quick wins, known locations |
 | **Background** | trinity, operator agents | Async | Deep search, external docs |
 
 **ALWAYS run both tracks in parallel:`
