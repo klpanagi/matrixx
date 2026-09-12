@@ -40,7 +40,7 @@ describe("createBuiltinMcps — new { mcps, failures } contract", () => {
     expect(result).toHaveProperty("failures")
     expect(result.mcps).toHaveProperty("websearch")
     expect(result.mcps).toHaveProperty("context7")
-    expect(result.mcps).toHaveProperty("grep_app")
+    expect(result.mcps).toHaveProperty("white_rabbit")
     expect(result.mcps).toHaveProperty("document_reader")
     expect(Object.keys(result.mcps)).toHaveLength(4)
     expect(result.failures).toHaveLength(0)
@@ -58,7 +58,7 @@ describe("createBuiltinMcps — new { mcps, failures } contract", () => {
     //#then
     expect(result.mcps).toHaveProperty("websearch")
     expect(result.mcps).not.toHaveProperty("context7")
-    expect(result.mcps).toHaveProperty("grep_app")
+    expect(result.mcps).toHaveProperty("white_rabbit")
     expect(result.mcps).toHaveProperty("document_reader")
     expect(Object.keys(result.mcps)).toHaveLength(3)
     expect(result.failures).toHaveLength(0)
@@ -66,7 +66,7 @@ describe("createBuiltinMcps — new { mcps, failures } contract", () => {
 
   test("filters out all built-in MCPs when all disabled", () => {
     //#given
-    const disabledMcps = ["websearch", "context7", "grep_app", "document_reader"]
+    const disabledMcps = ["websearch", "context7", "white_rabbit", "document_reader"]
 
     //#when
     const result = createBuiltinMcps(disabledMcps, undefined, {
@@ -90,7 +90,7 @@ describe("createBuiltinMcps — new { mcps, failures } contract", () => {
     //#then
     expect(result.mcps).toHaveProperty("websearch")
     expect(result.mcps).not.toHaveProperty("context7")
-    expect(result.mcps).toHaveProperty("grep_app")
+    expect(result.mcps).toHaveProperty("white_rabbit")
     expect(result.mcps).toHaveProperty("document_reader")
     expect(Object.keys(result.mcps)).toHaveLength(3)
   })
@@ -118,7 +118,7 @@ describe("createBuiltinMcps — defensive creation (S2/S3)", () => {
     expect(result.failures[0].error).toContain("TAVILY_API_KEY")
     // other MCPs unaffected
     expect(result.mcps).toHaveProperty("context7")
-    expect(result.mcps).toHaveProperty("grep_app")
+    expect(result.mcps).toHaveProperty("white_rabbit")
     expect(result.mcps).toHaveProperty("document_reader")
   })
 
@@ -135,7 +135,7 @@ describe("createBuiltinMcps — defensive creation (S2/S3)", () => {
     expect(result.failures[0].error).toContain("uvx")
     expect(result.mcps).toHaveProperty("websearch")
     expect(result.mcps).toHaveProperty("context7")
-    expect(result.mcps).toHaveProperty("grep_app")
+    expect(result.mcps).toHaveProperty("white_rabbit")
   })
 
   test("uvx present: document_reader stays enabled, no failure", () => {

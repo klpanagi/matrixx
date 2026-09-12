@@ -28,7 +28,7 @@ plugin-handlers/
 1. `applyProviderConfig` → Cache model context limits, detect anthropic-beta headers
 2. `loadPluginComponents` → Discover Claude Code plugins (10s timeout, error isolation)
 3. `applyAgentConfig` → Load all agents, `morpheus`/`oracle`/`plan` demotion, `tdd_enforcer` stripped from `availableSkills` if disabled, `task_system` gating for `Mouse` vs legacy todos
-4. `applyToolConfig` → Agent-specific tool permissions (grep_app, task, teammate)
+4. `applyToolConfig` → Agent-specific tool permissions (white_rabbit, task, teammate)
 5. `applyMcpConfig` → Merge builtin + Claude Code + plugin MCPs
 6. `applyCommandConfig` → Merge builtin + user + project + opencode commands/skills
 
@@ -54,7 +54,7 @@ When `morpheus_agent.planner_enabled === true`:
 
 | Agent | Special Permissions |
 |-------|---------------------|
-| operator | grep_app_* allowed |
+| operator | white_rabbit_* allowed |
 | architect | task, task_*, teammate allowed |
 | morpheus | task, task_*, teammate, question allowed |
 | keymaker | task, question allowed |

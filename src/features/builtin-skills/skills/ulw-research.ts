@@ -19,7 +19,7 @@ export const ulwResearchSkill: BuiltinSkill = {
     "look_at",
     "delegate_agent",
     "websearch_web_search_exa",
-    "grep_app_searchGitHub",
+    "white_rabbit_searchGitHub",
     "context7_resolve-library-id",
     "context7_query-docs",
   ],
@@ -130,7 +130,7 @@ task(
   prompt="""
 Search open source repositories for implementations related to: <CURRENT_LEAD>
 
-Use grep_app_searchGitHub to find real-world code patterns.
+Use white_rabbit_searchGitHub to find real-world code patterns.
 Focus on:
 - Production implementations in similar projects
 - Reference implementations or canonical examples

@@ -112,7 +112,7 @@ matrixx/
 │   ├── agents/        # AI agents (Morpheus, Merovingian, Operator, Trinity, etc.)
 │   ├── hooks/         # ~52 lifecycle hooks
 │   ├── tools/         # LSP (11), AST-Grep, Grep, Glob, etc.
-│   ├── mcp/           # MCP server integrations (context7, grep_app)
+│   ├── mcp/           # MCP server integrations (context7, white_rabbit)
 │   ├── features/      # Claude Code compatibility layers
 │   ├── config/        # Zod schemas and TypeScript types
 │   ├── auth/          # Google Antigravity OAuth

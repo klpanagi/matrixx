@@ -1,4 +1,4 @@
-export const grep_app = {
+export const white_rabbit = {
   type: "remote" as const,
   url: "https://mcp.grep.app",
   enabled: true,

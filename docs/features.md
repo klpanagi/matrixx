@@ -898,7 +898,7 @@ Real-time web search powered by [Exa AI](https://exa.ai).
 
 Official documentation lookup for any library/framework.
 
-### grep_app
+### white_rabbit
 
 Ultra-fast code search across public GitHub repos. Great for finding implementation examples.
 

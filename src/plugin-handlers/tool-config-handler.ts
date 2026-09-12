@@ -22,7 +22,7 @@ export function applyToolConfig(params: {
 
   params.config.tools = {
     ...(params.config.tools as Record<string, unknown>),
-    "grep_app_*": false,
+    "white_rabbit_*": false,
     LspHover: false,
     LspCodeActions: false,
     LspCodeActionResolve: false,
@@ -39,7 +39,7 @@ export function applyToolConfig(params: {
 
   const operator = agentByKey(params.agentResult, "operator");
   if (operator) {
-    operator.permission = { ...operator.permission, "grep_app_*": "allow" };
+    operator.permission = { ...operator.permission, "white_rabbit_*": "allow" };
   }
   const construct = agentByKey(params.agentResult, "construct");
   if (construct) {

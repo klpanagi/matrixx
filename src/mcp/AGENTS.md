@@ -5,7 +5,7 @@
 Tier 1 of two-tier MCP system: 4 built-in MCPs (3 remote HTTP + 1 local stdio).
 
 **Two-Tier System**:
-1. **Built-in** (this directory): websearch, context7, grep_app, document_reader
+1. **Built-in** (this directory): websearch, context7, white_rabbit, document_reader
 2. **Plugin-config / user-configured**: MCPs defined in plugin configuration
 
 ## STRUCTURE
@@ -26,7 +26,7 @@ mcp/
 |------|-----------|------|---------|
 | websearch | remote HTTP | EXA_API_KEY (optional) / TAVILY_API_KEY (required) | Real-time web search |
 | context7 | remote HTTP | CONTEXT7_API_KEY (optional) | Library docs lookup |
-| grep_app | remote HTTP | None | GitHub code search |
+| white_rabbit | remote HTTP | None | GitHub code search |
 | document_reader | local stdio (`uvx`) | None | Read PDF/DOCX/XLSX/PPTX/images → Markdown |
 
 ### document_reader Tool
@@ -78,5 +78,5 @@ export const mcp_name = {
 
 The `websearch` MCP uses deferred config construction (P1 optimization). `createWebsearchConfig(config?.websearch)` is wrapped in an `Object.defineProperty` getter on the returned `mcps` record (see `index.ts` ~line 28-40). Env vars (`EXA_API_KEY`, `TAVILY_API_KEY`) and provider selection only resolve when the consumer first reads `mcps.websearch`.
 
-The other three MCPs (context7, grep_app, document_reader) are static configs assigned eagerly.
+The other three MCPs (context7, white_rabbit, document_reader) are static configs assigned eagerly.
 

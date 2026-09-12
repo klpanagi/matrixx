@@ -25,7 +25,7 @@
   // ─────────────────────────────────────────────────────────────────────────
   // Disable specific built-in components — arrays of names to turn off.
   // ─────────────────────────────────────────────────────────────────────────
-  // "disabled_mcps": ["websearch", "context7", "grep_app"],
+  // "disabled_mcps": ["websearch", "context7", "white_rabbit"],
   // "disabled_agents": ["oracle", "construct"],
   // "disabled_skills": ["playwright"],
   // "disabled_hooks": ["comment-checker", "agent-usage-reminder", "input-secret-guard"],

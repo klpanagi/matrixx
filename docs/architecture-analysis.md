@@ -346,7 +346,7 @@ The cost tiers (free → cheap → normal → expensive) ensure agents are used 
 | **Parallel Agents** | ✅ Background tasks | ✅ Team Mode (up to 8) | ✅ Parallel | ❌ Sequential | N/A |
 | **Self-Loop** | Matrix Loop + todo continuation | Ralph Loop | upup-loop | Mission Loop | N/A |
 | **Config System** | Zod v4 + JSONC | Zod + JSONC | Zod + JSONC | JSON | None |
-| **MCP Servers** | 4 (websearch, context7, grep_app, document-reader) | 5 (+codegraph, git_bash) | 5 | Unknown | None |
+| **MCP Servers** | 4 (websearch, context7, white_rabbit, document-reader) | 5 (+codegraph, git_bash) | 5 | Unknown | None |
 | **Platform Packages** | 7 + 4 baseline | Multiple editions | ❌ | ❌ | ❌ |
 | **Test Coverage** | 262 files (~144k LOC) | Unknown | Unknown | Unknown | Unknown |
 

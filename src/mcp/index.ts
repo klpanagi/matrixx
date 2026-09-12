@@ -1,9 +1,9 @@
 import type { MatrixxConfig } from "../config/schema"
 import { context7 } from "./context7"
 import { document_reader } from "./document-reader"
-import { grep_app } from "./grep-app"
 import { isCommandAvailable, type McpCreationFailure, validateWebsearchConfig } from "./mcp-validator"
 import { createWebsearchConfig } from "./websearch"
+import { white_rabbit } from "./white-rabbit"
 
 export type { McpCreationFailure } from "./mcp-validator"
 export { type McpName, McpNameSchema } from "./types"
@@ -88,8 +88,8 @@ export function createBuiltinMcps(
     mcps.context7 = context7
   }
 
-  if (!disabledMcps.includes("grep_app")) {
-    mcps.grep_app = grep_app
+  if (!disabledMcps.includes("white_rabbit")) {
+    mcps.white_rabbit = white_rabbit
   }
 
   if (!disabledMcps.includes("document_reader")) {
