@@ -542,7 +542,7 @@ event:idle
 
 **Hook type:** `tool.execute.before` for `bash`. **Unconditional** (not gated on `task_system`).
 
-**Patterns:** `BLOCKED_PATTERNS` regex — `sed|python|echo|cat|mv` operating on `.matrixx/plans` or `.matrixx/tasks` paths. Throws — instructs to use `Edit` (hashline IDs) for `.matrixx/plans/*.md` and `task_create`/`task_update`/`task_cleanup` for `.matrixx/tasks/T-*.json`. `grep` read-only is allowed via `isOnlyGrep` check.
+**Patterns:** `BLOCKED_PATTERNS` regex — `sed|python|echo|cat|mv` operating on `.matrixx/plans` or `.matrixx/tasks` paths. Throws — instructs to use `plan_read`/`plan_update` (hashline IDs) for `.matrixx/plans/*.md` and `task_create`/`task_update`/`task_cleanup` for `.matrixx/tasks/T-*.json`. `grep` read-only is allowed via `isOnlyGrep` check.
 
 **Duplicate hook name:** `HookNameSchema` in `src/config/schema/hooks.ts` lists `task-edit-guard` twice (lines 66/67) — harmless but should be deduped.
 

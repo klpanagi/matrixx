@@ -203,7 +203,7 @@ describe("createWriteExistingFileGuardHook", () => {
      })
 
     describe(".matrixx/*.md exception", () => {
-      test("allows write to existing .matrixx/plans/plan.md", async () => {
+      test("blocks write to existing .matrixx/plans/plan.md (plan_* territory)", async () => {
         //#given
         const matrixDir = path.join(tempDir, ".matrixx", "plans")
         fs.mkdirSync(matrixDir, { recursive: true })
@@ -215,8 +215,8 @@ describe("createWriteExistingFileGuardHook", () => {
         //#when
         const result = hook["tool.execute.before"]?.(input as unknown as Record<string, unknown>, output as unknown as Record<string, unknown>)
 
-        //#then
-        await expect(result).resolves.toBeUndefined()
+        //#then write to plans is blocked — use plan_update instead
+        await expect(result).rejects.toThrow("File already exists")
       })
 
       test("allows write to existing .matrixx/notes.md", async () => {

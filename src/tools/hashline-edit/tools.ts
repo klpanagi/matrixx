@@ -11,6 +11,10 @@ interface HashlineEditArgs {
   rename?: string
 }
 
+function isPlansPath(filePath: string): boolean {
+  return filePath.toLowerCase().replace(/\\/g, "/").includes(".matrixx/plans")
+}
+
 export function createHashlineEditTool(ctx?: PluginContext): ToolDefinition {
   return tool({
     description: HASHLINE_EDIT_DESCRIPTION,
@@ -37,6 +41,14 @@ export function createHashlineEditTool(ctx?: PluginContext): ToolDefinition {
         )
         .describe("Array of edit operations to apply (empty when delete=true)"),
     },
-    execute: async (args: HashlineEditArgs, context: ToolContext) => executeHashlineEditTool(args, context, ctx),
+    execute: async (args: HashlineEditArgs, context: ToolContext) => {
+      if (isPlansPath(args.filePath) || (args.rename !== undefined && isPlansPath(args.rename))) {
+        throw new Error(
+          "Blocked: hashline-edit cannot modify files inside .matrixx/plans. " +
+            "Use plan_update for plan file edits (LINE#ID anchors supported) and plan_read for reading plan files."
+        )
+      }
+      return executeHashlineEditTool(args, context, ctx)
+    },
   })
 }
