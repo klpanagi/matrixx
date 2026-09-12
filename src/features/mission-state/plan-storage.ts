@@ -77,6 +77,7 @@ export function writePlanFile(directory: string, planPath: string, content: stri
  * For each `- [ ]` or `- [x]` line, finds the matching todo by content
  * and marks it completed if the todo status is completed/cancelled.
  * Lines without a matching todo keep their current state.
+ * Checked boxes are never unchecked — sync only transitions [ ] → [x].
  */
 export function syncCheckboxes(
   content: string,
@@ -84,12 +85,15 @@ export function syncCheckboxes(
 ): string {
   const completedStatuses = new Set(["completed", "cancelled", "deleted"])
   return content.replace(
-    /^(\s*[-*]\s*)\[[ xX]\]\s*(.*)$/gm,
-    (_match: string, prefix: string, text: string) => {
+    /^(\s*[-*]\s*)\[([ xX])\]\s*(.*)$/gm,
+    (_match: string, prefix: string, current: string, text: string) => {
       const todo = todos.find(
         (t) => text.includes(t.content) || t.content.includes(text),
       )
-      const done = todo !== undefined && completedStatuses.has(todo.status)
+      // No matching todo → preserve current state (never revert manual marks)
+      if (todo === undefined) return `${prefix}[${current}] ${text}`
+      // Only check, never uncheck: a checked box stays checked
+      const done = completedStatuses.has(todo.status) || current.toLowerCase() === "x"
       return `${prefix}[${done ? "x" : " "}] ${text}`
     },
   )
