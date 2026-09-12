@@ -97,14 +97,15 @@ describe("syncCheckboxes", () => {
     expect(result).toBe("- [x] Task one\n- [ ] Task two")
   })
 
-  it("unmarks a completed todo if it's pending again", () => {
+  it("keeps a completed box checked even if the todo regresses to pending", () => {
     const content = "- [x] Task one\n- [x] Task two"
     const todos = [
       { content: "Task one", status: "pending" },
       { content: "Task two", status: "cancelled" },
     ]
     const result = syncCheckboxes(content, todos)
-    expect(result).toBe("- [ ] Task one\n- [x] Task two")
+    // Checked boxes are never unchecked — sync only transitions [ ] → [x]
+    expect(result).toBe("- [x] Task one\n- [x] Task two")
   })
 
   it("handles multiple checkboxes in the same file", () => {
