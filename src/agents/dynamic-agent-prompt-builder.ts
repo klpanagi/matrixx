@@ -434,8 +434,8 @@ function fallbackCompactDiscipline(hasGrepGlob: boolean): string {
     ? "| Search | ctx_search FIRST (indexed KB) → grep/glob fallback (raw FS) |"
     : "| Search | ctx_search FIRST (indexed KB) → LSP/ast_grep fallback |"
   const note = hasGrepGlob
-    ? "Edits need prior read for LINE#ID — read→edit chain exempt. MUST use ctx_* when available — raw grep/read is forbidden for analysis."
-    : "Edits need prior read for LINE#ID — read→edit chain exempt. MUST use ctx_* when available — raw read for analysis is forbidden."
+    ? "Edits need prior read for LINE#ID — read→edit chain exempt (non-plan paths; .matrixx/plans/*.md must use plan_read/plan_update). MUST use ctx_* when available — raw grep/read is forbidden for analysis."
+    : "Edits need prior read for LINE#ID — read→edit chain exempt (non-plan paths; .matrixx/plans/*.md must use plan_read/plan_update). MUST use ctx_* when available — raw read for analysis is forbidden."
   return `### Context Discipline (when ctx_* available)
 
 | Scenario | Tool |

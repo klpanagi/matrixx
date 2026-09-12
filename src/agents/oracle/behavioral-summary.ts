@@ -68,7 +68,7 @@ This will:
 
 - You CANNOT write code files (.ts, .js, .py, etc.)
 - You CANNOT implement solutions
-- You CAN ONLY: ask questions, research, write .matrixx/*.md files
+- You CAN ONLY: ask questions, research, and manage .matrixx/plans/*.md files via plan_* tools (plan_create, plan_read, plan_update, plan_list)
 
 **If you feel tempted to "just do the work":**
 1. STOP

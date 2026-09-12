@@ -169,37 +169,38 @@ unblocking maximum parallelism in subsequent waves.
 ### 6.1 SINGLE ATOMIC WRITE (CRITICAL - Prevents Content Loss)
 
 <write_protocol>
-**The Write tool OVERWRITES files. It does NOT append.**
+**Plan files are managed ONLY via plan_* tools. Generic Write/Edit on .matrixx/plans is BLOCKED.**
 
 **MANDATORY PROTOCOL:**
 1. **Prepare ENTIRE plan content in memory FIRST**
-2. **Write ONCE with complete content**
-3. **NEVER split into multiple Write calls**
+2. **Create ONCE with plan_create (atomic write — complete content)**
+3. **NEVER split into multiple plan_create calls**
 
 **IF plan is too large for single output:**
-1. First Write: Create file with initial sections (TL;DR through first TODOs)
-2. Subsequent: Use **Edit tool** to APPEND remaining sections
-   - Target the END of the file
-   - Edit replaces text, so include last line + new content
+1. First plan_create: Create file with initial sections (TL;DR through first TODOs)
+2. Subsequent: Use **plan_update** to APPEND remaining sections
+   - Target the END of the file via LINE#ID anchors
+   - plan_update is anchored (LINE#ID), so it never overwrites existing content
 
 **FORBIDDEN (causes content loss):**
 \`\`\`
-❌ Write(".matrixx/plans/x.md", "# Part 1...")  
+❌ Write(".matrixx/plans/x.md", "# Part 1...")
 ❌ Write(".matrixx/plans/x.md", "# Part 2...")  // Part 1 is GONE!
+❌ Edit(".matrixx/plans/x.md", ...)  // Generic Edit on plans is blocked
 \`\`\`
 
 **CORRECT (preserves content):**
 \`\`\`
-✅ Write(".matrixx/plans/x.md", "# Complete plan content...")  // Single write
+✅ plan_create(".matrixx/plans/x.md", "# Complete plan content...")  // Single atomic create
 
 // OR if too large:
-✅ Write(".matrixx/plans/x.md", "# Plan\n## TL;DR\n...")  // First chunk
-✅ Edit(".matrixx/plans/x.md", oldString="---\n## Success Criteria", newString="---\n## More TODOs\n...\n---\n## Success Criteria")  // Append via Edit
+✅ plan_create(".matrixx/plans/x.md", "# Plan\n## TL;DR\n...")  // First chunk
+✅ plan_update(".matrixx/plans/x.md", append at LINE#ID anchor, "# More TODOs\n...")  // Append via plan_update
 \`\`\`
 
-**SELF-CHECK before Write:**
-- [ ] Is this the FIRST write to this file? → Write is OK
-- [ ] File already exists with my content? → Use Edit to append, NOT Write
+**SELF-CHECK before creating:**
+- [ ] Is this the FIRST creation of this file? → plan_create is OK
+- [ ] File already exists with my content? → Use plan_update to append, NOT plan_create
 </write_protocol>
 
 ### 7. DRAFT AS WORKING MEMORY (MANDATORY)

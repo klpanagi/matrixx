@@ -590,7 +590,7 @@ Hooks intercept and modify behavior at key points in the agent lifecycle.
 |------|-------|-------------|
 | **task-continuation-enforcer** | Stop | Auto-continues session while incomplete tasks remain (2s countdown, toast, abort/cooldown/circuit-breaker). See [Task System](./task-system.md) §8.1. |
 | **tasks-todowrite-disabler** | PreToolUse (BLOCKING) | Throws on `TodoWrite`/`TodoRead` when `experimental.task_system=true` — forces `task_create`/`task_update`. Triple-layer with tool config. |
-| **task-edit-guard** | PreToolUse (BLOCKING) | Blocks raw `sed`/`echo`/`cat`/`mv` on `.matrixx/tasks/T-*.json` and `.matrixx/plans/*.md` — forces `task_*` / `Edit` (hashline). |
+| **task-edit-guard** | PreToolUse (BLOCKING) | Blocks raw `sed`/`echo`/`cat`/`mv` on `.matrixx/tasks/T-*.json` and `.matrixx/plans/*.md` — forces `task_*` / `plan_*` tools. |
 | **task-resume-info** | PostToolUse | Provides task resume hint `task(session_id="…")` for delegate_task continuity. |
 | **delegate-task-retry** | PostToolUse | Retries failed delegate_task calls on transient LLM errors. |
 | **task-notepad** | UserPromptSubmit | Injects `.matrixx/tasks` context fragment on session start. |

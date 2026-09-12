@@ -2,7 +2,7 @@ export const START_WORK_TEMPLATE = `You are starting a Morpheus work session.
 
 ## WHAT TO DO
 
-1. **Find available plans**: Search for Oracle-generated plan files at \`.matrixx/plans/\`
+1. **Find available plans**: List Oracle-generated plan files via plan_list at \`.matrixx/plans/\`
 
 2. **Check for active mission state**: Read \`.matrixx/mission.json\` if it exists
 
@@ -11,7 +11,7 @@ export const START_WORK_TEMPLATE = `You are starting a Morpheus work session.
      - **APPEND** current session to session_ids
      - Continue work on existing plan
    - If no active plan OR plan is complete:
-     - List available plan files
+     - List available plan files via plan_list
      - If ONE plan: auto-select it
      - If MULTIPLE plans: show list with timestamps, ask user to select
 
@@ -25,7 +25,7 @@ export const START_WORK_TEMPLATE = `You are starting a Morpheus work session.
    }
    \`\`\`
 
-5. **Read the plan file** and start executing tasks according to architect workflow
+5. **Read the plan file via plan_read** and start executing tasks according to architect workflow
 
 ## OUTPUT FORMAT
 
@@ -68,5 +68,5 @@ Reading plan and beginning execution...
 
 - The session_id is injected by the hook - use it directly
 - Always update mission.json BEFORE starting work
-- Read the FULL plan file before delegating any tasks
+- Read the FULL plan file via plan_read before delegating any tasks
 - Follow architect delegation protocols (7-section format)`

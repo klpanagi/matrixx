@@ -1,7 +1,7 @@
 export const HOOK_NAME = "context-mode-enforcer"
 
 export const WARN_MESSAGE_READ =
-  "Use ctx_search / ctx_batch_execute / ctx_execute for analysis — raw read/grep/glob bypasses FTS5 sandbox and pollutes context. Use Read only with hashline IDs for Edit."
+  "Use ctx_search / ctx_batch_execute / ctx_execute for analysis — raw read/grep/glob bypasses FTS5 sandbox and pollutes context. Use Read only with hashline IDs for Edit (non-plan paths; .matrixx/plans/*.md must use plan_read/plan_update)."
 
 export const BLOCK_MESSAGE_GREP_GLOB =
   "Blocked: raw grep/glob is forbidden when context-mode is enforced. Use ctx_search (indexed) → grep/glob fallback only when ctx_* unavailable, or ctx_batch_execute / ctx_execute for multi-file analysis."

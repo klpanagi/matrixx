@@ -46,6 +46,7 @@ export function createToolExecuteBeforeHandler(args: {
   const secretLeakGuardHook = hooks.secretLeakGuard?.["tool.execute.before"]
   const envFileWriteGuardHook = hooks.envFileWriteGuard?.["tool.execute.before"]
   const writeExistingFileGuardHook = hooks.writeExistingFileGuard?.["tool.execute.before"]
+  const taskEditGuardHook = hooks.taskEditGuard?.["tool.execute.before"]
   const tasksTodowriteDisablerHook = hooks.tasksTodowriteDisabler?.["tool.execute.before"]
   const oracleMdOnlyHook = hooks.oracleMdOnly?.["tool.execute.before"]
   const contextModeEnforcerHook = (hooks as Record<string, { "tool.execute.before"?: (input: unknown, output: unknown) => Promise<void> }>).contextModeEnforcer?.["tool.execute.before"]
@@ -93,6 +94,7 @@ const rtkBashRewriterHook = hooks.rtkBashRewriter?.["tool.execute.before"]
       secretLeakGuardHook?.(input, output),
       envFileWriteGuardHook?.(input, output),
       writeExistingFileGuardHook?.(input, output),
+      taskEditGuardHook?.(input, output),
       tasksTodowriteDisablerHook?.(input, output),
       oracleMdOnlyHook?.(input, output),
       contextModeEnforcerHook?.(input as never, output as never),

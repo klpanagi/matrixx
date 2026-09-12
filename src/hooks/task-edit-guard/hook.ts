@@ -1,26 +1,44 @@
 import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 
 import { log } from "../../shared"
-import { BLOCKED_PATTERNS, HOOK_NAME, PLAN_WRITE_WARN } from "./constants"
+import { BLOCKED_PATTERNS, HOOK_NAME, PLAN_READ_WARN, PLAN_WRITE_WARN } from "./constants"
 
 export function createTaskEditGuardHook(ctx: PluginInput): Hooks {
   return {
     "tool.execute.before": async (input, output: { args: Record<string, unknown>; message?: string }): Promise<void> => {
       const tool = input.tool?.toLowerCase()
 
-      // WARN for generic Write/Edit to .matrixx/plans/*.md — suggest plan_* until v2.8 (no throw)
+      // BLOCK generic Write/Edit to .matrixx/plans/*.md — force plan_* tools
       if (tool === "write" || tool === "edit") {
         const args = output.args as unknown as Record<string, unknown>
         const filePath = (args?.filePath ?? args?.path ?? args?.file) as string | undefined
         if (filePath) {
           const normalized = filePath.toLowerCase().replace(/\\/g, "/")
           if (normalized.includes(".matrixx/plans")) {
-            log(`[${HOOK_NAME}] WARN generic Write/Edit to .matrixx/plans — suggest plan_*`, {
+            log(`[${HOOK_NAME}] BLOCKED generic Write/Edit to .matrixx/plans — use plan_*`, {
               sessionID: input.sessionID,
               tool: input.tool,
               filePath,
             })
-            output.message = (output.message ? `${output.message} ` : "") + PLAN_WRITE_WARN
+            throw new Error(PLAN_WRITE_WARN)
+          }
+        }
+        return
+      }
+
+      // BLOCK generic Read to .matrixx/plans/*.md — force plan_read
+      if (tool === "read") {
+        const args = output.args as unknown as Record<string, unknown>
+        const filePath = (args?.filePath ?? args?.path ?? args?.file) as string | undefined
+        if (filePath) {
+          const normalized = filePath.toLowerCase().replace(/\\/g, "/")
+          if (normalized.includes(".matrixx/plans")) {
+            log(`[${HOOK_NAME}] BLOCKED generic Read to .matrixx/plans — use plan_read`, {
+              sessionID: input.sessionID,
+              tool: input.tool,
+              filePath,
+            })
+            throw new Error(PLAN_READ_WARN)
           }
         }
         return
@@ -56,7 +74,7 @@ export function createTaskEditGuardHook(ctx: PluginInput): Hooks {
 
       throw new Error(
         "Blocked: raw bash edit to plan/task files. " +
-          "Use Edit (hashline IDs) for .matrixx/plans/*.md and task_create/task_update/task_cleanup for .matrixx/tasks/T-*.json — raw bash sed/python bypasses project-scoped task system",
+          "Use plan_update (hashline IDs) for .matrixx/plans/*.md and task_create/task_update/task_cleanup for .matrixx/tasks/T-*.json — raw bash sed/python bypasses project-scoped task system",
       )
     },
   }

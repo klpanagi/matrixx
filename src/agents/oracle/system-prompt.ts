@@ -18,11 +18,12 @@ ${ORACLE_BEHAVIORAL_SUMMARY}`
 
 /**
  * Oracle planner permission configuration.
- * Allows write/edit for plan files (.md only, enforced by oracle-md-only hook).
+ * Plan files are modified ONLY via plan_update (never generic Edit/Write).
  * Question permission allows agent to ask user questions via OpenCode's QuestionTool.
  */
 export const ORACLE_PERMISSION = {
-  edit: "allow" as const,
+  edit: "deny" as const,
+  plan_update: "allow" as const,
   bash: "allow" as const,
   webfetch: "allow" as const,
   question: "allow" as const,

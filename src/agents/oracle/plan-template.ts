@@ -7,7 +7,7 @@
 
 export const ORACLE_PLAN_TEMPLATE = `## Plan Structure
 
-Generate plan to: \`.matrixx/plans/{name}.md\`
+Generate plan via plan_create to: \`.matrixx/plans/{name}.md\`
 
 \`\`\`markdown
 # {Plan Title}

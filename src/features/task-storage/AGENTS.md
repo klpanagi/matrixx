@@ -84,5 +84,5 @@ Sync triggers: `task_create`, `task_update`.
 - Skipping lock acquisition for writes
 - Using old field names (title → subject, dependsOn → blockedBy)
 - Deleting or committing `.matrixx/tasks` — `.matrixx/` is gitignored for per-project isolation, do not track task files
-- Raw bash `sed`/`python` on `.matrixx/plans/*.md` checkboxes (`- [ ]` -> `- [x]`) -> use `Read` -> `Edit` with hashline `LINE#ID`; `plan-persister` tracks `todoCompleted` via `- [x]` count, not `T-*.json` tasks
+- Raw bash `sed`/`python` on `.matrixx/plans/*.md` checkboxes (`- [ ]` -> `- [x]`) -> use `plan_read` -> `plan_update` with hashline `LINE#ID`; `plan-persister` tracks `todoCompleted` via `- [x]` count, not `T-*.json` tasks
 - Raw bash `echo`/`cat >`/`rm`/`sed`/`python` on `.matrixx/tasks/T-*.json` -> use `task_create`/`task_update`/`task_get`/`task_list`/`task_cleanup` (project-scoped via `getTaskDir(config, directory)`); `task-edit-guard` (`tool.execute.before` on `bash` with `BLOCKED_PATTERNS`) blocks bypass
