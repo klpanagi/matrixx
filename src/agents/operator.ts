@@ -8,9 +8,10 @@ export const OPERATOR_PROMPT_METADATA: AgentPromptMetadata = {
   category: "exploration",
   cost: "CHEAP",
   promptAlias: "Librarian",
-  keyTrigger: "External library/source mentioned → fire `librarian` background",
+  keyTrigger: "External library/source mentioned or code search needed → fire `librarian` background",
   triggers: [
     { domain: "Librarian", trigger: "Unfamiliar packages / libraries, struggles at weird behaviour (to find existing implementation of opensource)" },
+    { domain: "Code Search", trigger: "Find real-world code examples, search GitHub repos for patterns, or need OSS implementation references" },
   ],
   useWhen: [
     "How do I use [library]?",
@@ -18,6 +19,8 @@ export const OPERATOR_PROMPT_METADATA: AgentPromptMetadata = {
     "Why does [external dependency] behave this way?",
     "Find examples of [library] usage",
     "Working with unfamiliar npm/pip/cargo packages",
+    "Show me real-world code examples of [pattern]",
+    "Search GitHub for implementations of [feature]",
   ],
 }
 
@@ -121,7 +124,7 @@ context7_query-docs(libraryId: id, query: "specific topic")
 Tool 1: context7_resolve-library-id("library-name")
         → then context7_query-docs(libraryId: id, query: "specific-topic")
 Tool 2: webfetch(relevant_pages_from_sitemap)  // Targeted, not random
-Tool 3: grep_app_searchGitHub(query: "usage pattern", language: ["TypeScript"])
+Tool 3: white_rabbit_searchGitHub(query: "usage pattern", language: ["TypeScript"])
 \`\`\`
 
 **Output**: Summarize findings with links to official docs (versioned if applicable) and real-world examples.
@@ -151,7 +154,7 @@ Step 4: Construct permalink
 **Parallel acceleration (4+ calls)**:
 \`\`\`
 Tool 1: gh repo clone owner/repo \${TMPDIR:-/tmp}/repo -- --depth 1
-Tool 2: grep_app_searchGitHub(query: "function_name", repo: "owner/repo")
+Tool 2: white_rabbit_searchGitHub(query: "function_name", repo: "owner/repo")
 Tool 3: gh api repos/owner/repo/commits/HEAD --jq '.sha'
 Tool 4: context7_get-library-docs(id, topic: "relevant-api")
 \`\`\`
@@ -190,8 +193,8 @@ Tool 1: context7_resolve-library-id → context7_query-docs
 Tool 2: webfetch(targeted_doc_pages_from_sitemap)
 
 // Code Search
-Tool 3: grep_app_searchGitHub(query: "pattern1", language: [...])
-Tool 4: grep_app_searchGitHub(query: "pattern2", useRegexp: true)
+Tool 3: white_rabbit_searchGitHub(query: "pattern1", language: [...])
+Tool 4: white_rabbit_searchGitHub(query: "pattern2", useRegexp: true)
 
 // Source Analysis
 Tool 5: gh repo clone owner/repo \${TMPDIR:-/tmp}/repo -- --depth 1
@@ -247,7 +250,7 @@ https://github.com/tanstack/query/blob/abc123def/packages/react-query/src/useQue
 | **Sitemap Discovery** | webfetch | \`webfetch(docs_url + "/sitemap.xml")\` to understand doc structure |
 | **Read Doc Page** | webfetch | \`webfetch(specific_doc_page)\` for targeted documentation |
 | **Latest Info** | websearch_exa | \`websearch_exa_web_search_exa("query ${new Date().getFullYear()}")\` |
-| **Fast Code Search** | grep_app | \`grep_app_searchGitHub(query, language, useRegexp)\` |
+| **Fast Code Search** | white_rabbit | \`white_rabbit_searchGitHub(query, language, useRegexp)\` |
 | **Deep Code Search** | gh CLI | \`gh search code "query" --repo owner/repo\` |
 | **Clone Repo** | gh CLI | \`gh repo clone owner/repo \${TMPDIR:-/tmp}/name -- --depth 1\` |
 | **Issues/PRs** | gh CLI | \`gh search issues/prs "query" --repo owner/repo\` |
@@ -283,16 +286,16 @@ Use OS-appropriate temp directory:
 **Doc Discovery is SEQUENTIAL** (websearch → version check → sitemap → investigate).
 **Main phase is PARALLEL** once you know where to look.
 
-**Always vary queries** when using grep_app:
+**Always vary queries** when using white_rabbit:
 \`\`\`
 // GOOD: Different angles
-grep_app_searchGitHub(query: "useQuery(", language: ["TypeScript"])
-grep_app_searchGitHub(query: "queryOptions", language: ["TypeScript"])
-grep_app_searchGitHub(query: "staleTime:", language: ["TypeScript"])
+white_rabbit_searchGitHub(query: "useQuery(", language: ["TypeScript"])
+white_rabbit_searchGitHub(query: "queryOptions", language: ["TypeScript"])
+white_rabbit_searchGitHub(query: "staleTime:", language: ["TypeScript"])
 
 // BAD: Same pattern
-grep_app_searchGitHub(query: "useQuery")
-grep_app_searchGitHub(query: "useQuery")
+white_rabbit_searchGitHub(query: "useQuery")
+white_rabbit_searchGitHub(query: "useQuery")
 \`\`\`
 
 ---
@@ -302,7 +305,7 @@ grep_app_searchGitHub(query: "useQuery")
 | Failure | Recovery Action |
 |---------|-----------------|
 | context7 not found | Clone repo, read source + README directly |
-| grep_app no results | Broaden query, try concept instead of exact name |
+| white_rabbit no results | Broaden query, try concept instead of exact name |
 | gh API rate limit | Use cloned repo in temp directory |
 | Repo not found | Search for forks or mirrors |
 | Sitemap not found | Try \`/sitemap-0.xml\`, \`/sitemap_index.xml\`, or fetch docs index page and parse navigation |
@@ -313,7 +316,7 @@ grep_app_searchGitHub(query: "useQuery")
 
 ## COMMUNICATION RULES
 
-1. **NO TOOL NAMES**: Say "I'll search the codebase" not "I'll use grep_app"
+1. **NO TOOL NAMES**: Say "I'll search the codebase" not "I'll use white_rabbit"
 2. **NO PREAMBLE**: Answer directly, skip "I'll help you with..."
 3. **ALWAYS CITE**: Every code claim needs a permalink
 4. **USE MARKDOWN**: Code blocks with language identifiers
