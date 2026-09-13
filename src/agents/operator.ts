@@ -8,9 +8,10 @@ export const OPERATOR_PROMPT_METADATA: AgentPromptMetadata = {
   category: "exploration",
   cost: "CHEAP",
   promptAlias: "Librarian",
-  keyTrigger: "External library/source mentioned → fire `librarian` background",
+  keyTrigger: "External library/source mentioned or code search needed → fire `librarian` background",
   triggers: [
     { domain: "Librarian", trigger: "Unfamiliar packages / libraries, struggles at weird behaviour (to find existing implementation of opensource)" },
+    { domain: "Code Search", trigger: "Find real-world code examples, search GitHub repos for patterns, or need OSS implementation references" },
   ],
   useWhen: [
     "How do I use [library]?",
@@ -18,6 +19,8 @@ export const OPERATOR_PROMPT_METADATA: AgentPromptMetadata = {
     "Why does [external dependency] behave this way?",
     "Find examples of [library] usage",
     "Working with unfamiliar npm/pip/cargo packages",
+    "Show me real-world code examples of [pattern]",
+    "Search GitHub for implementations of [feature]",
   ],
 }
 
